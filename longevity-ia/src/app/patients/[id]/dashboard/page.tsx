@@ -8,7 +8,7 @@ import type { Patient, LabResult } from '@/types'
 import Link from 'next/link'
 import { Upload, ArrowLeft } from 'lucide-react'
 
-async function getServerData(patientId: string, resultId?: string) {
+async function getServerData(patientId: string, resultId?: string): Promise<{ patient: Patient | null; result: LabResult | null }> {
   try {
     const supabase = await createServerComponentClient()
 
