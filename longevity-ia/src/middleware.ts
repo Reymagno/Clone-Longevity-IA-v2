@@ -3,12 +3,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Si faltan las variables de entorno, dejar pasar sin bloquear
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.next({ request })
+  }
+
   let response = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -21,22 +26,26 @@ export async function middleware(request: NextRequest) {
           )
         },
       },
+    })
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const isLoginPage = request.nextUrl.pathname === '/login'
+    const isProtected = request.nextUrl.pathname.startsWith('/patients')
+
+    // Si ruta protegida y sin sesión → redirige a login
+    if (isProtected && !user) {
+      return NextResponse.redirect(new URL('/login', request.url))
     }
-  )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const isLoginPage = request.nextUrl.pathname === '/login'
-  const isProtected = request.nextUrl.pathname.startsWith('/patients')
-
-  // Si ruta protegida y sin sesión → redirige a login
-  if (isProtected && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Si ya tiene sesión y va al login → redirige a pacientes
-  if (isLoginPage && user) {
-    return NextResponse.redirect(new URL('/patients', request.url))
+    // Si ya tiene sesión y va al login → redirige a pacientes
+    if (isLoginPage && user) {
+      return NextResponse.redirect(new URL('/patients', request.url))
+    }
+  } catch (error) {
+    // Si el middleware falla (error de red, Supabase caído, etc.),
+    // dejar pasar la request para no bloquear a los usuarios
+    console.error('[middleware] Error:', error)
   }
 
   return response
