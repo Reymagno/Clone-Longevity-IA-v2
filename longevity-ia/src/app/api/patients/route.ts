@@ -2,7 +2,12 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
-import { generatePatientCode } from '@/lib/supabase/queries'
+
+function generatePatientCode(): string {
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
+  return `LNG-${timestamp}-${random}`
+}
 
 export async function GET(request: NextRequest) {
   const supabase = createClientFromRequest(request)
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Talla inválida' }, { status: 400 })
   }
 
-  const code = await generatePatientCode()
+  const code = generatePatientCode()
 
   const { data, error } = await supabase
     .from('patients')
