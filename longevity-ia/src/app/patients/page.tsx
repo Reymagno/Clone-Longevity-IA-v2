@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useCallback } from 'react'
 import { PatientCard } from '@/components/patients/PatientCard'
 import { NewPatientModal } from '@/components/patients/NewPatientModal'
