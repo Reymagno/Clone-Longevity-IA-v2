@@ -16,7 +16,7 @@ export async function getPatients(): Promise<PatientWithLatestResult[]> {
   return (data || []).map((patient) => {
     const { lab_results, ...patientData } = patient as typeof patient & { lab_results: LabResult[] }
     const sorted = (lab_results || []).sort(
-      (a, b) => new Date(b.result_date).getTime() - new Date(a.result_date).getTime()
+      (a: LabResult, b: LabResult) => new Date(b.result_date).getTime() - new Date(a.result_date).getTime()
     )
     return {
       ...patientData,
