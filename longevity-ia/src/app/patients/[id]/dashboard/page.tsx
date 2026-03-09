@@ -1,0 +1,80 @@
+export const dynamic = 'force-dynamic'
+
+import { Suspense } from 'react'
+import { notFound } from 'next/navigation'
+import { createServerComponentClient } from '@/lib/supabase/server'
+import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
+import type { Patient, LabResult } from '@/types'
+import Link from 'next/link'
+import { Upload, ArrowLeft } from 'lucide-react'
+
+async function getServerData(patientId: string, resultId?: string) {
+  try {
+    const supabase = await createServerComponentClient()
+
+    const [patientRes, resultsRes] = await Promise.all([
+      supabase.from('patients').select('*').eq('id', patientId).maybeSingle(),
+      resultId
+        ? supabase.from('lab_results').select('*').eq('id', resultId).maybeSingle()
+        : supabase
+            .from('lab_results')
+            .select('*')
+            .eq('patient_id', patientId)
+            .order('result_date', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+    ])
+
+    return {
+      patient: (patientRes.data as Patient) ?? null,
+      result: (resultsRes.data as LabResult) ?? null,
+    }
+  } catch {
+    return { patient: null, result: null }
+  }
+}
+
+export default async function DashboardPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { tab?: string; resultId?: string }
+}) {
+  const { patient, result } = await getServerData(params.id, searchParams.resultId)
+
+  if (!patient) notFound()
+
+  if (!result) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 text-center px-4">
+        <p className="text-2xl font-bold text-foreground">Sin resultados aún</p>
+        <p className="text-muted-foreground">
+          {patient.name} no tiene estudios de laboratorio subidos todavía.
+        </p>
+        <div className="flex gap-3">
+          <Link
+            href="/patients"
+            className="inline-flex items-center gap-2 border border-border text-foreground font-medium px-5 py-2.5 rounded-lg hover:bg-muted/40 transition-all text-sm"
+          >
+            <ArrowLeft size={16} />
+            Volver
+          </Link>
+          <Link
+            href={`/patients/${params.id}/upload`}
+            className="inline-flex items-center gap-2 bg-accent text-background font-medium px-5 py-2.5 rounded-lg hover:bg-accent/90 transition-all text-sm"
+          >
+            <Upload size={16} />
+            Subir Estudio
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Cargando dashboard...</div>}>
+      <DashboardTabs patient={patient} result={result} />
+    </Suspense>
+  )
+}

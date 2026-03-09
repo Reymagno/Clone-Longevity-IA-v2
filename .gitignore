@@ -1,0 +1,18 @@
+# Variables de entorno
+.env
+.env.local
+.env*.local
+
+# Dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Vercel
+.vercel
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

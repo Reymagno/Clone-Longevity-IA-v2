@@ -1,0 +1,283 @@
+'use client'
+
+import { useState, useCallback, useEffect, useRef, type ElementType } from 'react'
+import { useRouter } from 'next/navigation'
+import { FileUploader } from '@/components/upload/FileUploader'
+import { Button } from '@/components/ui/button'
+import { ProgressRing } from '@/components/ui/progress-ring'
+import { toast } from 'sonner'
+import {
+  Dna, ArrowLeft, Calendar, Cpu,
+  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles
+} from 'lucide-react'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase/client'
+import type { Patient } from '@/types'
+
+type AnalysisStep = 'idle' | 'uploading' | 'reading' | 'analyzing' | 'saving' | 'done' | 'error'
+
+const STEPS: { step: AnalysisStep; label: string; sublabel: string; icon: ElementType; color: string; target: number }[] = [
+  { step: 'uploading', label: 'Subiendo archivo',     sublabel: 'Guardando en la nube...',         icon: Upload,     color: '#38bdf8', target: 20 },
+  { step: 'reading',   label: 'Extrayendo datos',     sublabel: 'Leyendo biomarcadores...',         icon: FileSearch, color: '#a78bfa', target: 40 },
+  { step: 'analyzing', label: 'IA analizando',        sublabel: 'Generando diagnóstico clínico...', icon: Brain,      color: '#00e5a0', target: 90 },
+  { step: 'saving',    label: 'Guardando resultados', sublabel: 'Preparando tu dashboard...',       icon: Save,       color: '#f5a623', target: 97 },
+  { step: 'done',      label: '¡Análisis listo!',     sublabel: 'Redirigiendo al dashboard...',    icon: Sparkles,   color: '#00e5a0', target: 100 },
+]
+
+function getStepInfo(step: AnalysisStep) {
+  return STEPS.find(s => s.step === step) ?? STEPS[2]
+}
+
+export default function UploadPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const [files, setFiles] = useState<File[]>([])
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [step, setStep] = useState<AnalysisStep>('idle')
+  const [progress, setProgress] = useState(0)
+  const analyzeIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    supabase.from('patients').select('*').eq('id', params.id).single()
+      .then(({ data }) => setPatient(data))
+  }, [params.id])
+
+  // Animación lenta durante el análisis de la IA
+  useEffect(() => {
+    if (step === 'analyzing') {
+      analyzeIntervalRef.current = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 89) {
+            clearInterval(analyzeIntervalRef.current!)
+            return 89
+          }
+          // Avanza más rápido al principio, más lento al final
+          const increment = prev < 60 ? 0.4 : prev < 80 ? 0.2 : 0.05
+          return prev + increment
+        })
+      }, 800)
+    }
+    return () => {
+      if (analyzeIntervalRef.current) clearInterval(analyzeIntervalRef.current)
+    }
+  }, [step])
+
+  const goToProgress = useCallback((newStep: AnalysisStep) => {
+    setStep(newStep)
+    const info = getStepInfo(newStep)
+    if (newStep !== 'analyzing') {
+      setProgress(info.target)
+    }
+  }, [])
+
+  const isAnalyzing = ['uploading', 'reading', 'analyzing', 'saving', 'done'].includes(step)
+
+  const handleAnalyze = useCallback(async () => {
+    if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return }
+
+    goToProgress('uploading')
+
+    try {
+      const formData = new FormData()
+      files.forEach(f => formData.append('files', f))
+      formData.append('patientId', params.id)
+      formData.append('resultDate', date)
+
+      goToProgress('reading')
+      await new Promise(r => setTimeout(r, 600))
+
+      goToProgress('analyzing')
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      })
+
+      goToProgress('saving')
+      await new Promise(r => setTimeout(r, 500))
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Error en el análisis')
+
+      setProgress(100)
+      setStep('done')
+      toast.success('¡Análisis completado!')
+
+      setTimeout(() => {
+        router.push(`/patients/${params.id}/dashboard?resultId=${data.resultId}`)
+      }, 1800)
+
+    } catch (err) {
+      setStep('error')
+      setProgress(0)
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      toast.error(msg)
+    }
+  }, [files, date, params.id, router, goToProgress])
+
+  const currentStepInfo = step !== 'idle' && step !== 'error' ? getStepInfo(step) : null
+  const ringColor = currentStepInfo?.color ?? '#00e5a0'
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-card">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
+          <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={18} />
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+              <Dna size={16} className="text-background" />
+            </div>
+            <span className="font-semibold text-foreground">
+              {patient ? `${patient.name} — Subir Estudio` : 'Longevity IA'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+
+        {/* Vista de análisis en progreso */}
+        {isAnalyzing ? (
+          <div className="flex flex-col items-center animate-fade-in">
+
+            {/* Círculo de progreso principal */}
+            <div className="mb-8">
+              <ProgressRing
+                progress={progress}
+                size={240}
+                strokeWidth={16}
+                color={ringColor}
+                label={currentStepInfo?.label}
+                sublabel={currentStepInfo?.sublabel}
+              />
+            </div>
+
+            {/* Timeline de pasos */}
+            <div className="w-full max-w-md space-y-3">
+              {STEPS.slice(0, 4).map((s, i) => {
+                const StepIcon = s.icon
+                const isDone = STEPS.findIndex(x => x.step === step) > i
+                const isActive = s.step === step
+
+                return (
+                  <div
+                    key={s.step}
+                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-500 ${
+                      isActive
+                        ? 'border-opacity-60 bg-opacity-10'
+                        : isDone
+                        ? 'border-border bg-muted/20 opacity-70'
+                        : 'border-border/30 opacity-30'
+                    }`}
+                    style={isActive ? { borderColor: `${s.color}60`, background: `${s.color}10` } : {}}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-500"
+                      style={{
+                        background: isActive || isDone ? `${s.color}20` : '#1a2d4a',
+                        border: `1px solid ${isActive || isDone ? s.color + '50' : '#1a2d4a'}`,
+                      }}
+                    >
+                      {isDone ? (
+                        <CheckCircle2 size={16} style={{ color: s.color }} />
+                      ) : (
+                        <StepIcon
+                          size={16}
+                          style={{ color: isActive ? s.color : '#64748b' }}
+                          className={isActive ? 'animate-pulse' : ''}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {s.label}
+                      </p>
+                      {isActive && (
+                        <p className="text-xs text-muted-foreground mt-0.5 animate-pulse">
+                          {s.sublabel}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Mini barra de progreso por etapa */}
+                    {isActive && (
+                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                        <div
+                          className="h-full rounded-full animate-pulse"
+                          style={{ width: '60%', background: s.color }}
+                        />
+                      </div>
+                    )}
+                    {isDone && (
+                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                        <div className="h-full rounded-full" style={{ width: '100%', background: s.color }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {step === 'analyzing' && (
+              <p className="text-xs text-muted-foreground mt-6 text-center max-w-xs">
+                La IA está leyendo todos tus biomarcadores y generando el análisis clínico. Esto puede tardar 2-5 minutos.
+              </p>
+            )}
+
+            {step === 'done' && (
+              <div className="mt-8 flex flex-col items-center gap-2 animate-fade-in">
+                <CheckCircle2 size={40} className="text-accent" />
+                <p className="text-lg font-semibold text-foreground">¡Análisis completado!</p>
+                <p className="text-sm text-muted-foreground">Redirigiendo a tu dashboard...</p>
+              </div>
+            )}
+          </div>
+
+        ) : (
+          /* Vista de subida de archivo */
+          <div className="space-y-6 animate-fade-in">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Subir Estudio de Laboratorio</h1>
+              <p className="text-muted-foreground">
+                Sube un PDF o imagen. La IA extraerá todos los biomarcadores y generará tu dashboard médico.
+              </p>
+            </div>
+
+            <FileUploader
+              onFilesChange={setFiles}
+              selectedFiles={files}
+            />
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+                <Calendar size={14} />
+                Fecha del estudio
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-accent transition-colors w-48"
+              />
+            </div>
+
+            {step === 'error' && (
+              <div className="p-4 rounded-xl border border-danger/30 bg-danger/5 text-sm text-danger">
+                Ocurrió un error en el análisis. Verifica tu conexión e intenta nuevamente.
+              </div>
+            )}
+
+            <Button onClick={handleAnalyze} disabled={files.length === 0} size="lg" className="w-full">
+              <Cpu size={18} />
+              Analizar con IA
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

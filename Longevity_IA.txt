@@ -1,0 +1,122 @@
+Crea una aplicación web llamada "Longevity IA" con Next.js 14, TypeScript, Tailwind CSS, Supabase y el SDK de Anthropic.
+
+## QUÉ HACE LA APP
+El usuario sube una imagen o PDF de su estudio de laboratorio médico. Claude lee el documento, extrae todos los valores de biomarcadores y genera automáticamente un dashboard médico interactivo con análisis FODA médico, predicciones de enfermedades, protocolo de tratamiento personalizado y gráficas interactivas. Todo 100% dinámico basado en los valores reales del documento. Sin datos hardcodeados.
+
+## STACK
+- Next.js 14 App Router + TypeScript
+- Tailwind CSS
+- Supabase (PostgreSQL + storage)
+- @anthropic-ai/sdk con claude-sonnet-4-5
+- Recharts para gráficas
+- jsPDF + html2canvas para exportar
+- react-dropzone para subir archivos
+- shadcn/ui para componentes
+- Zustand para estado global
+- sonner para notificaciones
+
+## DISEÑO
+Tema oscuro médico de lujo. Fondo #050e1a, tarjetas #0a1628, acento verde #00e5a0, warning #f5a623, danger #ff4d6d, info #38bdf8. Tipografía Space Grotesk para textos, DM Mono para todos los números y datos.
+
+## BASE DE DATOS SUPABASE
+Tabla patients: id, name, code, age, gender, weight, height, notes, created_at
+Tabla lab_results: id, patient_id, result_date, file_urls, parsed_data (jsonb), ai_analysis (jsonb), created_at
+RLS habilitado con políticas públicas. Bucket de storage "lab-files" público.
+
+## EL MOTOR DE IA — parte más importante
+
+Archivo src/lib/anthropic/analyzer.ts
+
+Recibe el archivo en base64, activa la herramienta de búsqueda web del SDK así:
+tools: [{ type: "web_search_20250305", name: "web_search" }]
+
+Envía a claude-sonnet-4-5 con este system prompt:
+"Eres experto en medicina regenerativa, análisis de laboratorio clínico y medicina de longevidad. Usas rangos óptimos de longevidad más estrictos que los rangos estándar. Antes de responder buscas en la web los estudios científicos más recientes que demuestren que consumir cierta vitamina, mineral o molécula reduce drásticamente la probabilidad de morir o enfermarse gravemente. Cruzas esos hallazgos con los valores reales del paciente. Respondes ÚNICAMENTE con JSON válido, sin markdown."
+
+Y este user prompt:
+"Analiza este estudio de laboratorio médico. Extrae TODOS los biomarcadores presentes con sus valores, unidades y rangos de referencia.
+
+Antes de generar el protocolo, busca en tiempo real en la web:
+- Estudios recientes (últimos 3 años) donde una vitamina, mineral o molécula redujo drásticamente mortalidad o riesgo de enfermedad grave
+- Hallazgos de crisis sanitarias donde ciertos compuestos demostraron efecto protector. Ejemplos: durante COVID-19 los pacientes que tomaban metformina tuvieron 42% menos mortalidad (University of Minnesota 2023); pacientes con vitamina D mayor a 40 ng/mL tuvieron significativamente menor mortalidad; pacientes con zinc adecuado tuvieron mejor pronóstico
+- Ensayos clínicos recientes: TAME Trial (metformina y longevidad), REDUCE-IT (omega-3 y eventos cardiovasculares), VITAL Trial (vitamina D y cáncer), estudios de berberina vs estatinas, NMN y envejecimiento celular
+- Cualquier estudio que cruce deficiencias nutricionales con mortalidad aumentada en enfermedades graves
+
+Cruza esos hallazgos con los valores reales de este paciente. Si tiene vitamina D baja y existe evidencia de que eso aumenta mortalidad, inclúyelo como amenaza y como oportunidad.
+
+Genera este JSON completo:
+
+{
+  parsedData: {
+    hematology: { rbc, hemoglobin, hematocrit, mcv, mch, mchc, rdw, wbc, neutrophils, lymphocytes, monocytes, eosinophils, platelets, mpv },
+    metabolic: { glucose, urea, bun, creatinine, gfr, uricAcid },
+    lipids: { totalCholesterol, triglycerides, hdl, ldl, vldl, nonHdl, atherogenicIndex, ldlHdlRatio, tgHdlRatio },
+    liver: { alkalinePhosphatase, ast, alt, ggt, ldh, totalProtein, albumin, globulin, amylase, totalBilirubin },
+    vitamins: { vitaminD, vitaminB12, ferritin },
+    hormones: { tsh, testosterone, cortisol, insulin, hba1c },
+    inflammation: { crp, homocysteine }
+  },
+  aiAnalysis: {
+    systemScores: { cardiovascular, metabolic, hepatic, renal, immune, hematologic, inflammatory, vitamins },
+    overallScore: número 0-100,
+    longevity_age: edad biológica estimada basada en biomarcadores,
+    clinicalSummary: resumen clínico de 3-4 oraciones en español,
+    keyAlerts: [ { title, description, level, value, target } ],
+    swot: {
+      strengths: [ { label, detail } ],
+      weaknesses: [ { label, detail } ],
+      opportunities: [ { label, detail, expectedImpact } ],
+      threats: [ { label, detail, probability } ]
+    },
+    risks: [ { disease, probability, horizon, drivers, color } ],
+    protocol: [ { number, category, molecule, dose, mechanism, evidence, clinicalTrial, targetBiomarkers, expectedResult, action, urgency } ],
+    projectionData: [ { year, withoutIntervention, withIntervention } ]
+  }
+}
+
+Cada biomarcador: { value, unit, refMin, refMax, optMin, optMax, status }
+Status: optimal, normal, warning o danger.
+
+Rangos óptimos de longevidad:
+- Glucosa: 70-88 mg/dL
+- LDL: menor a 70 mg/dL
+- Colesterol Total: menor a 180 mg/dL
+- Vitamina D: 60-80 ng/mL
+- TFG: mayor a 90
+- HDL: mayor a 60 mg/dL
+- Triglicéridos: menor a 100 mg/dL
+- HbA1c: menor a 5.4%
+- PCR: menor a 0.5 mg/L
+
+Scores: 85-100 en rango óptimo, 65-84 normal, 40-64 ligeramente fuera, 0-39 fuera de rango.
+FODA: mínimo 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas.
+Protocolo: mínimo 5 recomendaciones. Cada una con el estudio web más reciente encontrado, citando autores, revista, año y porcentaje de reducción de riesgo.
+Si un valor no está en el documento usa null. Analiza solo lo que realmente aparece.
+Todo el texto en español mexicano."
+
+## FLUJO DE LA APP
+
+1. LANDING — página de inicio con CTA
+2. LISTA DE PACIENTES — grid con tarjetas de cada paciente mostrando score general, última fecha de análisis y alertas principales
+3. NUEVO PACIENTE — modal con nombre, código autogenerado, edad, género
+4. SUBIR ESTUDIO — drag and drop de PDF o imagen, selector de fecha, botón Analizar. Estados animados: Subiendo archivos → Claude está leyendo tu estudio → Generando dashboard. Al terminar redirige automáticamente al dashboard
+5. DASHBOARD — 6 pestañas completamente dinámicas con los datos reales del análisis:
+   - Resumen: radar de 8 sistemas + anillos de score + alertas clave + fortalezas
+   - FODA Médica: matriz 4 cuadrantes + mapa de riesgo de enfermedades con probabilidades
+   - Lípidos: gráfica comparativa barras + índices cardiovasculares
+   - Metabólico: variables metabólicas con rango óptimo marcado + panel hepático + vitaminas + hormonas si existen
+   - Proyección: gráfica líneas con vs sin intervención a 10 años + timeline de acciones por urgencia
+   - Protocolo: recomendaciones con mecanismo, evidencia de búsqueda web en tiempo real y acción concreta
+6. EXPORTAR — PDF completo, PNG por pestaña e imprimir. El div del dashboard tiene id="dashboard-export"
+
+## REGLAS TÉCNICAS
+- export const runtime = 'nodejs' en todas las rutas API
+- El SDK de Anthropic solo se importa en archivos server-side
+- El dashboard solo muestra paneles donde existen datos reales del documento
+- Si Claude devuelve JSON malformado mostrar error con botón de reintentar
+- El estado de análisis se actualiza en tiempo real via Zustand
+- Todos los números en fuente DM Mono
+- Tab activo guardado en URL como ?tab=0 para compartir links
+- El dashboard maneja datos parciales con gracia: si el documento solo tiene perfil lipídico, solo muestra esas gráficas
+
+Construye todos los archivos completamente sin placeholders ni TODOs. Comienza por: package.json y dependencias, globals.css, tipos TypeScript, cliente Supabase y queries, el analizador de Anthropic con web search, rutas API, luego todas las páginas y componentes.
