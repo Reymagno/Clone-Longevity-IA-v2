@@ -60,7 +60,7 @@ export default function LandingPage() {
           Medicina de Longevidad con IA
         </div>
 
-        <h1 className="text-5xl sm:text-6xl font-bold text-foreground mb-6 leading-tight">
+        <h1 className="text-5xl sm:text-6xl font-bold text-foreground mb-4 leading-tight">
           Tu salud analizada por nuestra{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-info">
             Inteligencia Artificial médica
@@ -68,8 +68,12 @@ export default function LandingPage() {
           en tiempo real
         </h1>
 
+        <p className="text-lg text-muted-foreground/70 italic max-w-2xl mx-auto mb-3">
+          Entendemos el envejecimiento como una dirección que tú controlas.
+        </p>
+
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-          Sube tu PDF o imagen. Claude extrae todos tus biomarcadores, busca estudios científicos
+          Analiza tu salud con precisión. Claude extrae todos tus biomarcadores, busca estudios científicos
           en tiempo real y genera un dashboard médico completo con protocolo personalizado.
         </p>
 

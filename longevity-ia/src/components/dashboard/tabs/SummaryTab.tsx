@@ -29,49 +29,44 @@ function scoreStatus(s: number): { label: string; bg: string; color: string } {
 
 // ── Arc Gauge — Luxury Speedometer ─────────────────────────
 function ArcGauge({ score }: { score: number }) {
-  const cx = 130, cy = 118, r = 90, sw = 14
+  // cx=130 centra el gauge en el SVG de 260px.
+  // cy=108, r=82: los puntos inferiores del arco quedan en y=108+41=149 < SVG height 165 ✓
+  const cx = 130, cy = 108, r = 82, sw = 12
   const safe = Math.max(0, Math.min(score, 100))
-  // Arc goes from -210° to -330° (open at bottom) — 210° span
-  const startAngle = -210 * (Math.PI / 180)
-  const endAngle   = startAngle + (safe / 100) * (-240 * (Math.PI / 180))
 
-  // Background arc: full 240° span from 210° to -30° (clockwise)
-  // We use SVG arc: start at left (-210° from top) to right (-330° from top)
-  // Let's compute points for a 240° arc open at the bottom
   const toXY = (angle: number, radius: number) => ({
     x: +(cx + radius * Math.cos(angle)).toFixed(3),
     y: +(cy + radius * Math.sin(angle)).toFixed(3),
   })
 
-  // 240° arc, start = 150° (bottom-left), end = 30° (bottom-right)
+  // Arco de 240° abierto abajo: inicia en 150° (inferior-izq) y termina en 30° (inferior-der)
+  // Recorre en sentido creciente (sweep=1) pasando por el TOP: 150°→210°→270°(top)→330°→30°+360°
   const BG_START_DEG = 150
-  const BG_END_DEG   = 30
   const s0 = toXY(BG_START_DEG * Math.PI / 180, r)
-  const s1 = toXY(BG_END_DEG   * Math.PI / 180, r)
+  const s1 = toXY(30 * Math.PI / 180, r)
   const bgPath = `M ${s0.x} ${s0.y} A ${r} ${r} 0 1 1 ${s1.x} ${s1.y}`
 
-  // Foreground arc: from BG_START to safe% of 240°
-  const fgEndDeg = BG_START_DEG - (safe / 100) * 240
+  // Arco del score: avanza SUMANDO grados desde el inicio (corrección del bug de resta)
+  const fgEndDeg = BG_START_DEG + (safe / 100) * 240
   const fgEnd    = toXY(fgEndDeg * Math.PI / 180, r)
-  const largeArc = safe > 50 ? 1 : 0
+  // largeArc=1 solo cuando el arco supera 180° (umbral: safe > 75, pues 180°/240°*100=75)
+  const largeArc = safe > 75 ? 1 : 0
   const fgPath   = safe === 0
     ? ''
     : `M ${s0.x} ${s0.y} A ${r} ${r} 0 ${largeArc} 1 ${fgEnd.x} ${fgEnd.y}`
 
   const col = scoreColor(score)
-
-  // Tick marks (9 ticks: 0, 12.5, 25, ..., 100)
   const ticks = [0, 25, 50, 75, 100]
 
-  // Needle tip
-  const needleDeg = BG_START_DEG - (safe / 100) * 240
-  const needleRad = needleDeg * Math.PI / 180
-  const needleTip = { x: +(cx + (r - 10) * Math.cos(needleRad)).toFixed(2), y: +(cy + (r - 10) * Math.sin(needleRad)).toFixed(2) }
+  // Aguja: misma dirección que el arco (suma)
+  const needleDeg  = BG_START_DEG + (safe / 100) * 240
+  const needleRad  = needleDeg * Math.PI / 180
+  const needleTip   = { x: +(cx + (r - 10) * Math.cos(needleRad)).toFixed(2), y: +(cy + (r - 10) * Math.sin(needleRad)).toFixed(2) }
   const needleBase1 = { x: +(cx + 8 * Math.cos(needleRad + Math.PI / 2)).toFixed(2), y: +(cy + 8 * Math.sin(needleRad + Math.PI / 2)).toFixed(2) }
   const needleBase2 = { x: +(cx + 8 * Math.cos(needleRad - Math.PI / 2)).toFixed(2), y: +(cy + 8 * Math.sin(needleRad - Math.PI / 2)).toFixed(2) }
 
   return (
-    <svg width="260" height="160" viewBox="0 0 260 160" style={{ overflow: 'visible' }}>
+    <svg width="260" height="165" viewBox="0 0 260 165" style={{ overflow: 'visible' }}>
       <defs>
         <filter id="gaugeGlow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="4" result="blur" />
@@ -107,7 +102,7 @@ function ArcGauge({ score }: { score: number }) {
 
       {/* Tick marks */}
       {ticks.map((t) => {
-        const tDeg = BG_START_DEG - (t / 100) * 240
+        const tDeg = BG_START_DEG + (t / 100) * 240
         const tRad = tDeg * Math.PI / 180
         const inner = toXY(tRad, r - sw / 2 - 4)
         const outer = toXY(tRad, r + sw / 2 + 4)
@@ -123,9 +118,9 @@ function ArcGauge({ score }: { score: number }) {
         )
       })}
 
-      {/* Scale labels */}
-      {[{ t: 0, label: '0' }, { t: 50, label: '50' }, { t: 100, label: '100' }].map(({ t, label }) => {
-        const tDeg = BG_START_DEG - (t / 100) * 240
+      {/* Etiquetas de escala solo en los extremos del arco */}
+      {[{ t: 0, label: '0' }, { t: 100, label: '100' }].map(({ t, label }) => {
+        const tDeg = BG_START_DEG + (t / 100) * 240
         const tRad = tDeg * Math.PI / 180
         const pos  = toXY(tRad, r + sw / 2 + 14)
         return (
@@ -155,68 +150,59 @@ function ArcGauge({ score }: { score: number }) {
       <circle cx={cx} cy={cy} r={10} fill="white" stroke={DIVIDER} strokeWidth="1.5" />
       <circle cx={cx} cy={cy} r={5}  fill={col} />
 
-      {/* Score number */}
-      <text x={cx} y={cy - 28} textAnchor="middle" fill={TEXT}
-        fontSize="42" fontWeight="900" fontFamily="ui-monospace,'SF Mono',monospace" letterSpacing="-2">
+      {/* Score number — centrado dentro del hueco del arco */}
+      <text x={cx} y={cy - 20} textAnchor="middle" fill={TEXT}
+        fontSize="38" fontWeight="900" fontFamily="ui-monospace,'SF Mono',monospace" letterSpacing="-2">
         {score}
       </text>
-      <text x={cx} y={cy - 10} textAnchor="middle" fill={MUTED} fontSize="11"
+      <text x={cx} y={cy - 4} textAnchor="middle" fill={MUTED} fontSize="11"
         fontFamily="system-ui,sans-serif">
         / 100
       </text>
 
-      {/* Label below */}
-      <text x={cx} y={cy + 18} textAnchor="middle" fill={MUTED} fontSize="9"
-        fontFamily="system-ui,sans-serif" letterSpacing="1.5" textDecoration="none">
+      {/* Label below hub */}
+      <text x={cx} y={cy + 22} textAnchor="middle" fill={MUTED} fontSize="9"
+        fontFamily="system-ui,sans-serif" letterSpacing="1.5">
         ÍNDICE LONGEVITY
       </text>
     </svg>
   )
 }
 
-// ── Metric icons (SVG inline) ────────────────────────────────
-const MetricIcons: Record<string, JSX.Element> = {
-  inflammatory: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L8 8H4l4 4-1.5 5.5L12 14l5.5 3.5L16 12l4-4h-4L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  ),
-  cardiovascular: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  ),
-  metabolic: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  immune: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11 4.5-.85 8-5.75 8-11V6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  ),
-  hepatic: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M12 3C8 3 4 6 4 10c0 2 .8 3.8 2 5l1 5h10l1-5c1.2-1.2 2-3 2-5 0-4-4-7-8-7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  ),
-  hematologic: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2C8 7 5 10 5 14a7 7 0 0 0 14 0c0-4-3-7-7-12z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  ),
-}
-
-// ── Metrics config ─────────────────────────────────────────
-const METRICS: Array<{ key: keyof SystemScores; label: string; desc: string }> = [
-  { key: 'inflammatory',   label: 'Inflamación',        desc: 'PCR y homocisteína'         },
-  { key: 'cardiovascular', label: 'Perfil Lipídico',    desc: 'Colesterol y triglicéridos' },
-  { key: 'metabolic',      label: 'Metabolismo',        desc: 'Glucosa y función renal'    },
-  { key: 'immune',         label: 'Vitalidad Hormonal', desc: 'Eje inmuno-endocrino'       },
-  { key: 'hepatic',        label: 'Función Hepática',   desc: 'ALT, AST, GGT'             },
-  { key: 'hematologic',    label: 'Estrés Oxidativo',   desc: 'Células y oxigenación'      },
+// ── Órganos y sistemas (los 8 de SystemScores) ─────────────
+const ORGAN_SYSTEMS: Array<{ key: keyof SystemScores; label: string; sublabel: string; icon: JSX.Element }> = [
+  {
+    key: 'cardiovascular', label: 'Cardiovascular', sublabel: 'Corazón y circulación',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: 'metabolic', label: 'Metabólico', sublabel: 'Glucosa y energía',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" /><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>,
+  },
+  {
+    key: 'hepatic', label: 'Hepático', sublabel: 'Hígado y detoxificación',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3C8 3 4 6 4 10c0 2 .8 3.8 2 5l1 5h10l1-5c1.2-1.2 2-3 2-5 0-4-4-7-8-7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: 'renal', label: 'Renal', sublabel: 'Riñones y filtración',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M7 4C4.5 4 3 6 3 8.5c0 4 3 7.5 5 9.5 1 1 2 2 4 2s3-1 4-2c2-2 5-5.5 5-9.5C21 6 19.5 4 17 4c-2 0-3.5 2-5 2S9 4 7 4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: 'immune', label: 'Inmunológico', sublabel: 'Defensas y sistema inmune',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11 4.5-.85 8-5.75 8-11V6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: 'hematologic', label: 'Hematológico', sublabel: 'Sangre y oxigenación',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 7 5 10 5 14a7 7 0 0 0 14 0c0-4-3-7-7-12z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: 'inflammatory', label: 'Inflamatorio', sublabel: 'PCR y marcadores',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L8 8H4l4 4-1.5 5.5L12 14l5.5 3.5L16 12l4-4h-4L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>,
+  },
+  {
+    key: 'vitamins', label: 'Vitaminas & Micronutrientes', sublabel: 'Vit. D, B12, Ferritina',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>,
+  },
 ]
 
 // ── Urgency ────────────────────────────────────────────────
@@ -274,7 +260,22 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
     return (o[a.urgency] ?? 4) - (o[b.urgency] ?? 4)
   }).slice(0, 3)
 
-  const keyFindings = (analysis.keyAlerts ?? []).slice(0, 3)
+  // keyAlerts viene vacío (el prompt lo define como strings, no objetos).
+  // Derivamos los hallazgos del SWOT, que siempre tiene datos ricos.
+  const keyFindings = [
+    ...(analysis.swot?.weaknesses ?? []).slice(0, 2).map(item => ({
+      title: item.label,
+      description: item.detail,
+      level: 'warning' as const,
+      badge: `Probabilidad: ${item.probability ?? 'Media'}`,
+    })),
+    ...(analysis.swot?.strengths ?? []).slice(0, 1).map(item => ({
+      title: item.label,
+      description: item.detail,
+      level: 'optimal' as const,
+      badge: item.expectedImpact ?? '',
+    })),
+  ].slice(0, 3)
 
   async function exportPDF() {
     setExporting(true)
@@ -601,94 +602,73 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
             </div>
           </div>
 
-          {/* ─── 6 METRICS ───────────────────────────────────── */}
+          {/* ─── ÓRGANOS Y SISTEMAS ──────────────────────────── */}
           <div style={{ marginBottom: 36 }}>
-            <GoldDivider label="Métricas del Sistema" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              {METRICS.map(({ key, label, desc }) => {
-                const score = analysis.systemScores[key]
-                const col   = scoreColor(score)
-                const st    = scoreStatus(score)
-                const isOptimal = score >= 85
-                const icon = MetricIcons[key]
+            <GoldDivider label="Órganos y Sistemas" />
+            <div style={{
+              border: `1px solid ${DIVIDER}`,
+              borderRadius: 14,
+              overflow: 'hidden',
+              background: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+            }}>
+              {ORGAN_SYSTEMS.map(({ key, label, sublabel, icon }, i) => {
+                const score    = analysis.systemScores[key]
+                const col      = scoreColor(score)
+                const st       = scoreStatus(score)
+                const isRight  = i % 2 === 1
+                const isLastRow = i >= ORGAN_SYSTEMS.length - 2
                 return (
                   <div key={key} style={{
-                    background: isOptimal ? 'white' : CARD,
-                    border: isOptimal ? `1px solid ${GOLD}40` : `1px solid ${DIVIDER}`,
-                    borderRadius: 12,
-                    padding: '16px 18px',
-                    boxShadow: isOptimal
-                      ? `0 2px 12px ${GOLD}15, inset 0 0 0 1px ${GOLD}20`
-                      : '0 1px 4px rgba(0,0,0,0.04)',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '13px 18px',
+                    borderBottom: isLastRow ? 'none' : `1px solid ${DIVIDER}`,
+                    borderRight: isRight ? 'none' : `1px solid ${DIVIDER}`,
+                    background: i % 4 < 2 ? 'white' : CARD,
                   }}>
-                    {/* Subtle top gradient for optimal cards */}
-                    {isOptimal && (
-                      <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                        background: `linear-gradient(to right, ${GOLD}00, ${GOLD}, ${GOLD}00)`,
-                      }} />
-                    )}
-                    {!isOptimal && (
-                      <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                        background: col,
-                        borderRadius: '12px 12px 0 0',
-                      }} />
-                    )}
-
-                    {/* Label row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, marginTop: 4 }}>
-                      <div>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: TEXT, margin: '0 0 2px', letterSpacing: '-0.1px' }}>{label}</p>
-                        <p style={{ fontSize: 9,  color: MUTED, margin: 0, letterSpacing: '0.2px' }}>{desc}</p>
-                      </div>
-                      <div style={{
-                        width: 28, height: 28, borderRadius: 8,
-                        background: `${col}15`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: col, flexShrink: 0,
-                      }}>
-                        {icon}
-                      </div>
-                    </div>
-
-                    {/* Score number */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 10 }}>
-                      <span style={{
-                        fontSize: 34, fontWeight: 900,
-                        color: col,
-                        fontFamily: 'ui-monospace,"SF Mono",monospace',
-                        lineHeight: 1, letterSpacing: '-1px',
-                      }}>
-                        {score}
-                      </span>
-                      <span style={{ fontSize: 10, color: MUTED, fontWeight: 500 }}>/100</span>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div style={{ height: 5, background: '#EBEBEB', borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
-                      <div style={{
-                        height: '100%', width: `${score}%`,
-                        background: isOptimal
-                          ? `linear-gradient(to right, ${GOLD}80, ${GOLD})`
-                          : col,
-                        borderRadius: 3,
-                        transition: 'width 0.6s ease',
-                      }} />
-                    </div>
-
-                    {/* Status pill */}
-                    <span style={{
-                      fontSize: 10, fontWeight: 700,
-                      color: st.color, background: st.bg,
-                      padding: '3px 10px', borderRadius: 14,
-                      display: 'inline-block', letterSpacing: '0.2px',
-                      border: `1px solid ${st.color}20`,
+                    {/* Icon */}
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                      background: `${col}14`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: col,
                     }}>
-                      {st.label}
-                    </span>
+                      {icon}
+                    </div>
+
+                    {/* Name + bar + score */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: TEXT, margin: 0, lineHeight: 1.2 }}>{label}</p>
+                          <p style={{ fontSize: 9, color: MUTED, margin: '1px 0 0' }}>{sublabel}</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                          <span style={{
+                            fontSize: 17, fontWeight: 900, color: col, lineHeight: 1,
+                            fontFamily: 'ui-monospace,"SF Mono",monospace', letterSpacing: '-0.5px',
+                          }}>
+                            {score}
+                          </span>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, color: st.color,
+                            background: st.bg, padding: '2px 7px', borderRadius: 10,
+                            border: `1px solid ${st.color}20`, whiteSpace: 'nowrap' as const,
+                          }}>
+                            {st.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ height: 5, background: '#EBEBEB', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${score}%`,
+                          background: score >= 85 ? `linear-gradient(to right, ${GOLD}70, ${GOLD})` : col,
+                          borderRadius: 3,
+                        }} />
+                      </div>
+                    </div>
                   </div>
                 )
               })}
@@ -701,8 +681,9 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
               <GoldDivider label="Hallazgos Clave" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {keyFindings.map((f, i) => {
-                  const dotColor = f.level === 'optimal' ? EMERALD : f.level === 'danger' ? RED : f.level === 'warning' ? AMBER : '#0369a1'
+                  const dotColor = f.level === 'optimal' ? EMERALD : AMBER
                   const num = ['01', '02', '03'][i] ?? `0${i + 1}`
+                  const badgeLabel = f.level === 'optimal' ? 'Fortaleza' : 'Área de atención'
                   return (
                     <div key={i} style={{
                       display: 'flex', gap: 0,
@@ -741,19 +722,14 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
                             padding: '2px 8px', borderRadius: 10,
                             textTransform: 'uppercase' as const, letterSpacing: '0.5px',
                           }}>
-                            {f.level === 'optimal' ? 'Óptimo' : f.level === 'danger' ? 'Alerta' : f.level === 'warning' ? 'Atención' : 'Normal'}
+                            {badgeLabel}
                           </span>
                         </div>
                         <p style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.description}</p>
-                        {f.value && (
-                          <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-                            <span style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>
-                              Valor actual: {f.value}
-                            </span>
-                            <span style={{ fontSize: 10, color: MUTED }}>
-                              Meta: {f.target}
-                            </span>
-                          </div>
+                        {f.badge && (
+                          <p style={{ fontSize: 10, color: GOLD, fontWeight: 600, margin: '8px 0 0' }}>
+                            {f.badge}
+                          </p>
                         )}
                       </div>
                     </div>
