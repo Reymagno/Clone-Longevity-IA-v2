@@ -112,7 +112,12 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6" id="dashboard-export">
         {activeTab === 0 && (
-          <SummaryTab analysis={analysis} patientAge={patient.age} />
+          <SummaryTab
+            analysis={analysis}
+            patientAge={patient.age}
+            patientName={patient.name}
+            resultDate={result.result_date}
+          />
         )}
         {activeTab === 1 && (
           <SwotTab analysis={analysis} />
