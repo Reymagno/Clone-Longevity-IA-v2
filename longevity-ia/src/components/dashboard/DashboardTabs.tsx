@@ -117,6 +117,7 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
             patientAge={patient.age}
             patientName={patient.name}
             resultDate={result.result_date}
+            parsedData={parsedData}
           />
         )}
         {activeTab === 1 && (

@@ -60,7 +60,18 @@ export default function LandingPage() {
           Medicina de Longevidad con IA
         </div>
 
-        <h1 className="text-5xl sm:text-6xl font-bold text-foreground mb-6 leading-tight">
+        <h1
+          className="text-5xl sm:text-6xl mb-6 leading-tight tracking-tight"
+          style={{
+            fontFamily: "'Georgia', 'Cambria', 'Times New Roman', serif",
+            fontStyle: 'italic',
+            fontWeight: 400,
+            background: 'linear-gradient(120deg, #94a3b8 0%, #f1f5f9 42%, #C9A84C 78%, #E8C46A 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
           Entendemos el envejecimiento como una dirección que tú controlas.
         </h1>
 
