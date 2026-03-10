@@ -15,69 +15,239 @@ const DIVIDER = '#E5E5E5'
 const CARD    = '#F7F7F7'
 
 // ── Helpers ────────────────────────────────────────────────
-function scoreColor(s: number) {
+function scoreColor(s: number): string {
   if (s >= 85) return EMERALD
   if (s >= 65) return AMBER
   return RED
 }
 
 function scoreStatus(s: number): { label: string; bg: string; color: string } {
-  if (s >= 85) return { label: 'Óptimo',             bg: '#EBF7F2', color: EMERALD }
-  if (s >= 65) return { label: 'En seguimiento',      bg: '#FEF7EC', color: AMBER   }
-  return              { label: 'Requiere atención',   bg: '#FDEEEE', color: RED     }
+  if (s >= 85) return { label: 'Óptimo',           bg: '#EBF7F2', color: EMERALD }
+  if (s >= 65) return { label: 'En seguimiento',    bg: '#FEF7EC', color: AMBER   }
+  return              { label: 'Requiere atención', bg: '#FDEEEE', color: RED     }
 }
 
-// ── Arc Gauge ──────────────────────────────────────────────
+// ── Arc Gauge — Luxury Speedometer ─────────────────────────
 function ArcGauge({ score }: { score: number }) {
-  const cx = 100, cy = 72, r = 54, sw = 8
-  const safe = Math.max(score, 1)
-  const theta = Math.PI - (safe / 100) * Math.PI
-  const eX = +(cx + r * Math.cos(theta)).toFixed(2)
-  const eY = +(cy - r * Math.sin(theta)).toFixed(2)
-  const bg = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
-  const fg = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${eX} ${eY}`
+  const cx = 130, cy = 118, r = 90, sw = 14
+  const safe = Math.max(0, Math.min(score, 100))
+  // Arc goes from -210° to -330° (open at bottom) — 210° span
+  const startAngle = -210 * (Math.PI / 180)
+  const endAngle   = startAngle + (safe / 100) * (-240 * (Math.PI / 180))
+
+  // Background arc: full 240° span from 210° to -30° (clockwise)
+  // We use SVG arc: start at left (-210° from top) to right (-330° from top)
+  // Let's compute points for a 240° arc open at the bottom
+  const toXY = (angle: number, radius: number) => ({
+    x: +(cx + radius * Math.cos(angle)).toFixed(3),
+    y: +(cy + radius * Math.sin(angle)).toFixed(3),
+  })
+
+  // 240° arc, start = 150° (bottom-left), end = 30° (bottom-right)
+  const BG_START_DEG = 150
+  const BG_END_DEG   = 30
+  const s0 = toXY(BG_START_DEG * Math.PI / 180, r)
+  const s1 = toXY(BG_END_DEG   * Math.PI / 180, r)
+  const bgPath = `M ${s0.x} ${s0.y} A ${r} ${r} 0 1 1 ${s1.x} ${s1.y}`
+
+  // Foreground arc: from BG_START to safe% of 240°
+  const fgEndDeg = BG_START_DEG - (safe / 100) * 240
+  const fgEnd    = toXY(fgEndDeg * Math.PI / 180, r)
+  const largeArc = safe > 50 ? 1 : 0
+  const fgPath   = safe === 0
+    ? ''
+    : `M ${s0.x} ${s0.y} A ${r} ${r} 0 ${largeArc} 1 ${fgEnd.x} ${fgEnd.y}`
+
   const col = scoreColor(score)
 
+  // Tick marks (9 ticks: 0, 12.5, 25, ..., 100)
+  const ticks = [0, 25, 50, 75, 100]
+
+  // Needle tip
+  const needleDeg = BG_START_DEG - (safe / 100) * 240
+  const needleRad = needleDeg * Math.PI / 180
+  const needleTip = { x: +(cx + (r - 10) * Math.cos(needleRad)).toFixed(2), y: +(cy + (r - 10) * Math.sin(needleRad)).toFixed(2) }
+  const needleBase1 = { x: +(cx + 8 * Math.cos(needleRad + Math.PI / 2)).toFixed(2), y: +(cy + 8 * Math.sin(needleRad + Math.PI / 2)).toFixed(2) }
+  const needleBase2 = { x: +(cx + 8 * Math.cos(needleRad - Math.PI / 2)).toFixed(2), y: +(cy + 8 * Math.sin(needleRad - Math.PI / 2)).toFixed(2) }
+
   return (
-    <svg width="200" height="88" viewBox="0 0 200 88">
-      <path d={bg} fill="none" stroke="#EBEBEB" strokeWidth={sw} strokeLinecap="round" />
-      <path d={fg} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" />
-      <circle cx={eX} cy={eY} r={sw / 2 + 1.5} fill="white" stroke={col} strokeWidth="2" />
-      <text x={cx} y={cy - 8} textAnchor="middle" fill={TEXT} fontSize="30" fontWeight="800"
-        fontFamily="ui-monospace,'SF Mono',monospace">{score}</text>
-      <text x={cx} y={cy + 8} textAnchor="middle" fill={MUTED} fontSize="11">/ 100</text>
-      <text x={cx - r + 4} y={cy + 18} textAnchor="middle" fill={MUTED} fontSize="9">0</text>
-      <text x={cx + r - 4} y={cy + 18} textAnchor="middle" fill={MUTED} fontSize="9">100</text>
+    <svg width="260" height="160" viewBox="0 0 260 160" style={{ overflow: 'visible' }}>
+      <defs>
+        <filter id="gaugeGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="needleGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor={RED}     />
+          <stop offset="45%"  stopColor={AMBER}   />
+          <stop offset="100%" stopColor={EMERALD} />
+        </linearGradient>
+        <mask id="arcMask">
+          {safe > 0 && (
+            <path d={fgPath} fill="none" stroke="white" strokeWidth={sw} strokeLinecap="round" />
+          )}
+        </mask>
+      </defs>
+
+      {/* Background track */}
+      <path d={bgPath} fill="none" stroke="#EBEBEB" strokeWidth={sw} strokeLinecap="round" />
+
+      {/* Colored foreground — gradient strip clipped by arc mask */}
+      {safe > 0 && (
+        <>
+          {/* Solid color arc */}
+          <path d={fgPath} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" filter="url(#gaugeGlow)" opacity="0.35" />
+          <path d={fgPath} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" />
+        </>
+      )}
+
+      {/* Tick marks */}
+      {ticks.map((t) => {
+        const tDeg = BG_START_DEG - (t / 100) * 240
+        const tRad = tDeg * Math.PI / 180
+        const inner = toXY(tRad, r - sw / 2 - 4)
+        const outer = toXY(tRad, r + sw / 2 + 4)
+        return (
+          <line
+            key={t}
+            x1={inner.x} y1={inner.y}
+            x2={outer.x} y2={outer.y}
+            stroke={t <= safe ? col : '#CCCCCC'}
+            strokeWidth={t === 0 || t === 100 ? 2 : 1.5}
+            strokeLinecap="round"
+          />
+        )
+      })}
+
+      {/* Scale labels */}
+      {[{ t: 0, label: '0' }, { t: 50, label: '50' }, { t: 100, label: '100' }].map(({ t, label }) => {
+        const tDeg = BG_START_DEG - (t / 100) * 240
+        const tRad = tDeg * Math.PI / 180
+        const pos  = toXY(tRad, r + sw / 2 + 14)
+        return (
+          <text key={t} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle"
+            fontSize="9" fill={MUTED} fontFamily="ui-monospace,'SF Mono',monospace">
+            {label}
+          </text>
+        )
+      })}
+
+      {/* Needle */}
+      {safe > 0 && (
+        <>
+          <polygon
+            points={`${needleTip.x},${needleTip.y} ${needleBase1.x},${needleBase1.y} ${needleBase2.x},${needleBase2.y}`}
+            fill={col} opacity="0.2" filter="url(#needleGlow)"
+          />
+          <line
+            x1={cx} y1={cy}
+            x2={needleTip.x} y2={needleTip.y}
+            stroke={col} strokeWidth="2.5" strokeLinecap="round"
+          />
+        </>
+      )}
+
+      {/* Center hub */}
+      <circle cx={cx} cy={cy} r={10} fill="white" stroke={DIVIDER} strokeWidth="1.5" />
+      <circle cx={cx} cy={cy} r={5}  fill={col} />
+
+      {/* Score number */}
+      <text x={cx} y={cy - 28} textAnchor="middle" fill={TEXT}
+        fontSize="42" fontWeight="900" fontFamily="ui-monospace,'SF Mono',monospace" letterSpacing="-2">
+        {score}
+      </text>
+      <text x={cx} y={cy - 10} textAnchor="middle" fill={MUTED} fontSize="11"
+        fontFamily="system-ui,sans-serif">
+        / 100
+      </text>
+
+      {/* Label below */}
+      <text x={cx} y={cy + 18} textAnchor="middle" fill={MUTED} fontSize="9"
+        fontFamily="system-ui,sans-serif" letterSpacing="1.5" textDecoration="none">
+        ÍNDICE LONGEVITY
+      </text>
     </svg>
   )
 }
 
+// ── Metric icons (SVG inline) ────────────────────────────────
+const MetricIcons: Record<string, JSX.Element> = {
+  inflammatory: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L8 8H4l4 4-1.5 5.5L12 14l5.5 3.5L16 12l4-4h-4L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  ),
+  cardiovascular: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  ),
+  metabolic: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
+  immune: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11 4.5-.85 8-5.75 8-11V6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  ),
+  hepatic: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 3C8 3 4 6 4 10c0 2 .8 3.8 2 5l1 5h10l1-5c1.2-1.2 2-3 2-5 0-4-4-7-8-7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  ),
+  hematologic: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C8 7 5 10 5 14a7 7 0 0 0 14 0c0-4-3-7-7-12z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  ),
+}
+
 // ── Metrics config ─────────────────────────────────────────
 const METRICS: Array<{ key: keyof SystemScores; label: string; desc: string }> = [
-  { key: 'inflammatory',   label: 'Inflamación',        desc: 'PCR y homocisteína'           },
-  { key: 'cardiovascular', label: 'Perfil Lipídico',    desc: 'Colesterol y triglicéridos'   },
-  { key: 'metabolic',      label: 'Metabolismo',        desc: 'Glucosa y función renal'      },
-  { key: 'immune',         label: 'Vitalidad Hormonal', desc: 'Eje inmuno-endocrino'         },
-  { key: 'hepatic',        label: 'Función Hepática',   desc: 'ALT, AST, GGT'               },
-  { key: 'hematologic',    label: 'Estrés Oxidativo',   desc: 'Células y oxigenación'        },
+  { key: 'inflammatory',   label: 'Inflamación',        desc: 'PCR y homocisteína'         },
+  { key: 'cardiovascular', label: 'Perfil Lipídico',    desc: 'Colesterol y triglicéridos' },
+  { key: 'metabolic',      label: 'Metabolismo',        desc: 'Glucosa y función renal'    },
+  { key: 'immune',         label: 'Vitalidad Hormonal', desc: 'Eje inmuno-endocrino'       },
+  { key: 'hepatic',        label: 'Función Hepática',   desc: 'ALT, AST, GGT'             },
+  { key: 'hematologic',    label: 'Estrés Oxidativo',   desc: 'Células y oxigenación'      },
 ]
 
 // ── Urgency ────────────────────────────────────────────────
 const URGENCY: Record<string, { label: string; color: string }> = {
-  immediate: { label: 'Inmediata', color: RED      },
-  high:      { label: 'Alta',      color: AMBER    },
+  immediate: { label: 'Inmediata', color: RED       },
+  high:      { label: 'Alta',      color: AMBER     },
   medium:    { label: 'Media',     color: '#0369a1' },
-  low:       { label: 'Baja',      color: EMERALD  },
+  low:       { label: 'Baja',      color: EMERALD   },
 }
 
-// ── Section header helper ──────────────────────────────────
-function SectionTitle({ children }: { children: React.ReactNode }) {
+// ── Ornamental divider ──────────────────────────────────────
+function GoldDivider({ label }: { label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-      <div style={{ width: 3, height: 14, background: GOLD, borderRadius: 2, flexShrink: 0 }} />
-      <p style={{ fontSize: 10, fontWeight: 700, color: TEXT, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
-        {children}
-      </p>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 18px' }}>
+      <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${DIVIDER})` }} />
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 7,
+        padding: '4px 14px',
+        border: `1px solid ${GOLD}30`,
+        borderRadius: 20,
+        background: `${GOLD}08`,
+      }}>
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: GOLD }} />
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: GOLD,
+          textTransform: 'uppercase', letterSpacing: '1.5px',
+          fontFamily: 'system-ui,sans-serif',
+        }}>{label}</span>
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: GOLD }} />
+      </div>
+      <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${DIVIDER})` }} />
     </div>
   )
 }
@@ -148,176 +318,376 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
     finally { setExporting(false) }
   }
 
-  const btnStyle = (disabled: boolean): React.CSSProperties => ({
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '8px 16px', fontSize: 13, fontWeight: 600,
-    border: `1.5px solid ${GOLD}`, color: GOLD,
-    background: 'transparent', borderRadius: 8,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1, transition: 'background 0.15s',
-    fontFamily: 'inherit',
-  })
+  const stat = scoreStatus(analysis.overallScore)
 
   return (
-    <div>
-      {/* ── Export controls (not captured) ────────────────── */}
+    <div style={{ fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
+
+      {/* ── Export controls (outside captured div) ──────── */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
-        <button onClick={exportPDF} disabled={exporting} style={btnStyle(exporting)}>
-          ↓ Descargar PDF
+        <button
+          onClick={exportPDF}
+          disabled={exporting}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '9px 18px', fontSize: 12, fontWeight: 600,
+            border: `1.5px solid ${GOLD}`, color: GOLD,
+            background: 'transparent', borderRadius: 8,
+            cursor: exporting ? 'not-allowed' : 'pointer',
+            opacity: exporting ? 0.55 : 1,
+            letterSpacing: '0.3px', fontFamily: 'inherit',
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M12 15V3M12 15l-4-4M12 15l4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Descargar PDF
         </button>
-        <button onClick={exportImage} disabled={exporting} style={btnStyle(exporting)}>
-          ↓ Descargar Imagen
+        <button
+          onClick={exportImage}
+          disabled={exporting}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '9px 18px', fontSize: 12, fontWeight: 600,
+            border: `1.5px solid ${GOLD}50`, color: MUTED,
+            background: 'transparent', borderRadius: 8,
+            cursor: exporting ? 'not-allowed' : 'pointer',
+            opacity: exporting ? 0.55 : 1,
+            letterSpacing: '0.3px', fontFamily: 'inherit',
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+            <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Descargar Imagen
         </button>
       </div>
 
-      {/* ── Diagnostic document ───────────────────────────── */}
+      {/* ── Diagnostic document ────────────────────────── */}
       <div
         id="diagnostico-longevity"
         style={{
           background: '#FFFFFF',
-          borderRadius: 14,
-          boxShadow: '0 2px 20px rgba(0,0,0,0.09)',
+          borderRadius: 16,
+          boxShadow: '0 4px 32px rgba(0,0,0,0.10)',
           overflow: 'hidden',
-          fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
           color: TEXT,
         }}
       >
-        {/* ─── HEADER ─────────────────────────────────────── */}
-        <div style={{ padding: '24px 32px', borderBottom: `1px solid ${DIVIDER}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            {/* Brand */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, background: GOLD,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+
+        {/* ─── HEADER ──────────────────────────────────────── */}
+        <div style={{
+          background: `linear-gradient(135deg, #0A0A0A 0%, #1C1A14 60%, #2A2418 100%)`,
+          padding: '0',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Decorative background pattern */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `radial-gradient(circle at 80% 50%, ${GOLD}18 0%, transparent 60%), radial-gradient(circle at 20% 80%, ${GOLD}08 0%, transparent 50%)`,
+            pointerEvents: 'none',
+          }} />
+
+          {/* Gold top stripe */}
+          <div style={{ height: 3, background: `linear-gradient(to right, ${GOLD}00, ${GOLD}, ${GOLD}80, ${GOLD}00)` }} />
+
+          <div style={{ padding: '22px 32px 0', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {/* Brand */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${GOLD}, #A8822A)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 4px 16px ${GOLD}50`,
+                  flexShrink: 0,
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C9 5 6 8 6 12a6 6 0 0012 0c0-4-3-7-6-10z" fill="white" opacity="0.9" />
+                    <path d="M12 22V12M9 15l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ fontSize: 17, fontWeight: 800, color: '#FFFFFF', lineHeight: '1.1', margin: 0, letterSpacing: '-0.3px' }}>
+                    Longevity Clinic
+                  </p>
+                  <p style={{ fontSize: 10, color: `${GOLD}CC`, margin: '3px 0 0', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                    Medicina de Precisión
+                  </p>
+                </div>
+              </div>
+
+              {/* Patient info — right side */}
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: '#FFFFFF', margin: 0, letterSpacing: '-0.2px' }}>
+                  {patientName}
+                </p>
+                <p style={{ fontSize: 11, color: '#FFFFFF80', margin: '4px 0 0' }}>
+                  {patientAge} años · {dateStr}
+                </p>
+              </div>
+            </div>
+
+            {/* Motto band */}
+            <div style={{
+              textAlign: 'center', padding: '18px 0 20px',
+              marginTop: 16,
+              borderTop: `1px solid #FFFFFF12`,
+            }}>
+              <p style={{
+                fontSize: 13, fontStyle: 'italic', color: GOLD,
+                fontWeight: 500, letterSpacing: '0.4px', margin: 0,
               }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3C8.13 3 5 6.13 5 10c0 3.87 3.13 7 7 7s7-3.13 7-7c0-3.87-3.13-7-7-7zm0 2c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 12c-2.33 0-4.31-1.17-5.5-2.98C6.53 13.03 9.22 12 12 12s5.47 1.03 5.5 2.02C16.31 15.83 14.33 17 12 17z" fill="white" />
-                </svg>
-              </div>
-              <div>
-                <p style={{ fontSize: 15, fontWeight: 700, color: TEXT, lineHeight: '1.2', margin: 0 }}>Longevity Clinic</p>
-                <p style={{ fontSize: 10, color: MUTED, margin: '2px 0 0' }}>Medicina de Precisión · Longevidad</p>
-              </div>
-            </div>
-            {/* Patient info */}
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: TEXT, margin: 0 }}>{patientName}</p>
-              <p style={{ fontSize: 11, color: MUTED, margin: '3px 0 0' }}>{patientAge} años · {dateStr}</p>
+                &ldquo;Entendemos el envejecimiento como una dirección que tú controlas.&rdquo;
+              </p>
             </div>
           </div>
-          {/* Motto */}
-          <div style={{ textAlign: 'center', paddingTop: 14, borderTop: `1px solid ${DIVIDER}` }}>
-            <p style={{ fontSize: 12, fontStyle: 'italic', color: GOLD, fontWeight: 500, letterSpacing: '0.3px', margin: 0 }}>
-              "Entendemos el envejecimiento como una dirección que tú controlas."
-            </p>
-          </div>
+
+          {/* Bottom gold stripe */}
+          <div style={{ height: 2, background: `linear-gradient(to right, ${GOLD}00, ${GOLD}60, ${GOLD}00)` }} />
         </div>
 
-        <div style={{ padding: '28px 32px' }}>
+        {/* ── Body ─────────────────────────────────────────── */}
+        <div style={{ padding: '32px 32px 28px' }}>
 
-          {/* ─── SCORE PRINCIPAL ────────────────────────────── */}
-          <div style={{
-            background: CARD, border: `1px solid ${DIVIDER}`, borderRadius: 12,
-            padding: '20px 24px', display: 'grid',
-            gridTemplateColumns: '210px 1fr', gap: 24,
-            alignItems: 'center', marginBottom: 28,
-          }}>
-            {/* Gauge side */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <p style={{ fontSize: 9, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
-                Índice Longevity
-              </p>
-              <ArcGauge score={analysis.overallScore} />
-              <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: scoreStatus(analysis.overallScore).color,
-                background: scoreStatus(analysis.overallScore).bg,
-                padding: '3px 14px', borderRadius: 20, marginTop: -2,
-              }}>
-                {scoreStatus(analysis.overallScore).label}
-              </span>
-            </div>
+          {/* ─── SCORE PRINCIPAL ─────────────────────────────── */}
+          <div style={{ marginBottom: 36 }}>
+            <GoldDivider label="Diagnóstico Global" />
 
-            {/* Bio age + summary */}
-            <div>
-              {/* Age comparison row */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 0,
+              border: `1px solid ${DIVIDER}`,
+              borderRadius: 14,
+              overflow: 'hidden',
+              background: CARD,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+            }}>
+
+              {/* Col 1: Gauge */}
               <div style={{
-                display: 'flex', border: `1px solid ${DIVIDER}`,
-                borderRadius: 10, overflow: 'hidden',
-                marginBottom: 16, background: 'white',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', padding: '24px 16px 20px',
+                borderRight: `1px solid ${DIVIDER}`,
+                background: 'white',
+                position: 'relative',
+              }}>
+                {/* Subtle radial glow behind gauge */}
+                <div style={{
+                  position: 'absolute', top: '30%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 160, height: 160,
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${scoreColor(analysis.overallScore)}12 0%, transparent 70%)`,
+                  pointerEvents: 'none',
+                }} />
+                <ArcGauge score={analysis.overallScore} />
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  marginTop: 8,
+                  padding: '5px 16px',
+                  borderRadius: 24,
+                  background: stat.bg,
+                  border: `1px solid ${stat.color}30`,
+                }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: stat.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: stat.color, letterSpacing: '0.3px' }}>
+                    {stat.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Col 2: Age comparison */}
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                borderRight: `1px solid ${DIVIDER}`,
               }}>
                 {/* Biological age */}
-                <div style={{ flex: 1, padding: '14px 18px', textAlign: 'center', borderRight: `1px solid ${DIVIDER}` }}>
-                  <p style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 6px' }}>
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  padding: '20px 16px',
+                  borderBottom: `1px solid ${DIVIDER}`,
+                  background: 'white',
+                }}>
+                  <p style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 8px', fontWeight: 600 }}>
                     Edad Biológica
                   </p>
-                  <span style={{ fontSize: 34, fontWeight: 800, color: scoreColor(analysis.overallScore), fontFamily: 'ui-monospace,monospace', lineHeight: 1 }}>
-                    {analysis.longevity_age}
-                  </span>
-                  <p style={{ fontSize: 10, color: MUTED, margin: '3px 0 0' }}>años</p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{
+                      fontSize: 48, fontWeight: 900, lineHeight: 1,
+                      color: scoreColor(analysis.overallScore),
+                      fontFamily: 'ui-monospace,"SF Mono",monospace',
+                      letterSpacing: '-2px',
+                    }}>
+                      {analysis.longevity_age}
+                    </span>
+                    <span style={{ fontSize: 13, color: MUTED, fontWeight: 500 }}>años</span>
+                  </div>
                 </div>
                 {/* Chronological age */}
-                <div style={{ flex: 1, padding: '14px 18px', textAlign: 'center', borderRight: `1px solid ${DIVIDER}` }}>
-                  <p style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 6px' }}>
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  padding: '20px 16px',
+                  background: CARD,
+                }}>
+                  <p style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 8px', fontWeight: 600 }}>
                     Edad Cronológica
                   </p>
-                  <span style={{ fontSize: 34, fontWeight: 800, color: TEXT, fontFamily: 'ui-monospace,monospace', lineHeight: 1 }}>
-                    {patientAge}
-                  </span>
-                  <p style={{ fontSize: 10, color: MUTED, margin: '3px 0 0' }}>años</p>
-                </div>
-                {/* Delta */}
-                <div style={{ flex: 1, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 3px', color: ageDiff > 2 ? EMERALD : ageDiff < -2 ? RED : AMBER }}>
-                      {ageDiff > 2 ? `${ageDiff} años más joven` : ageDiff < -2 ? `${Math.abs(ageDiff)} años de desgaste` : 'En equilibrio'}
-                    </p>
-                    <p style={{ fontSize: 9, color: MUTED, margin: 0 }}>diferencia biológica</p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{
+                      fontSize: 48, fontWeight: 900, lineHeight: 1,
+                      color: TEXT,
+                      fontFamily: 'ui-monospace,"SF Mono",monospace',
+                      letterSpacing: '-2px',
+                    }}>
+                      {patientAge}
+                    </span>
+                    <span style={{ fontSize: 13, color: MUTED, fontWeight: 500 }}>años</span>
                   </div>
                 </div>
               </div>
-              {/* Clinical summary */}
-              <p style={{
-                fontSize: 12, color: TEXT, lineHeight: 1.65, margin: 0,
-                borderLeft: `3px solid ${GOLD}`, paddingLeft: 12,
+
+              {/* Col 3: Delta + clinical summary */}
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                padding: '22px 20px',
+                background: 'white',
+                gap: 16,
               }}>
-                {analysis.clinicalSummary}
-              </p>
+                {/* Delta badge */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 10,
+                  background: ageDiff > 2 ? '#EBF7F2' : ageDiff < -2 ? '#FDEEEE' : '#FEF7EC',
+                  border: `1px solid ${(ageDiff > 2 ? EMERALD : ageDiff < -2 ? RED : AMBER)}25`,
+                  textAlign: 'center',
+                }}>
+                  <p style={{
+                    fontSize: 20, fontWeight: 800, margin: '0 0 4px',
+                    color: ageDiff > 2 ? EMERALD : ageDiff < -2 ? RED : AMBER,
+                    fontFamily: 'ui-monospace,"SF Mono",monospace',
+                  }}>
+                    {ageDiff > 2
+                      ? `−${ageDiff} años`
+                      : ageDiff < -2
+                      ? `+${Math.abs(ageDiff)} años`
+                      : '≈ 0'}
+                  </p>
+                  <p style={{ fontSize: 10, color: MUTED, margin: 0, fontWeight: 500 }}>
+                    {ageDiff > 2
+                      ? 'más joven biológicamente'
+                      : ageDiff < -2
+                      ? 'de desgaste acumulado'
+                      : 'equilibrio biológico'}
+                  </p>
+                </div>
+
+                {/* Clinical summary */}
+                <p style={{
+                  fontSize: 12, color: TEXT, lineHeight: 1.7, margin: 0,
+                  paddingLeft: 12,
+                  borderLeft: `3px solid ${GOLD}`,
+                  flex: 1,
+                }}>
+                  {analysis.clinicalSummary}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* ─── 6 METRICS ──────────────────────────────────── */}
-          <div style={{ marginBottom: 28 }}>
-            <SectionTitle>Métricas del Sistema</SectionTitle>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {/* ─── 6 METRICS ───────────────────────────────────── */}
+          <div style={{ marginBottom: 36 }}>
+            <GoldDivider label="Métricas del Sistema" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
               {METRICS.map(({ key, label, desc }) => {
                 const score = analysis.systemScores[key]
-                const col = scoreColor(score)
-                const stat = scoreStatus(score)
+                const col   = scoreColor(score)
+                const st    = scoreStatus(score)
+                const isOptimal = score >= 85
+                const icon = MetricIcons[key]
                 return (
                   <div key={key} style={{
-                    background: CARD, border: `1px solid ${DIVIDER}`,
-                    borderTop: `3px solid ${col}`, borderRadius: 10,
-                    padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    background: isOptimal ? 'white' : CARD,
+                    border: isOptimal ? `1px solid ${GOLD}40` : `1px solid ${DIVIDER}`,
+                    borderRadius: 12,
+                    padding: '16px 18px',
+                    boxShadow: isOptimal
+                      ? `0 2px 12px ${GOLD}15, inset 0 0 0 1px ${GOLD}20`
+                      : '0 1px 4px rgba(0,0,0,0.04)',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: TEXT, margin: '0 0 2px' }}>{label}</p>
-                    <p style={{ fontSize: 9, color: MUTED, margin: '0 0 8px' }}>{desc}</p>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 8 }}>
-                      <span style={{ fontSize: 26, fontWeight: 800, color: TEXT, fontFamily: 'ui-monospace,monospace', lineHeight: 1 }}>
+                    {/* Subtle top gradient for optimal cards */}
+                    {isOptimal && (
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                        background: `linear-gradient(to right, ${GOLD}00, ${GOLD}, ${GOLD}00)`,
+                      }} />
+                    )}
+                    {!isOptimal && (
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                        background: col,
+                        borderRadius: '12px 12px 0 0',
+                      }} />
+                    )}
+
+                    {/* Label row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, marginTop: 4 }}>
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: TEXT, margin: '0 0 2px', letterSpacing: '-0.1px' }}>{label}</p>
+                        <p style={{ fontSize: 9,  color: MUTED, margin: 0, letterSpacing: '0.2px' }}>{desc}</p>
+                      </div>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8,
+                        background: `${col}15`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: col, flexShrink: 0,
+                      }}>
+                        {icon}
+                      </div>
+                    </div>
+
+                    {/* Score number */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 10 }}>
+                      <span style={{
+                        fontSize: 34, fontWeight: 900,
+                        color: col,
+                        fontFamily: 'ui-monospace,"SF Mono",monospace',
+                        lineHeight: 1, letterSpacing: '-1px',
+                      }}>
                         {score}
                       </span>
-                      <span style={{ fontSize: 9, color: MUTED }}>/ 100</span>
+                      <span style={{ fontSize: 10, color: MUTED, fontWeight: 500 }}>/100</span>
                     </div>
-                    <div style={{ height: 4, background: '#E8E8E8', borderRadius: 2, overflow: 'hidden', marginBottom: 8 }}>
-                      <div style={{ height: '100%', width: `${score}%`, background: col, borderRadius: 2 }} />
+
+                    {/* Progress bar */}
+                    <div style={{ height: 5, background: '#EBEBEB', borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+                      <div style={{
+                        height: '100%', width: `${score}%`,
+                        background: isOptimal
+                          ? `linear-gradient(to right, ${GOLD}80, ${GOLD})`
+                          : col,
+                        borderRadius: 3,
+                        transition: 'width 0.6s ease',
+                      }} />
                     </div>
+
+                    {/* Status pill */}
                     <span style={{
-                      fontSize: 10, fontWeight: 600,
-                      color: stat.color, background: stat.bg,
-                      padding: '2px 8px', borderRadius: 12, display: 'inline-block',
+                      fontSize: 10, fontWeight: 700,
+                      color: st.color, background: st.bg,
+                      padding: '3px 10px', borderRadius: 14,
+                      display: 'inline-block', letterSpacing: '0.2px',
+                      border: `1px solid ${st.color}20`,
                     }}>
-                      {stat.label}
+                      {st.label}
                     </span>
                   </div>
                 )
@@ -325,33 +695,65 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
             </div>
           </div>
 
-          {/* ─── KEY FINDINGS ───────────────────────────────── */}
+          {/* ─── KEY FINDINGS ─────────────────────────────────── */}
           {keyFindings.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <SectionTitle>Hallazgos Clave</SectionTitle>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ marginBottom: 36 }}>
+              <GoldDivider label="Hallazgos Clave" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {keyFindings.map((f, i) => {
                   const dotColor = f.level === 'optimal' ? EMERALD : f.level === 'danger' ? RED : f.level === 'warning' ? AMBER : '#0369a1'
+                  const num = ['01', '02', '03'][i] ?? `0${i + 1}`
                   return (
                     <div key={i} style={{
-                      display: 'flex', gap: 12, alignItems: 'flex-start',
-                      padding: '12px 16px', background: CARD,
-                      border: `1px solid ${DIVIDER}`, borderRadius: 10,
+                      display: 'flex', gap: 0,
+                      border: `1px solid ${DIVIDER}`,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      background: 'white',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                     }}>
+                      {/* Number sidebar */}
                       <div style={{
-                        width: 22, height: 22, borderRadius: '50%', background: dotColor,
-                        flexShrink: 0, marginTop: 1,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 52, flexShrink: 0,
+                        background: `${dotColor}10`,
+                        borderRight: `1px solid ${dotColor}20`,
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        padding: '16px 8px',
                       }}>
-                        <span style={{ color: 'white', fontSize: 12 }}>✓</span>
+                        <span style={{
+                          fontSize: 20, fontWeight: 900,
+                          color: dotColor, fontFamily: 'ui-monospace,"SF Mono",monospace',
+                          lineHeight: 1, letterSpacing: '-1px',
+                        }}>
+                          {num}
+                        </span>
+                        <div style={{ width: 20, height: 2, background: dotColor, borderRadius: 1, marginTop: 6, opacity: 0.4 }} />
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: TEXT, margin: '0 0 3px' }}>{f.title}</p>
-                        <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.55, margin: 0 }}>{f.description}</p>
+
+                      {/* Content */}
+                      <div style={{ flex: 1, padding: '14px 18px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: TEXT, margin: 0 }}>{f.title}</p>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700,
+                            color: dotColor, background: `${dotColor}14`,
+                            padding: '2px 8px', borderRadius: 10,
+                            textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+                          }}>
+                            {f.level === 'optimal' ? 'Óptimo' : f.level === 'danger' ? 'Alerta' : f.level === 'warning' ? 'Atención' : 'Normal'}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.description}</p>
                         {f.value && (
-                          <p style={{ fontSize: 10, color: GOLD, marginTop: 5, fontWeight: 600, margin: '5px 0 0' }}>
-                            Valor: {f.value} · Meta: {f.target}
-                          </p>
+                          <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                            <span style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>
+                              Valor actual: {f.value}
+                            </span>
+                            <span style={{ fontSize: 10, color: MUTED }}>
+                              Meta: {f.target}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -361,48 +763,73 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
             </div>
           )}
 
-          {/* ─── RECOMMENDATIONS ────────────────────────────── */}
+          {/* ─── INTERVENTIONS ────────────────────────────────── */}
           {sortedProtocol.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <SectionTitle>Intervenciones Prioritarias</SectionTitle>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ marginBottom: 36 }}>
+              <GoldDivider label="Intervenciones Prioritarias" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {sortedProtocol.map((item, i) => {
                   const urg = URGENCY[item.urgency] ?? { label: item.urgency, color: AMBER }
                   return (
                     <div key={i} style={{
-                      display: 'flex', gap: 14, alignItems: 'flex-start',
-                      padding: '14px 16px', background: CARD,
+                      display: 'flex', gap: 0,
                       border: `1px solid ${DIVIDER}`,
-                      borderLeft: `3px solid ${urg.color}`,
-                      borderRadius: 10,
+                      borderLeft: `4px solid ${urg.color}`,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      background: 'white',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                     }}>
+                      {/* Priority number */}
                       <div style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: `${urg.color}18`, flexShrink: 0,
+                        width: 56, flexShrink: 0,
+                        background: `${urg.color}08`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 800, color: urg.color,
+                        padding: '18px 0',
+                        borderRight: `1px solid ${urg.color}15`,
                       }}>
-                        {i + 1}
+                        <span style={{
+                          fontSize: 26, fontWeight: 900,
+                          color: urg.color, fontFamily: 'ui-monospace,"SF Mono",monospace',
+                          lineHeight: 1, letterSpacing: '-1px',
+                        }}>
+                          {i + 1}
+                        </span>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: TEXT, margin: 0 }}>{item.molecule}</p>
+
+                      {/* Content */}
+                      <div style={{ flex: 1, padding: '16px 20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                          <p style={{ fontSize: 14, fontWeight: 800, color: TEXT, margin: 0, letterSpacing: '-0.2px' }}>
+                            {item.molecule}
+                          </p>
                           <span style={{
-                            fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const,
-                            color: urg.color, background: `${urg.color}12`,
-                            padding: '2px 8px', borderRadius: 20,
-                            letterSpacing: '0.5px', flexShrink: 0, marginLeft: 8,
+                            fontSize: 9, fontWeight: 800, textTransform: 'uppercase' as const,
+                            color: urg.color,
+                            background: `${urg.color}15`,
+                            border: `1px solid ${urg.color}30`,
+                            padding: '3px 10px', borderRadius: 20,
+                            letterSpacing: '0.8px', flexShrink: 0, marginLeft: 10,
                           }}>
                             {urg.label}
                           </span>
                         </div>
                         {item.dose && (
-                          <p style={{ fontSize: 11, color: MUTED, margin: '0 0 4px' }}>{item.dose}</p>
+                          <p style={{ fontSize: 11, color: MUTED, margin: '0 0 5px', fontWeight: 500 }}>
+                            {item.dose}
+                          </p>
                         )}
                         {item.expectedResult && (
-                          <p style={{ fontSize: 11, color: GOLD, fontStyle: 'italic', margin: 0 }}>
-                            → {item.expectedResult}
-                          </p>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
+                            <div style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }}>
+                              <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+                                <path d="M5 12l5 5L19 7" stroke={GOLD} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </div>
+                            <p style={{ fontSize: 11, color: GOLD, fontStyle: 'italic', margin: 0, lineHeight: 1.5 }}>
+                              {item.expectedResult}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -412,37 +839,75 @@ export function SummaryTab({ analysis, patientAge, patientName = 'Paciente', res
             </div>
           )}
 
-          {/* ─── FOOTER ─────────────────────────────────────── */}
+          {/* ─── FOOTER ──────────────────────────────────────── */}
           <div style={{
-            borderTop: `1px solid ${DIVIDER}`, paddingTop: 20,
-            display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 24,
-            alignItems: 'start',
+            borderTop: `1px solid ${DIVIDER}`,
+            marginTop: 4,
+            paddingTop: 24,
           }}>
-            {/* Next eval */}
-            <div>
-              <p style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 4px' }}>
-                Próxima evaluación recomendada
-              </p>
-              <p style={{ fontSize: 13, fontWeight: 700, color: GOLD, margin: 0 }}>En 90 días</p>
-            </div>
-            {/* Doctor */}
+            {/* Gold ornamental line */}
             <div style={{
-              textAlign: 'center',
-              borderLeft: `1px solid ${DIVIDER}`, borderRight: `1px solid ${DIVIDER}`,
-              padding: '0 24px',
+              height: 1,
+              background: `linear-gradient(to right, transparent, ${GOLD}50, transparent)`,
+              marginBottom: 22,
+            }} />
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto 1fr',
+              gap: 24,
+              alignItems: 'center',
             }}>
-              <div style={{ width: 80, height: 1, background: DIVIDER, margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 9, color: MUTED, margin: '0 0 3px' }}>Médico responsable</p>
-              <p style={{ fontSize: 11, fontWeight: 600, color: TEXT, margin: 0 }}>Dr. / Dra. ___________</p>
-            </div>
-            {/* Confidentiality */}
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: 9, color: MUTED, lineHeight: 1.6, margin: 0 }}>
-                Documento confidencial.<br />
-                Uso exclusivo del paciente<br />
-                y su médico tratante.<br />
-                <span style={{ color: GOLD }}>Longevity IA · {new Date().getFullYear()}</span>
-              </p>
+              {/* Next evaluation */}
+              <div>
+                <p style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 5px', fontWeight: 600 }}>
+                  Próxima evaluación
+                </p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: GOLD, margin: 0, letterSpacing: '-0.3px' }}>
+                  En 90 días
+                </p>
+                <p style={{ fontSize: 10, color: MUTED, margin: '3px 0 0' }}>
+                  seguimiento de protocolo
+                </p>
+              </div>
+
+              {/* Center: mini logo + signature */}
+              <div style={{
+                textAlign: 'center',
+                padding: '0 28px',
+                borderLeft: `1px solid ${DIVIDER}`,
+                borderRight: `1px solid ${DIVIDER}`,
+              }}>
+                {/* Mini logo */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: `linear-gradient(135deg, ${GOLD}, #A8822A)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C9 5 6 8 6 12a6 6 0 0012 0c0-4-3-7-6-10z" fill="white" opacity="0.9" />
+                    </svg>
+                  </div>
+                </div>
+                <div style={{ width: 64, height: 1, background: TEXT, margin: '0 auto 8px', opacity: 0.15 }} />
+                <p style={{ fontSize: 9, color: MUTED, margin: '0 0 3px', fontWeight: 500 }}>Médico responsable</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: TEXT, margin: 0, letterSpacing: '0.2px' }}>
+                  Dr. / Dra. ___________
+                </p>
+              </div>
+
+              {/* Confidentiality */}
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: 9, color: MUTED, lineHeight: 1.8, margin: 0 }}>
+                  Documento de carácter confidencial.<br />
+                  Uso exclusivo del paciente<br />
+                  y su médico tratante.
+                </p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: GOLD, margin: '6px 0 0' }}>
+                  Longevity IA · {new Date().getFullYear()}
+                </p>
+              </div>
             </div>
           </div>
         </div>
