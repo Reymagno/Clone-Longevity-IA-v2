@@ -10,7 +10,7 @@ interface ExportButtonsProps {
   activeTab: number
 }
 
-// CSS de tema claro que se inyecta temporalmente antes de capturar
+// CSS de tema claro — fallback para lo que no se parchea con getComputedStyle
 const LIGHT_CSS = `
   #dashboard-export {
     background-color: #f8fafc !important;
@@ -36,10 +36,11 @@ const LIGHT_CSS = `
     box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
   }
 
-  #dashboard-export .badge-optimal { background: rgba(4,120,87,0.10) !important; color: #047857 !important; border-color: rgba(4,120,87,0.25) !important; }
-  #dashboard-export .badge-normal  { background: rgba(3,105,161,0.10) !important; color: #0369a1 !important; border-color: rgba(3,105,161,0.25) !important; }
-  #dashboard-export .badge-warning { background: rgba(180,83,9,0.10) !important; color: #b45309 !important; border-color: rgba(180,83,9,0.25) !important; }
-  #dashboard-export .badge-danger  { background: rgba(185,28,28,0.10) !important; color: #b91c1c !important; border-color: rgba(185,28,28,0.25) !important; }
+  /* FIX: opacidad subida de 0.10 a 0.18 para que se vean sobre fondo blanco */
+  #dashboard-export .badge-optimal { background: rgba(4,120,87,0.18) !important; color: #047857 !important; border-color: rgba(4,120,87,0.35) !important; }
+  #dashboard-export .badge-normal  { background: rgba(3,105,161,0.18) !important; color: #0369a1 !important; border-color: rgba(3,105,161,0.35) !important; }
+  #dashboard-export .badge-warning { background: rgba(180,83,9,0.18) !important; color: #b45309 !important; border-color: rgba(180,83,9,0.35) !important; }
+  #dashboard-export .badge-danger  { background: rgba(185,28,28,0.18) !important; color: #b91c1c !important; border-color: rgba(185,28,28,0.35) !important; }
 
   #dashboard-export .recharts-text tspan,
   #dashboard-export .recharts-cartesian-axis-tick-value tspan,
@@ -47,52 +48,91 @@ const LIGHT_CSS = `
   #dashboard-export .recharts-default-tooltip { background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
 `
 
-// Mapeo de colores inline del tema oscuro → claro
+// Mapa completo de fondos oscuros → claros (rgb format que devuelve getComputedStyle)
 const BG_MAP: Record<string, string> = {
   'rgb(5, 14, 26)':   '#f8fafc',
   'rgb(10, 22, 40)':  '#ffffff',
-  'rgb(30, 58, 95)':  '#f1f5f9',
-  'rgb(26, 45, 74)':  '#e2e8f0',
   'rgb(13, 31, 60)':  '#f1f5f9',
   'rgb(15, 23, 42)':  '#f1f5f9',
+  'rgb(17, 24, 39)':  '#f8fafc',
+  'rgb(23, 37, 59)':  '#f1f5f9',
+  'rgb(26, 45, 74)':  '#e2e8f0',
+  'rgb(30, 58, 95)':  '#f1f5f9',
 }
+
+// Mapa completo de textos claros → oscuros
 const TEXT_MAP: Record<string, string> = {
   'rgb(226, 232, 240)': '#0f172a',
+  'rgb(241, 245, 249)': '#0f172a',
   'rgb(248, 250, 252)': '#0f172a',
-  'rgb(100, 116, 139)': '#475569',
+  'rgb(203, 213, 225)': '#334155',
   'rgb(148, 163, 184)': '#475569',
+  'rgb(100, 116, 139)': '#475569',
   'rgb(0, 229, 160)':   '#047857',
   'rgb(56, 189, 248)':  '#0369a1',
   'rgb(245, 166, 35)':  '#b45309',
   'rgb(255, 77, 109)':  '#b91c1c',
 }
-const SVG_MAP: Record<string, string> = {
-  '#e2e8f0': '#334155', '#64748b': '#475569', '#94a3b8': '#64748b',
-  '#00e5a0': '#047857', '#38bdf8': '#0369a1', '#f5a623': '#b45309', '#ff4d6d': '#b91c1c',
+
+// Mapa para fills/strokes SVG (hex format de atributos y inline styles)
+const SVG_FILL_MAP: Record<string, string> = {
+  '#e2e8f0': '#334155',
+  '#cbd5e1': '#475569',
+  '#94a3b8': '#64748b',
+  '#64748b': '#475569',
+  '#00e5a0': '#047857',
+  '#38bdf8': '#0369a1',
+  '#f5a623': '#b45309',
+  '#ff4d6d': '#b91c1c',
+  // rgb format para inline styles de Recharts
+  'rgb(226, 232, 240)': '#334155',
+  'rgb(203, 213, 225)': '#475569',
+  'rgb(148, 163, 184)': '#64748b',
+  'rgb(100, 116, 139)': '#475569',
+  'rgb(0, 229, 160)':   '#047857',
+  'rgb(56, 189, 248)':  '#0369a1',
+  'rgb(245, 166, 35)':  '#b45309',
+  'rgb(255, 77, 109)':  '#b91c1c',
 }
 
-// Aplica overrides de inline styles en el elemento (no usa getComputedStyle)
-function patchInlineStyles(root: HTMLElement) {
+// FIX PRINCIPAL: usa getComputedStyle en TODOS los elementos para garantizar
+// que incluso elementos con solo clases Tailwind se conviertan correctamente.
+function patchAllComputedStyles(root: HTMLElement) {
   const restored: Array<() => void> = []
 
-  root.querySelectorAll<HTMLElement>('[style]').forEach(el => {
+  root.querySelectorAll<HTMLElement>('*').forEach(el => {
+    const computed = window.getComputedStyle(el)
     const s = el.style
-    const orig = { color: s.color, bg: s.backgroundColor, border: s.borderColor, background: s.background }
 
-    if (orig.color && TEXT_MAP[orig.color]) {
-      s.color = TEXT_MAP[orig.color]
-      restored.push(() => { s.color = orig.color })
+    // — color (texto) —
+    const color = computed.color
+    if (color && TEXT_MAP[color]) {
+      const orig = s.color
+      s.color = TEXT_MAP[color]
+      restored.push(() => { s.color = orig })
     }
-    if (orig.bg && BG_MAP[orig.bg]) {
-      s.backgroundColor = BG_MAP[orig.bg]
-      restored.push(() => { s.backgroundColor = orig.bg })
+
+    // — backgroundColor —
+    const bg = computed.backgroundColor
+    // Ignorar transparente (rgba(0,0,0,0)) para no blanquear capas intencionales
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && BG_MAP[bg]) {
+      const orig = s.backgroundColor
+      s.backgroundColor = BG_MAP[bg]
+      restored.push(() => { s.backgroundColor = orig })
     }
-    if (orig.border && BG_MAP[orig.border]) {
-      s.borderColor = BG_MAP[orig.border]
-      restored.push(() => { s.borderColor = orig.border })
+
+    // — borderColor —
+    const border = computed.borderTopColor
+    if (border && BG_MAP[border]) {
+      const orig = s.borderColor
+      s.borderColor = BG_MAP[border]
+      restored.push(() => { s.borderColor = orig })
     }
-    if (orig.background) {
-      const newBg = orig.background
+
+    // — background shorthand (gradientes y colores hex en inline styles) —
+    const bgShorthand = s.background
+    if (bgShorthand) {
+      const patched = bgShorthand
         .replace(/#050e1a/gi, '#f8fafc').replace(/#0a1628/gi, '#ffffff').replace(/#1a2d4a/gi, '#e2e8f0')
         .replace(/rgba?\(5,\s*14,\s*26[^)]*\)/g, '#f8fafc')
         .replace(/rgba?\(10,\s*22,\s*40[^)]*\)/g, '#ffffff')
@@ -100,42 +140,63 @@ function patchInlineStyles(root: HTMLElement) {
         .replace(/rgba?\(56,\s*189,\s*248,\s*([\d.]+)\)/g, (_m, a) => `rgba(3,105,161,${a})`)
         .replace(/rgba?\(245,\s*166,\s*35,\s*([\d.]+)\)/g, (_m, a) => `rgba(180,83,9,${a})`)
         .replace(/rgba?\(255,\s*77,\s*109,\s*([\d.]+)\)/g, (_m, a) => `rgba(185,28,28,${a})`)
-        .replace(/#00e5a0([0-9a-fA-F]{2})/g, (_m, a) => `rgba(4,120,87,${(parseInt(a, 16) / 255).toFixed(2)})`)
-        .replace(/#38bdf8([0-9a-fA-F]{2})/g, (_m, a) => `rgba(3,105,161,${(parseInt(a, 16) / 255).toFixed(2)})`)
-        .replace(/#f5a623([0-9a-fA-F]{2})/g, (_m, a) => `rgba(180,83,9,${(parseInt(a, 16) / 255).toFixed(2)})`)
-        .replace(/#ff4d6d([0-9a-fA-F]{2})/g, (_m, a) => `rgba(185,28,28,${(parseInt(a, 16) / 255).toFixed(2)})`)
-      if (newBg !== orig.background) {
-        s.background = newBg
-        restored.push(() => { s.background = orig.background })
+      if (patched !== bgShorthand) {
+        s.background = patched
+        restored.push(() => { s.background = bgShorthand })
+      }
+    }
+
+    // — fill SVG en inline style (Recharts escribe fill como CSS, no como atributo) —
+    const inlineFill = s.fill
+    if (inlineFill) {
+      const norm = inlineFill.toLowerCase().trim()
+      if (SVG_FILL_MAP[norm]) {
+        s.fill = SVG_FILL_MAP[norm]
+        restored.push(() => { s.fill = inlineFill })
+      }
+    }
+
+    // — stroke SVG en inline style —
+    const inlineStroke = s.stroke
+    if (inlineStroke) {
+      const norm = inlineStroke.toLowerCase().trim()
+      if (SVG_FILL_MAP[norm]) {
+        s.stroke = SVG_FILL_MAP[norm]
+        restored.push(() => { s.stroke = inlineStroke })
       }
     }
   })
 
-  // SVG fills y strokes
+  // — fill/stroke como atributos SVG (no inline style) —
   root.querySelectorAll<Element>('[fill]').forEach(el => {
     const v = (el.getAttribute('fill') ?? '').toLowerCase()
-    if (SVG_MAP[v]) { el.setAttribute('fill', SVG_MAP[v]); restored.push(() => el.setAttribute('fill', v)) }
+    if (SVG_FILL_MAP[v]) {
+      el.setAttribute('fill', SVG_FILL_MAP[v])
+      restored.push(() => el.setAttribute('fill', v))
+    }
   })
   root.querySelectorAll<Element>('[stroke]').forEach(el => {
     const v = (el.getAttribute('stroke') ?? '').toLowerCase()
-    if (SVG_MAP[v]) { el.setAttribute('stroke', SVG_MAP[v]); restored.push(() => el.setAttribute('stroke', v)) }
+    if (SVG_FILL_MAP[v]) {
+      el.setAttribute('stroke', SVG_FILL_MAP[v])
+      restored.push(() => el.setAttribute('stroke', v))
+    }
   })
 
   return () => restored.forEach(fn => fn())
 }
 
-// Captura el elemento con tema claro inyectado en el documento real
 async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
   const { default: html2canvas } = await import('html2canvas')
 
-  // 1. Inyectar CSS de tema claro
+  // 1. Inyectar CSS de tema claro (fallback para lo que no cubre getComputedStyle)
   const styleEl = document.createElement('style')
   styleEl.id = '__longevity-export-style__'
   styleEl.innerHTML = LIGHT_CSS
   document.head.appendChild(styleEl)
 
-  // 2. Parchear inline styles
-  const restoreInline = patchInlineStyles(element)
+  // 2. Parchear TODOS los elementos usando getComputedStyle
+  const restoreAll = patchAllComputedStyles(element)
 
   try {
     return await html2canvas(element, {
@@ -146,9 +207,9 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
       logging: false,
     })
   } finally {
-    // 3. Restaurar todo
+    // 3. Restaurar todo al tema original
     styleEl.remove()
-    restoreInline()
+    restoreAll()
   }
 }
 
