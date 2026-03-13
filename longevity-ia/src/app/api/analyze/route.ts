@@ -22,6 +22,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verificar que el paciente pertenece al usuario autenticado
+    const { data: ownPatient } = await supabase
+      .from('patients')
+      .select('id')
+      .eq('id', patientId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (!ownPatient) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
     const ALLOWED_MIME_TYPES = new Set([
       'application/pdf',
       'image/jpeg',

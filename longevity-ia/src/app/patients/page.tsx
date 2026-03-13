@@ -35,6 +35,18 @@ export default function PatientsPage() {
 
       if (error) throw error
 
+      // Sin perfil → onboarding
+      if (!data || data.length === 0) {
+        router.replace('/onboarding')
+        return
+      }
+
+      // Con perfil → dashboard directo
+      if (data.length === 1) {
+        router.replace(`/patients/${data[0].id}/dashboard`)
+        return
+      }
+
       const withResults = await Promise.all(
         (data || []).map(async (patient) => {
           const { data: results } = await supabase
@@ -54,7 +66,7 @@ export default function PatientsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     loadPatients()

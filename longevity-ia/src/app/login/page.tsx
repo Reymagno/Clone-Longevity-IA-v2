@@ -35,6 +35,7 @@ export default function LoginPage() {
           password: form.password,
         })
         if (error) throw error
+        // Redirige a /patients que internamente decide: onboarding o dashboard
         router.push('/patients')
         router.refresh()
       } else {
@@ -43,7 +44,7 @@ export default function LoginPage() {
           password: form.password,
         })
         if (error) throw error
-        toast.success('Cuenta creada. Revisa tu correo para confirmar.')
+        toast.success('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.')
         setMode('login')
       }
     } catch (err) {
