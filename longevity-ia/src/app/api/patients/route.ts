@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('patients')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .range(from, to)
 

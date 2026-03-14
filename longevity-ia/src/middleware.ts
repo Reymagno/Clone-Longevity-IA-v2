@@ -28,20 +28,30 @@ export async function middleware(request: NextRequest) {
       },
     })
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     const { pathname } = request.nextUrl
     const isLoginPage = pathname === '/login'
     const isProtected =
       pathname.startsWith('/patients') || pathname.startsWith('/onboarding')
 
+    // Si hay error de auth (usuario eliminado, token inválido) → limpiar sesión y redirigir a login
+    if (authError && isProtected) {
+      const loginUrl = new URL('/login', request.url)
+      const res = NextResponse.redirect(loginUrl)
+      // Eliminar cookies de sesión de Supabase
+      res.cookies.delete('sb-access-token')
+      res.cookies.delete('sb-refresh-token')
+      return res
+    }
+
     // Si ruta protegida y sin sesión → redirige a login
     if (isProtected && !user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Si ya tiene sesión y va al login → redirige a pacientes
-    if (isLoginPage && user) {
+    // Si ya tiene sesión válida y va al login → redirige a pacientes
+    if (isLoginPage && user && !authError) {
       return NextResponse.redirect(new URL('/patients', request.url))
     }
   } catch (error) {

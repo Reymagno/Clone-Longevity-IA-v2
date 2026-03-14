@@ -28,10 +28,21 @@ export default function PatientsPage() {
   const loadPatients = useCallback(async () => {
     setLoading(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/login'); return }
+
       const { data, error } = await supabase
         .from('patients')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+
+      // Error de autenticación (usuario eliminado, sesión inválida) → signOut y login
+      if (error?.code === 'PGRST301' || error?.message?.toLowerCase().includes('jwt') || error?.message?.toLowerCase().includes('session')) {
+        await supabase.auth.signOut()
+        router.replace('/login')
+        return
+      }
 
       if (error) throw error
 
