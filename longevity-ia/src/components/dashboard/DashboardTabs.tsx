@@ -10,12 +10,13 @@ import { ProjectionTab } from './tabs/ProjectionTab'
 import { ProtocolTab } from './tabs/ProtocolTab'
 import { OrganHealthTab } from './tabs/OrganHealthTab'
 import { FilesTab } from './tabs/FilesTab'
+import { StemCellTab } from './tabs/StemCellTab'
 import { ExportButtons } from './ExportButtons'
 import { LongevityChat } from './LongevityChat'
 import type { Patient, LabResult } from '@/types'
 import {
   BarChart2, Shield, Activity, FlaskConical,
-  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch
+  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Dna
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -33,6 +34,7 @@ const TABS = [
   { id: 5, label: 'Protocolo', icon: ClipboardList },
   { id: 6, label: 'Órganos', icon: HeartPulse },
   { id: 7, label: 'Estudio', icon: ScanSearch },
+  { id: 8, label: 'Células Madre', icon: Dna },
 ]
 
 export function DashboardTabs({ patient, result }: DashboardTabsProps) {
@@ -146,6 +148,13 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
             fileUrls={result.file_urls}
             patientName={patient.name}
             resultDate={result.result_date}
+          />
+        )}
+        {activeTab === 8 && (
+          <StemCellTab
+            patient={patient}
+            parsedData={parsedData}
+            analysis={analysis}
           />
         )}
       </div>
