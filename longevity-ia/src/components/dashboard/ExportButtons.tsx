@@ -2,12 +2,18 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, Printer, Image } from 'lucide-react'
+import { Download, Printer, Image, FileText } from 'lucide-react'
 import { toast } from 'sonner'
+import { generateMedicalReport } from '@/lib/pdf-report'
+import type { Patient, ParsedData, AIAnalysis } from '@/types'
 
 interface ExportButtonsProps {
   patientName: string
   activeTab: number
+  patient: Patient
+  parsedData: ParsedData
+  analysis: AIAnalysis
+  resultDate: string
 }
 
 // CSS de tema claro — fallback para lo que no se parchea con getComputedStyle
@@ -213,8 +219,22 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
   }
 }
 
-export function ExportButtons({ patientName, activeTab }: ExportButtonsProps) {
+export function ExportButtons({ patientName, activeTab, patient, parsedData, analysis, resultDate }: ExportButtonsProps) {
   const [exporting, setExporting] = useState(false)
+  const [generatingReport, setGeneratingReport] = useState(false)
+
+  async function exportFullReport() {
+    setGeneratingReport(true)
+    try {
+      await generateMedicalReport(patient, parsedData, analysis, resultDate)
+      toast.success('Reporte médico completo generado')
+    } catch (err) {
+      toast.error('Error al generar el reporte')
+      console.error(err)
+    } finally {
+      setGeneratingReport(false)
+    }
+  }
 
   async function exportPDF() {
     setExporting(true)
@@ -282,6 +302,10 @@ export function ExportButtons({ patientName, activeTab }: ExportButtonsProps) {
 
   return (
     <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" onClick={exportFullReport} loading={generatingReport} className="border-accent/40 text-accent hover:bg-accent/10">
+        <FileText size={14} />
+        Reporte Completo
+      </Button>
       <Button variant="outline" size="sm" onClick={exportPDF} loading={exporting}>
         <Download size={14} />
         PDF

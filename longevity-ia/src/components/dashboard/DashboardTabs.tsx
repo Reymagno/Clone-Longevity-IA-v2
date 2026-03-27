@@ -82,7 +82,14 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
                 </p>
               </div>
             </div>
-            <ExportButtons patientName={patient.name} activeTab={activeTab} />
+            <ExportButtons
+              patientName={patient.name}
+              activeTab={activeTab}
+              patient={patient}
+              parsedData={parsedData}
+              analysis={analysis}
+              resultDate={result.result_date}
+            />
           </div>
 
           {/* Tabs */}
