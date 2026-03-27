@@ -483,22 +483,18 @@ export async function generateMedicalReport(
   if (analysis.keyAlerts?.length > 0) {
     section('ALERTAS CLAVE', `— ${analysis.keyAlerts.length} hallazgos prioritarios`)
     analysis.keyAlerts.slice(0, 8).forEach((alert, i) => {
-      const lvl = (alert as Record<string, unknown>).level as string
+      const lvl = alert.level ?? null
       const color = sc(lvl)
-      const bg = sbg(lvl)
       guard(18)
       box(MG, y, CW, 14, i % 2 === 0 ? C.bg : C.sheet)
       box(MG, y, 3, 14, color)
       ink(C.text); sz(8.5); b()
-      t(normalize(alert as Record<string, unknown>, ['title', 'name', 'label']) || 'Alerta', MG + 7, y + 5)
+      t(alert.title || 'Alerta', MG + 7, y + 5)
       ink(color); sz(7.5); b()
-      const val = normalize(alert as Record<string, unknown>, ['value', 'val']) || ''
-      const tgt = normalize(alert as Record<string, unknown>, ['target', 'goal', 'optimal']) || ''
-      if (val) t(`Valor: ${val}`, MG + CW - 60, y + 5)
-      if (tgt) t(`Objetivo: ${tgt}`, MG + CW - 60, y + 10)
+      if (alert.value) t(`Valor: ${alert.value}`, MG + CW - 60, y + 5)
+      if (alert.target) t(`Objetivo: ${alert.target}`, MG + CW - 60, y + 10)
       ink(C.muted); sz(7.5); n()
-      const desc = normalize(alert as Record<string, unknown>, ['description', 'desc', 'detail']) || ''
-      const descLines = pdf.splitTextToSize(desc, CW - 75) as string[]
+      const descLines = pdf.splitTextToSize(alert.description || '', CW - 75) as string[]
       pdf.text(descLines.slice(0, 2), MG + 7, y + 10)
       hline(y + 14)
       skip(14)
