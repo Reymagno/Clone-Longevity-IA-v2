@@ -239,16 +239,17 @@ export function SummaryTab({ analysis, patientAge, parsedData }: SummaryTabProps
 
       {/* ══ 1. DIAGNÓSTICO GLOBAL ══════════════════════════════════ */}
       <div className="card-medical overflow-hidden p-0">
-        {/* Header de sección */}
+        {/* Header */}
         <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
           <BarChart2 size={15} className="text-accent shrink-0" />
           <h2 className="font-semibold text-foreground text-sm">Diagnóstico Global</h2>
         </div>
 
+        {/* Fila superior: Gauge + Edades + Delta */}
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
           {/* Gauge */}
           <div className="flex flex-col items-center justify-center p-6 relative">
-            <div className="absolute inset-0 pointer-events-none rounded-b-xl"
+            <div className="absolute inset-0 pointer-events-none"
               style={{ background: `radial-gradient(circle at 50% 65%, ${gaugeCol}12 0%, transparent 65%)` }} />
             <ArcGauge score={analysis.overallScore} />
             <span className="mt-2 text-xs font-bold px-3 py-1 rounded-full"
@@ -259,39 +260,69 @@ export function SummaryTab({ analysis, patientAge, parsedData }: SummaryTabProps
 
           {/* Edades */}
           <div className="flex divide-x divide-border">
-            <div className="flex-1 flex flex-col items-center justify-center p-6 gap-1">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 gap-1.5">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Biológica</p>
               <span className="text-5xl font-black font-mono leading-none" style={{ color: gaugeCol }}>
                 {analysis.longevity_age}
               </span>
               <span className="text-xs text-muted-foreground">años</span>
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mt-1"
+                style={{ background: `${gaugeCol}15`, color: gaugeCol }}>
+                cómo envejece tu cuerpo
+              </span>
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center p-6 gap-1 bg-muted/20">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Cronológica</p>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 gap-1.5 bg-muted/20">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Real</p>
               <span className="text-5xl font-black font-mono leading-none text-foreground">{patientAge}</span>
               <span className="text-xs text-muted-foreground">años</span>
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 bg-muted text-muted-foreground">
+                tu fecha de nacimiento
+              </span>
             </div>
           </div>
 
-          {/* Delta + resumen clínico */}
-          <div className="flex flex-col gap-4 p-5">
-            <div className="rounded-xl p-3 text-center"
+          {/* Delta */}
+          <div className="flex flex-col items-center justify-center p-8 gap-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold text-center">
+              Diferencia Biológica
+            </p>
+            <div className="rounded-2xl px-8 py-5 text-center w-full"
               style={{
                 background: ageDiff > 2 ? '#00e5a010' : ageDiff < -2 ? '#ff4d6d10' : '#f5a62310',
-                border: `1px solid ${ageDiff > 2 ? '#00e5a030' : ageDiff < -2 ? '#ff4d6d30' : '#f5a62330'}`,
+                border: `1px solid ${ageDiff > 2 ? '#00e5a035' : ageDiff < -2 ? '#ff4d6d35' : '#f5a62335'}`,
               }}>
-              <p className="text-2xl font-black font-mono leading-none"
+              <p className="text-4xl font-black font-mono leading-none"
                 style={{ color: ageDiff > 2 ? '#00e5a0' : ageDiff < -2 ? '#ff4d6d' : '#f5a623' }}>
                 {ageDiff > 2 ? `−${ageDiff}` : ageDiff < -2 ? `+${Math.abs(ageDiff)}` : '≈ 0'}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {ageDiff > 2 ? 'años más joven biológicamente' : ageDiff < -2 ? 'años de desgaste acumulado' : 'equilibrio biológico'}
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                {ageDiff > 2
+                  ? `Tu cuerpo funciona como el de alguien ${ageDiff} años más joven`
+                  : ageDiff < -2
+                  ? `Tu cuerpo muestra ${Math.abs(ageDiff)} años de desgaste extra`
+                  : 'Tu cuerpo va exactamente acorde a tu edad'}
               </p>
             </div>
-            <p className="text-xs text-foreground/80 leading-relaxed flex-1 border-l-2 border-accent pl-3">
-              {analysis.clinicalSummary}
-            </p>
           </div>
+        </div>
+
+        {/* Franja inferior: Resumen en lenguaje claro */}
+        <div className="border-t border-border bg-muted/10 px-6 py-6">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: `${gaugeCol}20`, border: `1px solid ${gaugeCol}35` }}>
+              <BarChart2 size={13} style={{ color: gaugeCol }} />
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              ¿Cómo está tu salud en este momento?
+            </p>
+            <span className="ml-auto text-[10px] text-muted-foreground font-mono hidden sm:block">
+              resumen del análisis
+            </span>
+          </div>
+          <p className="text-sm leading-7 text-foreground/85 max-w-4xl">
+            {analysis.clinicalSummary}
+          </p>
         </div>
       </div>
 

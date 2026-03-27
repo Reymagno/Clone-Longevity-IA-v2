@@ -479,27 +479,6 @@ export async function generateMedicalReport(
   systems.forEach(([lbl, score], i) => scoreBar(lbl, score, i % 2 === 0))
   skip(4)
 
-  // Alertas clave
-  if (analysis.keyAlerts?.length > 0) {
-    section('ALERTAS CLAVE', `— ${analysis.keyAlerts.length} hallazgos prioritarios`)
-    analysis.keyAlerts.slice(0, 8).forEach((alert, i) => {
-      const lvl = alert.level ?? null
-      const color = sc(lvl)
-      guard(18)
-      box(MG, y, CW, 14, i % 2 === 0 ? C.bg : C.sheet)
-      box(MG, y, 3, 14, color)
-      ink(C.text); sz(8.5); b()
-      t(alert.title || 'Alerta', MG + 7, y + 5)
-      ink(color); sz(7.5); b()
-      if (alert.value) t(`Valor: ${alert.value}`, MG + CW - 60, y + 5)
-      if (alert.target) t(`Objetivo: ${alert.target}`, MG + CW - 60, y + 10)
-      ink(C.muted); sz(7.5); n()
-      const descLines = pdf.splitTextToSize(alert.description || '', CW - 75) as string[]
-      pdf.text(descLines.slice(0, 2), MG + 7, y + 10)
-      hline(y + 14)
-      skip(14)
-    })
-  }
 
   // ═══════════════════════════════════════════════════════════════
   // PÁGINA 3 — FODA MÉDICA
