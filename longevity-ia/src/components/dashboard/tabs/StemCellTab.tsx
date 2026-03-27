@@ -7,7 +7,7 @@ import type { Patient, ParsedData, AIAnalysis, BiomarkerValue } from '@/types'
 import {
   Dna, ChevronDown, ChevronUp, Syringe, FlaskConical,
   AlertTriangle, CheckCircle2, Info, Activity, User,
-  BarChart3, Clock, ShieldCheck
+  BarChart3, Clock, ShieldCheck, BookOpen, Calculator
 } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────
@@ -708,6 +708,201 @@ export function StemCellTab({ patient, parsedData, analysis }: StemCellTabProps)
           <p className="text-xs text-muted-foreground mt-1">
             Producto de los {protocol.factors.length} factores clínicos aplicados.
           </p>
+        </div>
+      </CollapsibleSection>
+
+      {/* Explicación del cálculo */}
+      <CollapsibleSection title="¿Cómo se calculó este protocolo?" icon={BookOpen}>
+        <div className="space-y-5">
+
+          {/* Ajuste clínico */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Calculator size={13} className="text-accent" />
+              <p className="text-xs font-semibold text-foreground">Qué significa el «Ajuste Clínico»</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border p-4 space-y-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                La <span className="text-foreground font-semibold">dosis base</span> se calcula multiplicando el peso del paciente por el estándar clínico de{' '}
+                <span className="font-mono text-accent">1×10⁶ células/kg</span> (1 millón de células por cada kg de peso).
+                Para un paciente de <span className="font-mono text-foreground">{patient.weight ?? 70} kg</span>, eso da una dosis base de{' '}
+                <span className="font-mono text-foreground">{patient.weight ?? 70} × 10⁶ células</span>.
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                El <span className="text-foreground font-semibold">Ajuste Clínico</span> es el porcentaje en que esa dosis base sube o baja según el estado de salud del paciente.
+                Se obtiene del <span className="text-foreground font-semibold">Factor Compuesto Total</span> (×{protocol.totalFactor.toFixed(3)}):
+              </p>
+              <div className="font-mono text-xs rounded bg-muted/50 border border-border px-4 py-3 space-y-1">
+                <p className="text-muted-foreground">Ajuste (%) = (Factor Total − 1) × 100</p>
+                <p className="text-foreground">
+                  = ({protocol.totalFactor.toFixed(3)} − 1) × 100 ={' '}
+                  <span style={{ color: multiplierColor(protocol.totalFactor) }} className="font-bold">
+                    {factorSign}{((protocol.totalFactor - 1) * 100).toFixed(1)}%
+                  </span>
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {protocol.totalFactor > 1
+                  ? `Un ajuste positivo significa que las condiciones del paciente requieren más células para lograr el mismo efecto terapéutico (por ejemplo, inflamación elevada, edad avanzada o sistemas comprometidos que "consumen" más del efecto celular).`
+                  : `Un ajuste negativo significa que el paciente está en condiciones óptimas — su cuerpo aprovecha mejor las células y no necesita una dosis tan alta.`}
+              </p>
+            </div>
+          </div>
+
+          {/* Fórmula MSC paso a paso */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Dna size={13} className="text-accent" />
+              <p className="text-xs font-semibold text-foreground">Cálculo de Células Madre MSC — paso a paso</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="rounded bg-muted/50 border border-border p-3">
+                  <p className="text-muted-foreground mb-1">① Dosis base</p>
+                  <p className="font-mono text-foreground font-semibold">
+                    {patient.weight ?? 70} kg × 1×10⁶/kg
+                  </p>
+                  <p className="font-mono text-accent font-bold mt-1">
+                    = {patient.weight ?? 70} × 10⁶ células
+                  </p>
+                </div>
+                <div className="rounded bg-muted/50 border border-border p-3">
+                  <p className="text-muted-foreground mb-1">② × Factor total</p>
+                  <p className="font-mono text-foreground font-semibold">
+                    {patient.weight ?? 70} × 10⁶ × {protocol.totalFactor.toFixed(3)}
+                  </p>
+                  <p className="font-mono mt-1" style={{ color: multiplierColor(protocol.totalFactor) }}>
+                    = {((patient.weight ?? 70) * protocol.totalFactor).toFixed(1)} × 10⁶
+                  </p>
+                </div>
+                <div className="rounded bg-accent/10 border border-accent/30 p-3">
+                  <p className="text-muted-foreground mb-1">③ Dosis final (redondeada)</p>
+                  <p className="font-mono text-accent font-bold text-sm">
+                    {formatMillions(protocol.mscDose)}
+                  </p>
+                  <p className="text-muted-foreground text-[10px] mt-1">
+                    redondeado al múltiplo de 5M más cercano, entre 25M y 300M
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="text-foreground font-semibold">¿Por qué se limita entre 25M y 300M?</span>{' '}
+                Toda la evidencia clínica disponible (ensayos Fase I/II/III) opera en ese rango. Por debajo de 25M no hay efecto terapéutico documentado; por encima de 300M no hay datos de seguridad adicional y el riesgo de atrapamiento pulmonar aumenta significativamente.
+              </p>
+            </div>
+          </div>
+
+          {/* Fórmula Exosomas */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <FlaskConical size={13} className="text-blue-400" />
+              <p className="text-xs font-semibold text-foreground">Cálculo de Exosomas / VEs</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="rounded bg-muted/50 border border-border p-3">
+                  <p className="text-muted-foreground mb-1">① Dosis base IV</p>
+                  <p className="font-mono text-foreground font-semibold">2.0 × 10¹⁰ partículas</p>
+                  <p className="text-muted-foreground text-[10px] mt-1">estándar clínico para vía IV</p>
+                </div>
+                <div className="rounded bg-muted/50 border border-border p-3">
+                  <p className="text-muted-foreground mb-1">② × √Factor total</p>
+                  <p className="font-mono text-foreground font-semibold">
+                    2.0 × √{protocol.totalFactor.toFixed(3)}
+                  </p>
+                  <p className="text-muted-foreground text-[10px] mt-1">escala más suave que MSC</p>
+                </div>
+                <div className="rounded bg-blue-400/10 border border-blue-400/30 p-3">
+                  <p className="text-muted-foreground mb-1">③ Dosis final</p>
+                  <p className="font-mono text-blue-400 font-bold text-sm">
+                    {protocol.exosomeDose.toFixed(1)} × 10¹⁰
+                  </p>
+                  <p className="text-muted-foreground text-[10px] mt-1">entre 1 y 10 × 10¹⁰</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="text-foreground font-semibold">¿Por qué raíz cuadrada y no multiplicación directa?</span>{' '}
+                Los exosomas son vesículas extracelulares — tienen mayor biodisponibilidad y menor riesgo de atrapamiento que las células completas. Su dosis escala de forma más conservadora (√factor) para evitar sobredosificación con los mismos factores de ajuste.
+              </p>
+            </div>
+          </div>
+
+          {/* Factor compuesto — multiplicación visible */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 size={13} className="text-accent" />
+              <p className="text-xs font-semibold text-foreground">Cómo se forma el Factor Compuesto Total</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border p-4">
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                Cada uno de los 8 factores clínicos produce un multiplicador. El Factor Total es el <span className="text-foreground font-semibold">producto de todos</span> — no una suma ni un promedio.
+              </p>
+              <div className="font-mono text-xs leading-relaxed overflow-x-auto">
+                <p className="text-muted-foreground">Factor Total =</p>
+                <div className="flex flex-wrap gap-1 mt-1 items-center">
+                  {protocol.factors.map((f, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      <span
+                        className="px-2 py-0.5 rounded text-[10px] font-bold"
+                        style={{ color: multiplierColor(f.multiplier), background: multiplierColor(f.multiplier) + '18' }}
+                        title={f.name}
+                      >
+                        {f.multiplier.toFixed(2)}
+                      </span>
+                      {i < protocol.factors.length - 1 && <span className="text-muted-foreground">×</span>}
+                    </span>
+                  ))}
+                  <span className="text-muted-foreground ml-1">=</span>
+                  <span className="font-bold ml-1" style={{ color: multiplierColor(protocol.totalFactor) }}>
+                    {protocol.totalFactor.toFixed(4)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2 text-[10px] text-muted-foreground">
+                  {protocol.factors.map((f, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      <span className="opacity-70">{f.name.split(' ')[0]}</span>
+                      {i < protocol.factors.length - 1 && <span>·</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sesiones */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={13} className="text-accent" />
+              <p className="text-xs font-semibold text-foreground">Cómo se determinan las sesiones</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 border border-border divide-y divide-border">
+              {[
+                { rango: 'Factor Total ≤ 1.05', sesiones: '1 sesión única', indicacion: 'Preventivo / Optimización', color: '#00e5a0', desc: 'Paciente en buen estado. Una sola infusión es suficiente.' },
+                { rango: '1.05 < Factor ≤ 1.30', sesiones: '2 sesiones (mes 0 y mes 3)', indicacion: 'Terapéutico Moderado', color: '#38bdf8', desc: 'Algunos sistemas comprometidos. Se necesita refuerzo a los 3 meses.' },
+                { rango: 'Factor Total > 1.30', sesiones: '3 sesiones (mes 0, 1 y 3)', indicacion: 'Terapéutico Intensivo', color: '#f5a623', desc: 'Múltiples sistemas comprometidos. Protocolo intensivo con seguimiento mensual.' },
+              ].map(({ rango, sesiones, indicacion, color, desc }) => (
+                <div key={rango} className={`p-3 flex items-start gap-3 ${protocol.totalFactor <= 1.05 && color === '#00e5a0' ? 'bg-accent/5' : protocol.totalFactor > 1.05 && protocol.totalFactor <= 1.3 && color === '#38bdf8' ? 'bg-blue-400/5' : protocol.totalFactor > 1.3 && color === '#f5a623' ? 'bg-warning/5' : ''}`}>
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[10px] text-muted-foreground">{rango}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color, background: color + '20' }}>{indicacion}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-foreground mt-0.5">{sesiones}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
+                  </div>
+                  {((protocol.totalFactor <= 1.05 && color === '#00e5a0') ||
+                    (protocol.totalFactor > 1.05 && protocol.totalFactor <= 1.3 && color === '#38bdf8') ||
+                    (protocol.totalFactor > 1.3 && color === '#f5a623')) && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0" style={{ color, background: color + '20' }}>
+                      ← este paciente
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </CollapsibleSection>
 
