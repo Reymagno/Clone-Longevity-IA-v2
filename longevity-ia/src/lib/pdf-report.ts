@@ -696,11 +696,10 @@ export async function generateMedicalReport(
   skip(7)
 
   ;(analysis.risks ?? []).slice(0, 12).forEach((risk, i) => {
-    const r = risk as Record<string, unknown>
-    const disease = normalize(r, ['disease', 'name', 'condition'])
-    const prob = typeof r.probability === 'number' ? r.probability : 0
-    const horizon = normalize(r, ['horizon', 'timeframe', 'period'])
-    const drivers = Array.isArray(r.drivers) ? r.drivers as string[] : []
+    const disease = risk.disease ?? ''
+    const prob = typeof risk.probability === 'number' ? risk.probability : 0
+    const horizon = risk.horizon ?? ''
+    const drivers = Array.isArray(risk.drivers) ? risk.drivers : []
     const rColor = prob >= 0.7 ? C.danger : prob >= 0.4 ? C.warning : prob >= 0.2 ? C.normal : C.optimal
 
     const driverText = drivers.slice(0, 3).join(' · ')
