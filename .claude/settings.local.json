@@ -5,7 +5,8 @@
       "Bash(node:*)",
       "Bash(npx next:*)",
       "Bash(node_modules/.bin/next build:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(npx --no-install next build)"
     ]
   }
 }

@@ -67,22 +67,27 @@ export default async function DashboardPage({
 
   if (!result) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 text-center px-4">
-        <p className="text-2xl font-bold text-foreground">Sin resultados aún</p>
-        <p className="text-muted-foreground">
-          {patient.name} no tiene estudios de laboratorio subidos todavía.
-        </p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 text-center px-4">
+        <div className="w-20 h-20 rounded-3xl bg-accent/10 border border-accent/20 flex items-center justify-center animate-float">
+          <Upload size={32} className="text-accent" />
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-foreground mb-2">Sin resultados aun</p>
+          <p className="text-muted-foreground max-w-xs">
+            {patient.name} no tiene estudios de laboratorio subidos todavia.
+          </p>
+        </div>
         <div className="flex gap-3">
           <Link
             href="/patients"
-            className="inline-flex items-center gap-2 border border-border text-foreground font-medium px-5 py-2.5 rounded-lg hover:bg-muted/40 transition-all text-sm"
+            className="inline-flex items-center gap-2 border border-border text-foreground font-medium px-5 py-2.5 rounded-xl hover:bg-white/5 transition-all text-sm"
           >
             <ArrowLeft size={16} />
             Volver
           </Link>
           <Link
             href={`/patients/${params.id}/upload`}
-            className="inline-flex items-center gap-2 bg-accent text-background font-medium px-5 py-2.5 rounded-lg hover:bg-accent/90 transition-all text-sm"
+            className="inline-flex items-center gap-2 bg-accent text-background font-medium px-5 py-2.5 rounded-xl hover:bg-accent/90 transition-all text-sm shadow-accent/20 shadow-lg"
           >
             <Upload size={16} />
             Subir Estudio

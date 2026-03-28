@@ -3,8 +3,16 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 import { NextRequest } from 'next/server'
+import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { analyzeLabFiles } from '@/lib/anthropic/analyzer'
+
+/** Compute a combined SHA-256 hash of all file buffers for cache lookup */
+function computeFilesHash(buffers: Buffer[]): string {
+  const hash = createHash('sha256')
+  for (const buf of buffers) hash.update(buf)
+  return hash.digest('hex')
+}
 
 export async function POST(request: NextRequest) {
   const encoder = new TextEncoder()
@@ -20,6 +28,9 @@ export async function POST(request: NextRequest) {
   const fileBuffers: Buffer[] = await Promise.all(
     files.map(async (f) => Buffer.from(await f.arrayBuffer()))
   )
+
+  // Compute hash for cache lookup
+  const filesHash = computeFilesHash(fileBuffers)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -53,6 +64,59 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (!ownPatient) { send({ ok: false, error: 'No autorizado' }); return }
+
+        // ── Cache check: buscar análisis existente con el mismo hash de archivos ──
+        const { data: cachedResults } = await supabase
+          .from('lab_results')
+          .select('id, parsed_data, ai_analysis')
+          .eq('patient_id', patientId)
+          .not('ai_analysis', 'is', null)
+          .not('parsed_data', 'is', null)
+
+        if (cachedResults && cachedResults.length > 0) {
+          for (const cached of cachedResults) {
+            const meta = (cached.parsed_data as Record<string, unknown>)?._meta as Record<string, unknown> | undefined
+            if (meta?.fileHash === filesHash) {
+              // Found cached result with same files — clone the analysis into a new record
+              send({ ok: true, step: 'uploading' })
+
+              // Still upload files to storage for reference
+              const fileUrls: string[] = []
+              const timestamp = Date.now()
+              for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                const buffer = fileBuffers[i]
+                const fileName = `${patientId}/${timestamp}-${file.name.replace(/\s/g, '_')}`
+                await supabase.storage.from('lab-files').upload(fileName, buffer, { contentType: file.type, upsert: false })
+                const { data: urlData } = supabase.storage.from('lab-files').getPublicUrl(fileName)
+                fileUrls.push(urlData.publicUrl)
+              }
+
+              send({ ok: true, step: 'analyzing' })
+
+              const cachedParsed = { ...(cached.parsed_data as object), _meta: { fileHash: filesHash } }
+              const { data: newResult, error: insertError } = await supabase
+                .from('lab_results')
+                .insert({
+                  patient_id: patientId,
+                  result_date: resultDate,
+                  file_urls: fileUrls,
+                  parsed_data: cachedParsed,
+                  ai_analysis: cached.ai_analysis,
+                })
+                .select()
+                .single()
+
+              if (insertError) {
+                send({ ok: false, error: `Error al guardar resultado cacheado: ${insertError.message}` })
+                return
+              }
+
+              send({ ok: true, step: 'done', resultId: newResult.id, patientId, cached: true })
+              return
+            }
+          }
+        }
 
         const ALLOWED = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'])
         for (const file of files) {
@@ -116,12 +180,14 @@ export async function POST(request: NextRequest) {
           clinical_history: ownPatient.clinical_history ?? null,
         }, () => enqueue(': keepalive\n\n'))
 
-        // 5. Save to DB
+        // 5. Save to DB (include file hash for cache)
         send({ ok: true, step: 'saving' })
+
+        const parsedDataWithHash = { ...analysisResult.parsedData as object, _meta: { fileHash: filesHash } }
 
         const { data: updatedResult, error: updateError } = await supabase
           .from('lab_results')
-          .update({ parsed_data: analysisResult.parsedData, ai_analysis: analysisResult.aiAnalysis })
+          .update({ parsed_data: parsedDataWithHash, ai_analysis: analysisResult.aiAnalysis })
           .eq('id', labResult.id)
           .select()
           .single()

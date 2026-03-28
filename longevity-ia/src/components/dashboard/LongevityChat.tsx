@@ -15,8 +15,9 @@ interface Message {
 }
 
 interface Props {
-  patient: Pick<Patient, 'name' | 'age' | 'gender'>
+  patient: Pick<Patient, 'name' | 'age' | 'gender'> & { id?: string }
   analysis: AIAnalysis
+  resultId?: string
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -36,6 +37,43 @@ const SUGGESTIONS = [
   'Explícame mi protocolo de suplementos',
   '¿Cómo puedo mejorar mi edad biológica?',
 ]
+
+// ─────────────────────────────────────────────────────────────────
+// PERSISTENCIA DE HISTORIAL EN LOCALSTORAGE
+// ─────────────────────────────────────────────────────────────────
+
+const CHAT_STORAGE_PREFIX = 'longevity-chat-'
+const MAX_STORED_MESSAGES = 100
+
+function getChatStorageKey(patientId?: string, resultId?: string): string | null {
+  if (!patientId) return null
+  return `${CHAT_STORAGE_PREFIX}${patientId}${resultId ? `-${resultId}` : ''}`
+}
+
+function loadChatHistory(key: string | null): Message[] {
+  if (!key) return [WELCOME]
+  try {
+    const stored = localStorage.getItem(key)
+    if (!stored) return [WELCOME]
+    const parsed = JSON.parse(stored) as Message[]
+    if (!Array.isArray(parsed) || parsed.length === 0) return [WELCOME]
+    // Ensure welcome message is always first
+    if (parsed[0]?.id !== 'welcome') return [WELCOME, ...parsed]
+    return parsed
+  } catch {
+    return [WELCOME]
+  }
+}
+
+function saveChatHistory(key: string | null, messages: Message[]) {
+  if (!key) return
+  try {
+    const toStore = messages.slice(-MAX_STORED_MESSAGES)
+    localStorage.setItem(key, JSON.stringify(toStore))
+  } catch {
+    // localStorage full or unavailable — silently fail
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────
 // MARKDOWN INLINE — renderiza **negrita** y saltos de línea
@@ -113,9 +151,11 @@ function MessageBubble({ msg }: { msg: Message }) {
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────
 
-export function LongevityChat({ patient, analysis }: Props) {
+export function LongevityChat({ patient, analysis, resultId }: Props) {
+  const storageKey = getChatStorageKey(patient.id, resultId)
+
   const [isOpen, setIsOpen]         = useState(false)
-  const [messages, setMessages]     = useState<Message[]>([WELCOME])
+  const [messages, setMessages]     = useState<Message[]>(() => loadChatHistory(storageKey))
   const [input, setInput]           = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [hasNotif, setHasNotif]     = useState(false)
@@ -128,6 +168,13 @@ export function LongevityChat({ patient, analysis }: Props) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Persist chat history to localStorage on every update
+  useEffect(() => {
+    if (messages.length > 1) {
+      saveChatHistory(storageKey, messages)
+    }
+  }, [messages, storageKey])
 
   // Notificación visual en el botón cuando llega una respuesta y el panel está cerrado
   useEffect(() => {
@@ -231,6 +278,10 @@ export function LongevityChat({ patient, analysis }: Props) {
     setMessages([WELCOME])
     setInput('')
     setIsStreaming(false)
+    // Clear persisted history
+    if (storageKey) {
+      try { localStorage.removeItem(storageKey) } catch { /* ignore */ }
+    }
   }
 
   const handleOpen = () => {
@@ -246,16 +297,16 @@ export function LongevityChat({ patient, analysis }: Props) {
       <div
         aria-label="Chat Longevity IA"
         className={`
-          fixed z-50 flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden
+          fixed z-50 flex flex-col rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden
           transition-all duration-300 ease-out origin-bottom-right
           bottom-[5.5rem] right-4 sm:right-6
-          w-[calc(100vw-2rem)] sm:w-[390px]
+          w-[calc(100vw-2rem)] sm:w-[400px]
           ${isOpen
             ? 'opacity-100 scale-100 pointer-events-auto translate-y-0'
             : 'opacity-0 scale-95 pointer-events-none translate-y-3'
           }
         `}
-        style={{ maxHeight: 'min(580px, calc(100vh - 7rem))' }}
+        style={{ maxHeight: 'min(600px, calc(100vh - 7rem))' }}
       >
 
         {/* ── Cabecera ── */}
@@ -271,7 +322,12 @@ export function LongevityChat({ patient, analysis }: Props) {
             <p className="text-sm font-bold text-foreground leading-none">Longevity IA</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" style={{ animation: 'pulseRing 2s ease-in-out infinite' }} />
-              <p className="text-[10px] text-muted-foreground">Asistente de salud activo</p>
+              <p className="text-[10px] text-muted-foreground">
+                {messages.length > 1
+                  ? `${Math.floor((messages.length - 1) / 2)} conversación${Math.floor((messages.length - 1) / 2) !== 1 ? 'es' : ''}`
+                  : 'Asistente de salud activo'
+                }
+              </p>
             </div>
           </div>
 
@@ -310,7 +366,7 @@ export function LongevityChat({ patient, analysis }: Props) {
                 key={s}
                 onClick={() => sendMessage(s)}
                 disabled={isStreaming}
-                className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-accent/25 text-accent bg-accent/8 hover:bg-accent/15 transition-colors disabled:opacity-40 text-left"
+                className="text-[10px] font-medium px-3 py-1.5 rounded-full border border-accent/20 text-accent bg-accent/8 hover:bg-accent/15 hover:border-accent/40 transition-all disabled:opacity-40 text-left"
               >
                 {s}
               </button>
@@ -347,22 +403,22 @@ export function LongevityChat({ patient, analysis }: Props) {
         </div>
       </div>
 
-      {/* ──────────── BOTÓN FLOTANTE ──────────── */}
+      {/* ──────────── BOTON FLOTANTE ──────────── */}
       <button
         onClick={handleOpen}
         aria-label={isOpen ? 'Cerrar Longevity IA' : 'Abrir Longevity IA'}
         className={`
           fixed bottom-6 right-4 sm:right-6 z-50
-          flex items-center gap-2.5 px-4 py-3 rounded-2xl font-semibold text-sm
+          flex items-center gap-2.5 px-5 py-3.5 rounded-2xl font-semibold text-sm
           shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95
           ${isOpen
-            ? 'bg-card border border-border text-muted-foreground hover:text-foreground'
+            ? 'bg-card/90 backdrop-blur-xl border border-border/60 text-muted-foreground hover:text-foreground'
             : 'bg-accent text-background'
           }
         `}
         style={
           !isOpen
-            ? { boxShadow: '0 0 28px #00e5a055, 0 8px 32px rgba(0,0,0,0.5)' }
+            ? { boxShadow: '0 0 32px #00e5a044, 0 8px 40px rgba(0,0,0,0.5)' }
             : undefined
         }
       >

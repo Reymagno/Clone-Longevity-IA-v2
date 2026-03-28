@@ -444,6 +444,164 @@ function formatClinicalHistory(patient: PatientContextForPrompt): string {
   return lines.join('\n')
 }
 
+// ─── Helpers de validación de tipos ─────────────────────────────────────────
+
+function isNumber(v: unknown): v is number {
+  return typeof v === 'number' && !isNaN(v)
+}
+
+function clampScore(v: unknown, fallback = 50): number {
+  if (!isNumber(v)) return fallback
+  return Math.max(0, Math.min(100, Math.round(v)))
+}
+
+function ensureString(v: unknown, fallback = ''): string {
+  if (typeof v === 'string') return v
+  if (v === null || v === undefined) return fallback
+  return String(v)
+}
+
+function ensureArray(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : []
+}
+
+const VALID_URGENCIES = new Set(['immediate', 'high', 'medium', 'low'])
+const VALID_STATUSES = new Set(['optimal', 'normal', 'warning', 'danger'])
+const VALID_LEVELS = new Set(['optimal', 'normal', 'warning', 'danger'])
+
+function validateBiomarkerValue(v: unknown): object | null {
+  if (!v || typeof v !== 'object') return null
+  const bm = v as Record<string, unknown>
+  if (bm.value === null || bm.value === undefined) return null
+  return {
+    value: isNumber(bm.value) ? bm.value : null,
+    unit: ensureString(bm.unit),
+    refMin: isNumber(bm.refMin) ? bm.refMin : null,
+    refMax: isNumber(bm.refMax) ? bm.refMax : null,
+    optMin: isNumber(bm.optMin) ? bm.optMin : null,
+    optMax: isNumber(bm.optMax) ? bm.optMax : null,
+    status: VALID_STATUSES.has(ensureString(bm.status)) ? bm.status : null,
+  }
+}
+
+function validateParsedDataSection(section: unknown): object | null {
+  if (!section || typeof section !== 'object') return null
+  const obj = section as Record<string, unknown>
+  const result: Record<string, object | null> = {}
+  let hasData = false
+  for (const [key, val] of Object.entries(obj)) {
+    const validated = validateBiomarkerValue(val)
+    result[key] = validated
+    if (validated) hasData = true
+  }
+  return hasData ? result : null
+}
+
+function validateSystemScores(raw: unknown): Record<string, number> {
+  const EXPECTED_KEYS = ['cardiovascular', 'metabolic', 'hepatic', 'renal', 'immune', 'hematologic', 'inflammatory', 'vitamins']
+  const scores: Record<string, number> = {}
+  const obj = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw as Record<string, unknown> : {}
+  for (const key of EXPECTED_KEYS) {
+    scores[key] = clampScore(obj[key])
+  }
+  return scores
+}
+
+function validateProtocolItem(raw: unknown, index: number): object {
+  const item = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {}
+  const urgency = ensureString(item.urgency, 'medium')
+  return {
+    number: isNumber(item.number) ? item.number : index + 1,
+    category: ensureString(item.category, 'Suplementación'),
+    molecule: ensureString(item.molecule, 'Sin especificar'),
+    dose: ensureString(item.dose),
+    mechanism: ensureString(item.mechanism),
+    evidence: ensureString(item.evidence),
+    clinicalTrial: ensureString(item.clinicalTrial),
+    targetBiomarkers: ensureArray(item.targetBiomarkers).map(b => ensureString(b)).filter(Boolean),
+    expectedResult: ensureString(item.expectedResult),
+    action: ensureString(item.action),
+    urgency: VALID_URGENCIES.has(urgency) ? urgency : 'medium',
+  }
+}
+
+function validateKeyAlert(raw: unknown): object | null {
+  if (!raw || typeof raw !== 'object') return null
+  const alert = raw as Record<string, unknown>
+  const title = ensureString(alert.title)
+  if (!title) return null
+  const level = ensureString(alert.level, 'warning')
+  return {
+    title,
+    description: ensureString(alert.description),
+    level: VALID_LEVELS.has(level) ? level : 'warning',
+    value: ensureString(alert.value),
+    target: ensureString(alert.target),
+  }
+}
+
+function validateSwotItem(raw: unknown): object {
+  if (typeof raw === 'string') return { label: raw, detail: '' }
+  if (!raw || typeof raw !== 'object') return { label: String(raw ?? ''), detail: '' }
+  const item = raw as Record<string, unknown>
+  return {
+    label: ensureString(item.label || item.title || item.name),
+    detail: ensureString(item.detail || item.description || item.desc),
+    ...(item.expectedImpact ? { expectedImpact: ensureString(item.expectedImpact) } : {}),
+    ...(item.probability ? { probability: ensureString(item.probability) } : {}),
+  }
+}
+
+function validateSwot(raw: unknown): object {
+  const swot = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw as Record<string, unknown> : {}
+  return {
+    strengths: ensureArray(swot.strengths).map(validateSwotItem),
+    weaknesses: ensureArray(swot.weaknesses).map(validateSwotItem),
+    opportunities: ensureArray(swot.opportunities).map(validateSwotItem),
+    threats: ensureArray(swot.threats).map(validateSwotItem),
+  }
+}
+
+function validateRisk(raw: unknown): object | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  return {
+    disease: ensureString(r.disease || r.name),
+    probability: isNumber(r.probability) ? Math.max(0, Math.min(100, r.probability)) : 0,
+    horizon: ensureString(r.horizon),
+    drivers: ensureArray(r.drivers).map(d => ensureString(d)).filter(Boolean),
+    color: ensureString(r.color, '#f5a623'),
+  }
+}
+
+function validateProjectionPoint(raw: unknown, index: number): object {
+  const p = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {}
+  const yearRisk = (p.yearRisk && typeof p.yearRisk === 'object') ? p.yearRisk as Record<string, unknown> : {}
+  return {
+    year: isNumber(p.year) ? p.year : index + 1,
+    withoutIntervention: clampScore(p.withoutIntervention),
+    withIntervention: clampScore(p.withIntervention),
+    yearRisk: {
+      biomarkers: ensureArray(yearRisk.biomarkers).map(b => ensureString(b)).filter(Boolean),
+      conditions: ensureArray(yearRisk.conditions).map(c => ensureString(c)).filter(Boolean),
+      urgencyNote: ensureString(yearRisk.urgencyNote),
+    },
+  }
+}
+
+function validateProjectionFactor(raw: unknown): object | null {
+  if (!raw || typeof raw !== 'object') return null
+  const f = raw as Record<string, unknown>
+  return {
+    factor: ensureString(f.factor),
+    currentValue: ensureString(f.currentValue),
+    optimalValue: ensureString(f.optimalValue),
+    medicalJustification: ensureString(f.medicalJustification),
+    withoutProtocol: ensureString(f.withoutProtocol),
+    withProtocol: ensureString(f.withProtocol),
+  }
+}
+
 // ─── Validación compartida del JSON de respuesta ──────────────────────────────
 
 function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiAnalysis: object } {
@@ -466,23 +624,62 @@ function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiA
   }
 
   // Acepta tanto { parsedData, aiAnalysis } como { aiAnalysis } directo
-  const aiAnalysis = (parsed.aiAnalysis ?? parsed) as Record<string, unknown>
-  const requiredFields: Array<[string, string]> = [
-    ['systemScores', 'object'],
-    ['protocol', 'array'],
-    ['projectionData', 'array'],
-    ['swot', 'object'],
-    ['risks', 'array'],
-  ]
-  for (const [field, type] of requiredFields) {
-    const value = aiAnalysis[field]
-    if (value === undefined || value === null) throw new Error(`Campo requerido faltante en aiAnalysis: ${field}`)
-    if (type === 'array' && !Array.isArray(value)) throw new Error(`El campo ${field} debe ser un arreglo`)
-    if (type === 'object' && (Array.isArray(value) || typeof value !== 'object')) throw new Error(`El campo ${field} debe ser un objeto`)
+  const rawAi = (parsed.aiAnalysis ?? parsed) as Record<string, unknown>
+
+  // ── Validación profunda de aiAnalysis ──────────────────────────
+  const systemScores = validateSystemScores(rawAi.systemScores)
+  const overallScore = clampScore(rawAi.overallScore)
+  const longevity_age = isNumber(rawAi.longevity_age) ? Math.max(0, Math.min(150, rawAi.longevity_age)) : 0
+  const clinicalSummary = ensureString(rawAi.clinicalSummary)
+  const keyAlerts = ensureArray(rawAi.keyAlerts).map(validateKeyAlert).filter(Boolean)
+  const swot = validateSwot(rawAi.swot)
+  const risks = ensureArray(rawAi.risks).map(validateRisk).filter(Boolean)
+  const protocol = ensureArray(rawAi.protocol).map((item, i) => validateProtocolItem(item, i))
+  const projectionData = ensureArray(rawAi.projectionData).map((p, i) => validateProjectionPoint(p, i))
+  const projectionFactors = ensureArray(rawAi.projectionFactors).map(validateProjectionFactor).filter(Boolean)
+
+  // Validar que haya contenido mínimo
+  if (protocol.length === 0) throw new Error('El protocolo no contiene intervenciones')
+  if (projectionData.length === 0) throw new Error('No hay datos de proyección')
+
+  // Asegurar que molecule nunca esté vacío
+  for (const p of protocol) {
+    const item = p as Record<string, unknown>
+    if (!item.molecule || item.molecule === 'Sin especificar') {
+      item.molecule = `Intervención #${item.number}`
+    }
+  }
+
+  const aiAnalysis = {
+    systemScores,
+    overallScore,
+    longevity_age,
+    clinicalSummary,
+    keyAlerts,
+    swot,
+    risks,
+    protocol,
+    projectionData,
+    projectionFactors,
+  }
+
+  // ── Validación de parsedData ───────────────────────────────────
+  let validatedParsedData: object | undefined
+  if (parsed.parsedData && typeof parsed.parsedData === 'object') {
+    const pd = parsed.parsedData as Record<string, unknown>
+    validatedParsedData = {
+      hematology: validateParsedDataSection(pd.hematology),
+      metabolic: validateParsedDataSection(pd.metabolic),
+      lipids: validateParsedDataSection(pd.lipids),
+      liver: validateParsedDataSection(pd.liver),
+      vitamins: validateParsedDataSection(pd.vitamins),
+      hormones: validateParsedDataSection(pd.hormones),
+      inflammation: validateParsedDataSection(pd.inflammation),
+    }
   }
 
   return {
-    parsedData: parsed.parsedData as object | undefined,
+    parsedData: validatedParsedData,
     aiAnalysis,
   }
 }

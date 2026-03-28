@@ -104,20 +104,20 @@ export default function PatientsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
               <Dna size={16} className="text-background" />
             </div>
-            <span className="font-semibold text-foreground">Longevity IA</span>
+            <span className="font-semibold text-foreground tracking-tight">Longevity IA</span>
           </Link>
           <div className="flex items-center gap-2">
             <Button onClick={() => setShowModal(true)}>
               <Plus size={16} />
               Nuevo Paciente
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} title="Cerrar sesión">
+            <Button variant="ghost" size="sm" onClick={handleLogout} title="Cerrar sesion">
               <LogOut size={16} />
             </Button>
           </div>
@@ -139,10 +139,10 @@ export default function PatientsPage() {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar por nombre o código..."
+              placeholder="Buscar por nombre o codigo..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-muted border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-colors w-64"
+              className="bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 focus:bg-muted/60 transition-all w-64"
             />
           </div>
         </div>
@@ -151,16 +151,16 @@ export default function PatientsPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="card-medical p-5 animate-pulse">
+              <div key={i} className="card-medical p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-muted" />
+                  <div className="w-10 h-10 rounded-full shimmer" />
                   <div>
-                    <div className="h-4 w-28 bg-muted rounded mb-1" />
-                    <div className="h-3 w-20 bg-muted rounded" />
+                    <div className="h-4 w-28 shimmer rounded mb-1.5" />
+                    <div className="h-3 w-20 shimmer rounded" />
                   </div>
                 </div>
-                <div className="h-2 bg-muted rounded mb-3" />
-                <div className="h-2 w-3/4 bg-muted rounded" />
+                <div className="h-2 shimmer rounded-full mb-3" />
+                <div className="h-2 w-3/4 shimmer rounded-full" />
               </div>
             ))}
           </div>

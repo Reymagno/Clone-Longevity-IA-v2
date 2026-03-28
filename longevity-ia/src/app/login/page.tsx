@@ -23,7 +23,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.email || !form.password) {
-      toast.error('Email y contraseña son requeridos')
+      toast.error('Email y contrasena son requeridos')
       return
     }
 
@@ -35,7 +35,6 @@ export default function LoginPage() {
           password: form.password,
         })
         if (error) throw error
-        // Redirige a /patients que internamente decide: onboarding o dashboard
         router.push('/patients')
         router.refresh()
       } else {
@@ -44,7 +43,7 @@ export default function LoginPage() {
           password: form.password,
         })
         if (error) throw error
-        toast.success('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.')
+        toast.success('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesion.')
         setMode('login')
       }
     } catch (err) {
@@ -56,37 +55,41 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background ambient */}
+      <div className="absolute top-[-30%] left-[-20%] w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-15%] w-[400px] h-[400px] rounded-full bg-info/[0.03] blur-[80px] pointer-events-none" />
+
+      <div className="w-full max-w-sm relative animate-scale-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-3">
-            <Dna size={24} className="text-background" />
+          <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-accent animate-float">
+            <Dna size={26} className="text-background" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Longevity IA</h1>
-          <p className="text-sm text-muted-foreground mt-1">Medicina de longevidad con IA</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Longevity IA</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">Medicina de longevidad con IA</p>
         </div>
 
         {/* Card */}
-        <div className="card-medical p-6">
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg mb-6">
+        <div className="card-medical p-7">
+          <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl mb-6">
             <button
               type="button"
               onClick={() => setMode('login')}
-              className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 mode === 'login'
-                  ? 'bg-card text-foreground shadow-sm'
+                  ? 'bg-card text-foreground shadow-sm shadow-black/20'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Iniciar sesión
+              Iniciar sesion
             </button>
             <button
               type="button"
               onClick={() => setMode('register')}
-              className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 mode === 'register'
-                  ? 'bg-card text-foreground shadow-sm'
+                  ? 'bg-card text-foreground shadow-sm shadow-black/20'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -96,7 +99,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Correo electrónico"
+              label="Correo electronico"
               type="email"
               placeholder="doctor@clinica.com"
               value={form.email}
@@ -104,9 +107,9 @@ export default function LoginPage() {
               required
             />
             <Input
-              label="Contraseña"
+              label="Contrasena"
               type="password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Minimo 6 caracteres"
               value={form.password}
               onChange={e => set('password', e.target.value)}
               required
@@ -121,6 +124,11 @@ export default function LoginPage() {
             </Button>
           </form>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-[10px] text-muted-foreground/40 mt-6">
+          Tus datos estan protegidos con cifrado de extremo a extremo
+        </p>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SummaryTab } from './tabs/SummaryTab'
 import { SwotTab } from './tabs/SwotTab'
@@ -12,12 +12,15 @@ import { OrganHealthTab } from './tabs/OrganHealthTab'
 import { FilesTab } from './tabs/FilesTab'
 import { StemCellTab } from './tabs/StemCellTab'
 import { ClinicalHistoryTab } from './tabs/ClinicalHistoryTab'
+import { CompareTab } from './tabs/CompareTab'
 import { ExportButtons } from './ExportButtons'
 import { LongevityChat } from './LongevityChat'
 import type { Patient, LabResult } from '@/types'
+import { toast } from 'sonner'
 import {
   BarChart2, Shield, Activity, FlaskConical,
-  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Dna, Upload, ChevronDown, FileText
+  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Dna, Upload, ChevronDown, FileText,
+  GitCompareArrows, RefreshCw
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -40,9 +43,10 @@ const TABS = [
   { id: 4, label: 'Proyección', icon: TrendingUp },
   { id: 5, label: 'Protocolo', icon: ClipboardList },
   { id: 6, label: 'Órganos', icon: HeartPulse },
-  { id: 7, label: 'Estudio', icon: ScanSearch },
-  { id: 8, label: 'Células Madre', icon: Dna },
-  { id: 9, label: 'Historia Clínica', icon: FileText },
+  { id: 7, label: 'Comparar', icon: GitCompareArrows },
+  { id: 8, label: 'Estudio', icon: ScanSearch },
+  { id: 9, label: 'Células Madre', icon: Dna },
+  { id: 10, label: 'Historia Clínica', icon: FileText },
 ]
 
 function formatResultDate(dateStr: string) {
@@ -62,8 +66,53 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
     return isNaN(parsed) ? 0 : Math.min(Math.max(parsed, 0), TABS.length - 1)
   })
 
+  const [isReanalyzing, setIsReanalyzing] = useState(false)
+
   const analysis = result.ai_analysis
   const parsedData = result.parsed_data
+
+  const handleReanalyze = useCallback(async () => {
+    if (isReanalyzing) return
+    if (!patient.clinical_history) {
+      toast.error('Primero completa la Historia Clínica para re-analizar')
+      return
+    }
+    setIsReanalyzing(true)
+    try {
+      const res = await fetch(`/api/results/${result.id}/reanalyze`, { method: 'POST' })
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (value) buffer += decoder.decode(value, { stream: !done })
+        const lines = buffer.split('\n')
+        buffer = done ? '' : (lines.pop() ?? '')
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            if (!event.ok) throw new Error(event.error || 'Error')
+            if (event.step === 'done') {
+              toast.success('Re-análisis completado')
+              router.refresh()
+              window.location.reload()
+            }
+          } catch (e) {
+            if (e instanceof Error && e.message !== 'Error') throw e
+          }
+        }
+        if (done) break
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error en re-análisis')
+    } finally {
+      setIsReanalyzing(false)
+    }
+  }, [isReanalyzing, patient.clinical_history, result.id, router])
 
   function handleTabChange(tabId: number) {
     setActiveTab(tabId)
@@ -80,18 +129,18 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
 
   // ── Header compartido ───────────────────────────────────────────────────────
   const Header = (
-    <div className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-border">
+    <div className="sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
                 <Dna size={15} className="text-background" />
               </div>
-              <span className="hidden sm:block font-semibold text-foreground text-sm">Longevity IA</span>
+              <span className="hidden sm:block font-semibold text-foreground text-sm tracking-tight">Longevity IA</span>
             </Link>
-            <span className="text-border hidden sm:block">|</span>
-            <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors" title="Mis pacientes">
+            <span className="text-border/50 hidden sm:block">|</span>
+            <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-white/5" title="Mis pacientes">
               <ArrowLeft size={17} />
             </Link>
             <div>
@@ -128,6 +177,19 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
               </span>
             )}
 
+            {/* Botón re-análisis */}
+            {analysis && patient.clinical_history && (
+              <button
+                onClick={handleReanalyze}
+                disabled={isReanalyzing}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-accent/30 rounded-lg text-accent hover:bg-accent/10 transition-all disabled:opacity-50"
+                title="Re-analizar con historia clínica actualizada"
+              >
+                <RefreshCw size={13} className={isReanalyzing ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">{isReanalyzing ? 'Re-analizando...' : 'Re-analizar'}</span>
+              </button>
+            )}
+
             <Link
               href={`/patients/${patient.id}/upload`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-accent/50 hover:bg-muted/30 transition-all"
@@ -154,7 +216,7 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
           <div className="flex overflow-x-auto scrollbar-none -mb-px">
             {TABS.map((tab) => {
               const Icon = tab.icon
-              const showDot = tab.id === 9 && !patient.clinical_history
+              const showDot = tab.id === 10 && !patient.clinical_history
               return (
                 <button
                   key={tab.id}
@@ -162,13 +224,13 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
                   className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-all ${
                     activeTab === tab.id
                       ? 'border-accent text-accent'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60'
                   }`}
                 >
-                  <Icon size={15} />
-                  {tab.label}
+                  <Icon size={14} className={activeTab === tab.id ? 'text-accent' : ''} />
+                  <span className="text-[13px]">{tab.label}</span>
                   {showDot && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-warning inline-block ml-0.5" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-warning inline-block ml-0.5 animate-breathe" />
                   )}
                 </button>
               )
@@ -184,19 +246,24 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
     return (
       <div className="min-h-screen bg-background">
         {Header}
-        <div className="flex flex-col items-center justify-center py-24 gap-4 text-center px-4">
-          <p className="text-muted-foreground">Este resultado no tiene análisis disponible.</p>
-          {allResults.length > 1 && (
-            <p className="text-sm text-muted-foreground">
-              Selecciona otro análisis en el menú de fechas de arriba.
-            </p>
-          )}
+        <div className="flex flex-col items-center justify-center py-24 gap-6 text-center px-4 animate-fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border flex items-center justify-center">
+            <BarChart2 size={28} className="text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-foreground font-semibold mb-1">Este resultado no tiene analisis disponible.</p>
+            {allResults.length > 1 && (
+              <p className="text-sm text-muted-foreground">
+                Selecciona otro analisis en el menu de fechas de arriba.
+              </p>
+            )}
+          </div>
           <Link
             href={`/patients/${patient.id}/upload`}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-accent text-background text-sm font-medium rounded-xl hover:bg-accent/90 transition-all shadow-accent/20 shadow-lg"
           >
             <Upload size={14} />
-            Realizar nuevo análisis
+            Realizar nuevo analisis
           </Link>
         </div>
       </div>
@@ -209,7 +276,7 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
       {Header}
 
       {/* Chat flotante */}
-      <LongevityChat patient={patient} analysis={analysis} />
+      <LongevityChat patient={patient} analysis={analysis} resultId={result.id} />
 
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6" id="dashboard-export">
@@ -245,20 +312,27 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
           <OrganHealthTab parsedData={parsedData} analysis={analysis} />
         )}
         {activeTab === 7 && (
+          <CompareTab
+            patient={patient}
+            currentResult={result}
+            allResults={allResults}
+          />
+        )}
+        {activeTab === 8 && (
           <FilesTab
             fileUrls={result.file_urls}
             patientName={patient.name}
             resultDate={result.result_date}
           />
         )}
-        {activeTab === 8 && (
+        {activeTab === 9 && (
           <StemCellTab
             patient={patient}
             parsedData={parsedData}
             analysis={analysis}
           />
         )}
-        {activeTab === 9 && (
+        {activeTab === 10 && (
           <ClinicalHistoryTab
             patient={patient}
             result={result}

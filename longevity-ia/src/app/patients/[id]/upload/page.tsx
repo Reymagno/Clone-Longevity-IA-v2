@@ -158,16 +158,16 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
-          <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-white/5">
             <ArrowLeft size={18} />
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
               <Dna size={16} className="text-background" />
             </div>
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-foreground tracking-tight">
               {patient ? patient.name : 'Longevity IA'}
             </span>
           </div>
@@ -177,10 +177,10 @@ export default function UploadPage({ params }: { params: { id: string } }) {
             <div className="flex gap-1 ml-auto">
               <button
                 onClick={() => setSection('upload')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 text-sm rounded-xl transition-all ${
                   section === 'upload'
-                    ? 'bg-accent text-background font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                    ? 'bg-accent text-background font-medium shadow-accent/20 shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                 }`}
               >
                 <Upload size={13} />
@@ -188,10 +188,10 @@ export default function UploadPage({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={() => setSection('history')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 text-sm rounded-xl transition-all ${
                   section === 'history'
-                    ? 'bg-accent text-background font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                    ? 'bg-accent text-background font-medium shadow-accent/20 shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                 }`}
               >
                 <ClipboardList size={13} />

@@ -89,7 +89,7 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
 
   return (
     <>
-      <div className="card-medical p-5 hover:border-accent/40 transition-all duration-200">
+      <div className="card-medical p-5 hover:border-accent/30 hover-lift transition-all duration-200">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">

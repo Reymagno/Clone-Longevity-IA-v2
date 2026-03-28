@@ -301,22 +301,21 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" onClick={exportFullReport} loading={generatingReport} className="border-accent/40 text-accent hover:bg-accent/10">
-        <FileText size={14} />
-        Reporte Completo
+    <div className="flex items-center gap-1.5">
+      <Button variant="outline" size="sm" onClick={exportFullReport} loading={generatingReport} className="border-accent/30 text-accent hover:bg-accent/10 rounded-xl">
+        <FileText size={13} />
+        <span className="hidden md:inline">Reporte</span>
       </Button>
-      <Button variant="outline" size="sm" onClick={exportPDF} loading={exporting}>
-        <Download size={14} />
+      <Button variant="outline" size="sm" onClick={exportPDF} loading={exporting} className="rounded-xl">
+        <Download size={13} />
         PDF
       </Button>
-      <Button variant="outline" size="sm" onClick={exportPNG} loading={exporting}>
-        <Image size={14} />
+      <Button variant="outline" size="sm" onClick={exportPNG} loading={exporting} className="rounded-xl">
+        <Image size={13} />
         PNG
       </Button>
-      <Button variant="ghost" size="sm" onClick={print}>
-        <Printer size={14} />
-        Imprimir
+      <Button variant="ghost" size="sm" onClick={print} className="rounded-xl">
+        <Printer size={13} />
       </Button>
     </div>
   )
