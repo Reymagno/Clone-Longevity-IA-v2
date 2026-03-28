@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx next:*)",
+      "Bash(node_modules/.bin/next build:*)"
     ]
   }
 }
