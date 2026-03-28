@@ -14,12 +14,11 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    // Obtener el lab result con datos del paciente (join)
+    // 1. Obtener el lab result
     const { data: result, error: resultError } = await supabase
       .from('lab_results')
-      .select('id, parsed_data, patients!inner(id, name, age, gender, weight, height, clinical_history, user_id)')
+      .select('id, parsed_data, patient_id')
       .eq('id', params.id)
-      .eq('patients.user_id', user.id)
       .single()
 
     if (resultError || !result) {
@@ -30,14 +29,16 @@ export async function POST(
       return NextResponse.json({ error: 'Este resultado no tiene datos de laboratorio extraídos' }, { status: 400 })
     }
 
-    const patient = result.patients as {
-      id: string
-      name: string
-      age: number
-      gender: string
-      weight: number | null
-      height: number | null
-      clinical_history: Record<string, unknown> | null
+    // 2. Verificar que el paciente pertenece al usuario y obtener su historia clínica
+    const { data: patient, error: patientError } = await supabase
+      .from('patients')
+      .select('id, name, age, gender, weight, height, clinical_history')
+      .eq('id', result.patient_id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (patientError || !patient) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
     if (!patient.clinical_history) {
@@ -46,11 +47,11 @@ export async function POST(
 
     // Re-analizar con la historia clínica (sin re-procesar archivos)
     const patientContext = {
-      name: patient.name,
-      age: patient.age,
-      gender: patient.gender,
-      weight: patient.weight,
-      height: patient.height,
+      name: patient.name as string,
+      age: patient.age as number,
+      gender: patient.gender as string,
+      weight: patient.weight as number | null,
+      height: patient.height as number | null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       clinical_history: patient.clinical_history as any,
     }
