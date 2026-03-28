@@ -241,8 +241,133 @@ export interface AnalyzeResult {
   aiAnalysis: object
 }
 
-export async function analyzeLabFiles(files: AnalyzeFileParams[]): Promise<AnalyzeResult> {
+// ─── Formatea la historia clínica como bloque de texto para el prompt ─────────
+
+export interface ClinicalHistoryForPrompt {
+  anthropometric: { waist_cm: number | null; blood_pressure: string | null }
+  allergies: { food: string | null; medication: string | null }
+  diet: { type: string; meals_per_day: string; alcohol: string; supplements: string | null }
+  lifestyle: { exercise: string; sleep_hours: string; smoker: string; stress_level: string }
+  family_history: { conditions: string[]; details: string | null }
+  recent_illness: { condition: string | null; treatment: string | null; current_medications: string | null }
+}
+
+export interface PatientContextForPrompt {
+  name: string
+  age: number
+  gender: string
+  weight: number | null
+  height: number | null
+  clinical_history: ClinicalHistoryForPrompt | null
+}
+
+function formatClinicalHistory(patient: PatientContextForPrompt): string {
+  const h = patient.clinical_history
+  if (!h) return ''
+
+  const bmi = patient.weight && patient.height
+    ? (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1)
+    : null
+
+  const lines: string[] = [
+    '=== HISTORIA CLÍNICA DEL PACIENTE ===',
+    `Nombre: ${patient.name} | Edad: ${patient.age} años | Género: ${patient.gender === 'male' ? 'Masculino' : 'Femenino'}`,
+  ]
+
+  if (patient.weight) lines.push(`Peso: ${patient.weight} kg | Talla: ${patient.height} cm${bmi ? ` | IMC calculado: ${bmi}` : ''}`)
+  if (h.anthropometric.waist_cm) lines.push(`Circunferencia de cintura: ${h.anthropometric.waist_cm} cm`)
+  if (h.anthropometric.blood_pressure) lines.push(`Presión arterial habitual (autorreportada): ${h.anthropometric.blood_pressure} mmHg`)
+
+  lines.push('--- Alergias ---')
+  lines.push(`Alergias alimentarias: ${h.allergies.food || 'Ninguna reportada'}`)
+  if (h.allergies.medication) {
+    lines.push(`⚠ ALERGIA A MEDICAMENTO: ${h.allergies.medication} — NO incluir este medicamento ni sus derivados en el protocolo`)
+  } else {
+    lines.push('Alergias a medicamentos: Ninguna reportada')
+  }
+
+  lines.push('--- Alimentación ---')
+  if (h.diet.type) lines.push(`Tipo de dieta: ${h.diet.type}`)
+  if (h.diet.meals_per_day) lines.push(`Frecuencia de comidas: ${h.diet.meals_per_day}`)
+  if (h.diet.alcohol) lines.push(`Consumo de alcohol: ${h.diet.alcohol}`)
+  if (h.diet.supplements) lines.push(`Suplementos actuales (no duplicar sin razón): ${h.diet.supplements}`)
+
+  lines.push('--- Estilo de vida ---')
+  if (h.lifestyle.exercise) lines.push(`Actividad física actual: ${h.lifestyle.exercise}`)
+  if (h.lifestyle.sleep_hours) lines.push(`Sueño por noche: ${h.lifestyle.sleep_hours}`)
+  if (h.lifestyle.smoker) lines.push(`Tabaco: ${h.lifestyle.smoker}`)
+  if (h.lifestyle.stress_level) lines.push(`Nivel de estrés: ${h.lifestyle.stress_level}`)
+
+  lines.push('--- Historial familiar ---')
+  if (h.family_history.conditions.length > 0) {
+    lines.push(`Condiciones en familiares directos: ${h.family_history.conditions.join(', ')}`)
+  }
+  if (h.family_history.details) lines.push(`Detalles: ${h.family_history.details}`)
+
+  lines.push('--- Historial médico reciente ---')
+  if (h.recent_illness.condition) lines.push(`Condición más reciente: ${h.recent_illness.condition}`)
+  if (h.recent_illness.treatment) lines.push(`Tratamiento indicado: ${h.recent_illness.treatment}`)
+  if (h.recent_illness.current_medications) {
+    lines.push(`⚠ MEDICAMENTOS ACTUALES (no duplicar en protocolo, solo complementar): ${h.recent_illness.current_medications}`)
+  }
+
+  lines.push('=== FIN DE HISTORIA CLÍNICA ===')
+  lines.push('INSTRUCCIONES ESPECIALES: Usa esta historia clínica para personalizar el análisis: ajusta el protocolo según dieta/ejercicio actuales, considera riesgos familiares en la sección FODA y riesgos, y NUNCA recomendar medicamentos a los que el paciente sea alérgico.')
+
+  return lines.join('\n')
+}
+
+// ─── Validación compartida del JSON de respuesta ──────────────────────────────
+
+function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiAnalysis: object } {
+  if (!rawText) throw new Error('Claude no devolvió respuesta.')
+
+  const firstBrace = rawText.indexOf('{')
+  const lastBrace = rawText.lastIndexOf('}')
+
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error(`La respuesta no contiene JSON válido. Respuesta: ${rawText.substring(0, 300)}...`)
+  }
+
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(rawText.slice(firstBrace, lastBrace + 1))
+  } catch {
+    throw new Error(`JSON inválido recibido del modelo. Respuesta: ${rawText.substring(0, 300)}...`)
+  }
+
+  // Acepta tanto { parsedData, aiAnalysis } como { aiAnalysis } directo
+  const aiAnalysis = (parsed.aiAnalysis ?? parsed) as Record<string, unknown>
+  const requiredFields: Array<[string, string]> = [
+    ['systemScores', 'object'],
+    ['protocol', 'array'],
+    ['projectionData', 'array'],
+    ['swot', 'object'],
+    ['risks', 'array'],
+  ]
+  for (const [field, type] of requiredFields) {
+    const value = aiAnalysis[field]
+    if (value === undefined || value === null) throw new Error(`Campo requerido faltante en aiAnalysis: ${field}`)
+    if (type === 'array' && !Array.isArray(value)) throw new Error(`El campo ${field} debe ser un arreglo`)
+    if (type === 'object' && (Array.isArray(value) || typeof value !== 'object')) throw new Error(`El campo ${field} debe ser un objeto`)
+  }
+
+  return {
+    parsedData: parsed.parsedData as object | undefined,
+    aiAnalysis,
+  }
+}
+
+export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext?: PatientContextForPrompt): Promise<AnalyzeResult> {
   const userContent: Anthropic.MessageParam['content'] = []
+
+  // Incluir historia clínica al inicio si existe
+  if (patientContext?.clinical_history) {
+    userContent.push({
+      type: 'text',
+      text: formatClinicalHistory(patientContext),
+    })
+  }
 
   for (let i = 0; i < files.length; i++) {
     const { fileBase64, fileType, mimeType } = files[i]
@@ -295,55 +420,70 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[]): Promise<Analy
   })
 
   const rawText = response.content[0]?.type === 'text' ? response.content[0].text : ''
+  const validated = validateAndParseAiResponse(rawText || `Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
 
-  if (!rawText) {
-    throw new Error(`Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
-  }
-
-  // Extraer el JSON — buscar el primer { y el último } para ignorar cualquier markdown
-  const firstBrace = rawText.indexOf('{')
-  const lastBrace = rawText.lastIndexOf('}')
-
-  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-    throw new Error(`La respuesta no contiene JSON válido. Respuesta: ${rawText.substring(0, 300)}...`)
-  }
-
-  const jsonStr = rawText.slice(firstBrace, lastBrace + 1)
-
-  let parsed: { parsedData: object; aiAnalysis: object }
-  try {
-    parsed = JSON.parse(jsonStr)
-  } catch {
-    throw new Error(`JSON inválido recibido del modelo. Respuesta: ${rawText.substring(0, 300)}...`)
-  }
-
-  if (!parsed.parsedData || !parsed.aiAnalysis) {
-    throw new Error('Estructura JSON incompleta: falta parsedData o aiAnalysis')
-  }
-
-  const ai = parsed.aiAnalysis as Record<string, unknown>
-  const requiredFields: Array<[string, string]> = [
-    ['systemScores', 'object'],
-    ['protocol', 'array'],
-    ['projectionData', 'array'],
-    ['swot', 'object'],
-    ['risks', 'array'],
-  ]
-  for (const [field, type] of requiredFields) {
-    const value = ai[field]
-    if (value === undefined || value === null) {
-      throw new Error(`Campo requerido faltante en aiAnalysis: ${field}`)
-    }
-    if (type === 'array' && !Array.isArray(value)) {
-      throw new Error(`El campo ${field} debe ser un arreglo`)
-    }
-    if (type === 'object' && (Array.isArray(value) || typeof value !== 'object')) {
-      throw new Error(`El campo ${field} debe ser un objeto`)
-    }
+  if (!validated.parsedData) {
+    throw new Error('Estructura JSON incompleta: falta parsedData')
   }
 
   return {
-    parsedData: parsed.parsedData,
-    aiAnalysis: parsed.aiAnalysis,
+    parsedData: validated.parsedData,
+    aiAnalysis: validated.aiAnalysis,
   }
+}
+
+// ─── Re-análisis usando parsedData ya extraído + historia clínica ─────────────
+
+const REANALYZE_PROMPT = `TAREA: Re-genera el análisis médico de longevidad usando los biomarcadores ya extraídos y la historia clínica completa del paciente.
+
+INSTRUCCIONES:
+- Los biomarcadores (parsedData) ya están correctamente extraídos — úsalos como referencia fija
+- Enriquece el análisis incorporando el contexto clínico: estilo de vida, historial familiar, medicamentos actuales, alergias
+- Personaliza el protocolo según lo que el paciente ya hace (no repitas suplementos actuales sin justificación, evita medicamentos a los que sea alérgico)
+- Ajusta los riesgos considerando el historial familiar
+- La historia clínica puede explicar valores fuera de rango (ej: estrés alto → cortisol elevado, sedentarismo → glucosa límite)
+
+Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
+
+{
+  "aiAnalysis": {
+    "systemScores": { "cardiovascular": 0, "metabolic": 0, "hepatic": 0, "renal": 0, "immune": 0, "hematologic": 0, "inflammatory": 0, "vitamins": 0 },
+    "overallScore": 0,
+    "longevity_age": 0,
+    "clinicalSummary": "",
+    "keyAlerts": [],
+    "swot": { "strengths": [], "weaknesses": [], "opportunities": [], "threats": [] },
+    "risks": [],
+    "protocol": [{ "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }],
+    "projectionData": [{ "year": 1, "withoutIntervention": 0, "withIntervention": 0, "yearRisk": { "biomarkers": [], "conditions": [], "urgencyNote": "" } }],
+    "projectionFactors": []
+  }
+}
+
+REGLAS DE FORMATO: Idénticas al análisis estándar. Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA mínimo 5/4/5/4. Protocol mínimo 6 intervenciones. projectionData exactamente 10 puntos (años 1-10). Todo en español mexicano.`
+
+export async function reanalyzeWithClinicalHistory(
+  parsedData: object,
+  patientContext: PatientContextForPrompt
+): Promise<object> {
+  const historyText = formatClinicalHistory(patientContext)
+
+  const userContent: Anthropic.MessageParam['content'] = [
+    { type: 'text', text: historyText },
+    { type: 'text', text: `BIOMARCADORES DEL PACIENTE (extraídos del estudio de laboratorio):\n${JSON.stringify(parsedData, null, 2)}` },
+    { type: 'text', text: REANALYZE_PROMPT },
+  ]
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 32000,
+    temperature: 0,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userContent }],
+  })
+
+  const rawText = response.content[0]?.type === 'text' ? response.content[0].text : ''
+  const validated = validateAndParseAiResponse(rawText || 'Claude no devolvió respuesta.')
+
+  return validated.aiAnalysis
 }

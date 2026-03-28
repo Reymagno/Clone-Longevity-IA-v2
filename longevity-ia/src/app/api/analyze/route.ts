@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Verificar que el paciente pertenece al usuario autenticado
     const { data: ownPatient } = await supabase
       .from('patients')
-      .select('id')
+      .select('id, name, age, gender, weight, height, clinical_history')
       .eq('id', patientId)
       .eq('user_id', user.id)
       .single()
@@ -100,8 +100,17 @@ export async function POST(request: NextRequest) {
     )
 
     // 4. Llamar a Claude (timeout 5 minutos)
+    const patientContext = {
+      name: ownPatient.name,
+      age: ownPatient.age,
+      gender: ownPatient.gender,
+      weight: ownPatient.weight,
+      height: ownPatient.height,
+      clinical_history: ownPatient.clinical_history ?? null,
+    }
+
     const analysisResult = await Promise.race([
-      analyzeLabFiles(fileParams),
+      analyzeLabFiles(fileParams, patientContext),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('El análisis tardó demasiado. Intenta de nuevo.')), 300_000)
       ),
