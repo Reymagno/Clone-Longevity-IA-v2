@@ -4,15 +4,17 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bot, Send, SkipForward, CheckCircle2, ChevronRight } from 'lucide-react'
 import type { ClinicalHistory } from '@/types'
 
-// ─── Secciones y preguntas ────────────────────────────────────────────────────
+// ─── Secciones ────────────────────────────────────────────────────────────────
 
 const SECTIONS = [
-  'Datos Antropométricos',
+  'Datos Generales',
   'Alergias',
   'Alimentación',
-  'Estilo de Vida',
+  'Actividad Física y Sueño',
+  'Salud Mental',
+  'Salud Cardiovascular',
+  'Historial Médico',
   'Historial Familiar',
-  'Historial Reciente',
 ]
 
 type QuestionType = 'text' | 'number' | 'choice' | 'multiselect'
@@ -29,120 +31,261 @@ interface Question {
 }
 
 const QUESTIONS: Question[] = [
-  // ── Antropométrico ───────────────────────────────────────────────────────
+  // ── SECCIÓN 0: Datos Generales ───────────────────────────────────────────
   {
-    id: 'waist', section: 'Datos Antropométricos', sectionIndex: 0,
+    id: 'waist', section: 'Datos Generales', sectionIndex: 0,
     text: '¿Cuál es tu circunferencia de cintura aproximada? (en centímetros)',
     type: 'number', optional: true,
-    ack: (v) => v ? `Anotado: ${v} cm de cintura.` : 'Entendido, continuamos.'
+    ack: (v) => v ? `Anotado: ${v} cm de cintura.` : 'Continuamos sin ese dato.',
   },
   {
-    id: 'bp', section: 'Datos Antropométricos', sectionIndex: 0,
+    id: 'bp', section: 'Datos Generales', sectionIndex: 0,
     text: '¿Conoces tu presión arterial habitual? Escríbela así: 120/80',
     type: 'text', optional: true,
-    ack: (v) => v ? `Registrado: ${v} mmHg.` : 'Sin problema.'
+    ack: (v) => v ? `Registrado: ${v} mmHg.` : 'Sin problema, continuamos.',
   },
-  // ── Alergias ─────────────────────────────────────────────────────────────
+  {
+    id: 'energy_level', section: 'Datos Generales', sectionIndex: 0,
+    text: '¿Cómo describes tu nivel de energía habitual a lo largo del día?',
+    type: 'choice',
+    choices: ['Muy alta — me siento vigoroso/a', 'Alta — generalmente activo/a', 'Moderada — con altibajos', 'Baja — me canso con facilidad', 'Muy baja — fatiga crónica'],
+    ack: (v) => `Nivel de energía: ${v.split(' — ')[0]}.`,
+  },
+
+  // ── SECCIÓN 1: Alergias ──────────────────────────────────────────────────
   {
     id: 'food_allergy', section: 'Alergias', sectionIndex: 1,
-    text: '¿Tienes alguna alergia alimentaria? Si no tienes, escribe "ninguna".',
+    text: '¿Tienes alergias o intolerancias alimentarias conocidas? Si no tienes, escribe "ninguna".',
     type: 'text', optional: false,
-    ack: (v) => v.toLowerCase().includes('ninguna') ? 'Perfecto, sin alergias alimentarias.' : `Anotado: alergia a ${v}.`
+    ack: (v) => v.toLowerCase().includes('ninguna') ? 'Sin alergias alimentarias.' : `Anotado: ${v}.`,
   },
   {
     id: 'med_allergy', section: 'Alergias', sectionIndex: 1,
-    text: '¿Eres alérgico/a a algún medicamento?',
+    text: '¿Eres alérgico/a a algún medicamento? (ej: penicilina, ibuprofeno)',
     type: 'text', optional: true,
-    ack: (v) => v ? `Registrado: alergia a ${v}.` : 'Sin alergias a medicamentos conocidas.'
+    ack: (v) => v ? `⚠ Alergia a medicamento registrada: ${v}.` : 'Sin alergias a medicamentos.',
   },
-  // ── Alimentación ─────────────────────────────────────────────────────────
+  {
+    id: 'env_allergy', section: 'Alergias', sectionIndex: 1,
+    text: '¿Tienes alergias ambientales?',
+    type: 'choice',
+    choices: ['No tengo', 'Polen o plantas', 'Ácaros o polvo', 'Animales', 'Látex u otras'],
+    ack: (v) => v === 'No tengo' ? 'Sin alergias ambientales.' : `Registrado: ${v}.`,
+  },
+
+  // ── SECCIÓN 2: Alimentación ──────────────────────────────────────────────
   {
     id: 'diet_type', section: 'Alimentación', sectionIndex: 2,
-    text: '¿Cómo describirías tu forma de alimentarte?',
+    text: '¿Cómo describes tu patrón de alimentación habitual?',
     type: 'choice',
-    choices: ['Omnívora (de todo)', 'Vegetariana', 'Vegana', 'Keto / baja en carbohidratos', 'Mediterránea', 'Sin patrón definido'],
-    ack: (v) => `Dieta: ${v}.`
+    choices: ['Omnívora (de todo)', 'Vegetariana', 'Vegana', 'Keto / baja en carbohidratos', 'Mediterránea', 'Paleo', 'Sin patrón definido'],
+    ack: (v) => `Patrón alimentario: ${v}.`,
   },
   {
     id: 'meals_per_day', section: 'Alimentación', sectionIndex: 2,
     text: '¿Cuántas veces comes al día?',
     type: 'choice',
-    choices: ['1-2 veces', '3 veces', '4-5 veces', 'Más de 5'],
-    ack: (v) => `Anotado: ${v} al día.`
+    choices: ['1-2 veces (ayuno intermitente)', '3 veces al día', '4-5 veces al día', 'Más de 5 (picoteo frecuente)'],
+    ack: (v) => `Frecuencia de comidas: ${v}.`,
+  },
+  {
+    id: 'water_intake', section: 'Alimentación', sectionIndex: 2,
+    text: '¿Cuánta agua bebes al día aproximadamente?',
+    type: 'choice',
+    choices: ['Menos de 1 litro', '1 a 1.5 litros', '1.5 a 2 litros', 'Más de 2 litros'],
+    ack: (v) => `Hidratación: ${v} al día.`,
+  },
+  {
+    id: 'processed_food', section: 'Alimentación', sectionIndex: 2,
+    text: '¿Con qué frecuencia consumes alimentos ultraprocesados (comida rápida, snacks, refrescos, embutidos)?',
+    type: 'choice',
+    choices: ['Rara vez o nunca', '1-2 veces por semana', '3-4 veces por semana', 'Casi todos los días'],
+    ack: (v) => `Consumo de procesados: ${v}.`,
   },
   {
     id: 'alcohol', section: 'Alimentación', sectionIndex: 2,
     text: '¿Consumes bebidas alcohólicas?',
     type: 'choice',
-    choices: ['No consumo', 'Muy ocasionalmente', 'Fines de semana', 'Frecuentemente (varios días por semana)'],
-    ack: (_v) => 'Entendido.'
+    choices: ['No consumo', 'Muy ocasionalmente (menos de 1 vez al mes)', 'Fines de semana', 'Varios días por semana', 'A diario'],
+    ack: (_v) => 'Entendido.',
   },
   {
     id: 'supplements', section: 'Alimentación', sectionIndex: 2,
-    text: '¿Tomas algún suplemento, vitamina u otro producto natural? Escribe cuál(es).',
+    text: '¿Tomas algún suplemento, vitamina o producto natural actualmente? Escribe cuál(es).',
     type: 'text', optional: true,
-    ack: (v) => v ? `Anotado: ${v}.` : 'Sin suplementos actualmente.'
+    ack: (v) => v ? `Suplementos anotados: ${v}.` : 'Sin suplementos actualmente.',
   },
-  // ── Estilo de vida ────────────────────────────────────────────────────────
+
+  // ── SECCIÓN 3: Actividad Física y Sueño ─────────────────────────────────
   {
-    id: 'exercise', section: 'Estilo de Vida', sectionIndex: 3,
-    text: '¿Haces ejercicio actualmente? Describe qué tipo y con qué frecuencia.',
-    type: 'text', optional: true,
-    ack: (v) => v ? `Actividad registrada: ${v}.` : 'Sin actividad física regular actualmente.'
+    id: 'exercise_type', section: 'Actividad Física y Sueño', sectionIndex: 3,
+    text: '¿Qué tipo de actividad física realizas principalmente?',
+    type: 'choice',
+    choices: ['Soy sedentario/a', 'Caminata o cardio ligero', 'Entrenamiento de fuerza o pesas', 'Cardio intenso (correr, ciclismo)', 'Entrenamiento mixto (fuerza + cardio)', 'Yoga o Pilates', 'Deporte de equipo o artes marciales'],
+    ack: (v) => `Actividad física: ${v}.`,
   },
   {
-    id: 'sleep', section: 'Estilo de Vida', sectionIndex: 3,
+    id: 'exercise_frequency', section: 'Actividad Física y Sueño', sectionIndex: 3,
+    text: '¿Con qué frecuencia haces ejercicio por semana?',
+    type: 'choice',
+    choices: ['No hago ejercicio', '1-2 veces por semana', '3-4 veces por semana', '5 o más veces por semana'],
+    ack: (v) => `Frecuencia: ${v}.`,
+  },
+  {
+    id: 'sedentary_hours', section: 'Actividad Física y Sueño', sectionIndex: 3,
+    text: '¿Cuántas horas al día permaneces sentado/a (trabajo de escritorio, pantallas, descanso)?',
+    type: 'choice',
+    choices: ['Menos de 4 horas', '4 a 6 horas', '6 a 8 horas', 'Más de 8 horas'],
+    ack: (v) => `Horas sedentario/a: ${v}.`,
+  },
+  {
+    id: 'sleep_hours', section: 'Actividad Física y Sueño', sectionIndex: 3,
     text: '¿Cuántas horas duermes por noche generalmente?',
     type: 'choice',
     choices: ['Menos de 5 horas', '5 a 6 horas', '7 a 8 horas', 'Más de 8 horas'],
-    ack: (v) => `Sueño: ${v}.`
+    ack: (v) => `Sueño: ${v} por noche.`,
   },
   {
-    id: 'smoker', section: 'Estilo de Vida', sectionIndex: 3,
-    text: '¿Fumas o has fumado alguna vez?',
+    id: 'sleep_quality', section: 'Actividad Física y Sueño', sectionIndex: 3,
+    text: '¿Cómo calificarías la calidad de tu sueño?',
     type: 'choice',
-    choices: ['Nunca he fumado', 'Exfumador/a', 'Fumo ocasionalmente', 'Fumo a diario'],
-    ack: (_v) => 'Anotado.'
+    choices: ['Excelente — me despierto descansado/a', 'Buena — generalmente duermo bien', 'Regular — a veces me desvelo o no descanso bien', 'Mala — duermo mal con frecuencia o me despierto cansado/a'],
+    ack: (v) => `Calidad de sueño: ${v.split(' — ')[0]}.`,
   },
   {
-    id: 'stress', section: 'Estilo de Vida', sectionIndex: 3,
+    id: 'snoring', section: 'Actividad Física y Sueño', sectionIndex: 3,
+    text: '¿Roncas o alguien te ha comentado que dejas de respirar mientras duermes?',
+    type: 'choice', optional: true,
+    choices: ['No / No sé', 'Ronco leve y ocasionalmente', 'Ronco fuerte y frecuentemente', 'Me han dicho que hago pausas al respirar'],
+    ack: (v) => `Sueño registrado: ${v}.`,
+  },
+
+  // ── SECCIÓN 4: Salud Mental ──────────────────────────────────────────────
+  {
+    id: 'stress_level', section: 'Salud Mental', sectionIndex: 4,
     text: '¿Cómo calificarías tu nivel de estrés habitual?',
     type: 'choice',
-    choices: ['Bajo — me siento tranquilo/a', 'Moderado — a veces bajo presión', 'Alto — frecuentemente estresado/a', 'Muy alto — estrés casi constante'],
-    ack: (_v) => 'Registrado.'
+    choices: ['Bajo — me siento tranquilo/a la mayor parte del tiempo', 'Moderado — a veces bajo presión', 'Alto — frecuentemente estresado/a', 'Muy alto — estrés casi constante que afecta mi vida'],
+    ack: (_v) => 'Registrado.',
   },
-  // ── Historial familiar ────────────────────────────────────────────────────
   {
-    id: 'family_conditions', section: 'Historial Familiar', sectionIndex: 4,
-    text: '¿Algún familiar cercano (padres, hermanos, abuelos) ha tenido alguna de estas condiciones? Puedes elegir varias.',
+    id: 'mood', section: 'Salud Mental', sectionIndex: 4,
+    text: '¿Cómo describes tu estado de ánimo habitual?',
+    type: 'choice',
+    choices: ['Estable y positivo', 'Neutro, sin grandes cambios', 'Irritable con frecuencia', 'Episodios de tristeza o desmotivación', 'Cambios de humor bruscos y frecuentes'],
+    ack: (_v) => 'Anotado.',
+  },
+  {
+    id: 'anxiety', section: 'Salud Mental', sectionIndex: 4,
+    text: '¿Experimentas ansiedad o preocupación excesiva?',
+    type: 'choice',
+    choices: ['Nunca o raramente', 'Ocasionalmente, en situaciones concretas', 'Frecuentemente, me cuesta manejarla', 'Casi siempre — afecta mi sueño, trabajo o relaciones'],
+    ack: (_v) => 'Anotado.',
+  },
+  {
+    id: 'cognitive', section: 'Salud Mental', sectionIndex: 4,
+    text: '¿Has notado cambios en tu memoria o capacidad de concentración?',
+    type: 'choice',
+    choices: ['Sin cambios, me siento igual de bien', 'Olvidos leves y ocasionales (normal para mi edad)', 'Dificultad de concentración frecuente', 'Olvidos frecuentes que me preocupan'],
+    ack: (_v) => 'Registrado.',
+  },
+
+  // ── SECCIÓN 5: Salud Cardiovascular ─────────────────────────────────────
+  {
+    id: 'chest_pain', section: 'Salud Cardiovascular', sectionIndex: 5,
+    text: '¿Has tenido dolor, presión u opresión en el pecho?',
+    type: 'choice',
+    choices: ['Nunca', 'Rara vez, solo con esfuerzo muy intenso', 'Ocasionalmente con esfuerzo moderado', 'Frecuentemente o también en reposo'],
+    ack: (_v) => 'Anotado.',
+  },
+  {
+    id: 'shortness_of_breath', section: 'Salud Cardiovascular', sectionIndex: 5,
+    text: '¿Tienes falta de aire o dificultad para respirar?',
+    type: 'choice',
+    choices: ['No', 'Solo con ejercicio muy intenso', 'Al subir escaleras o esfuerzo moderado', 'En reposo o al hablar'],
+    ack: (_v) => 'Registrado.',
+  },
+  {
+    id: 'palpitations', section: 'Salud Cardiovascular', sectionIndex: 5,
+    text: '¿Tienes palpitaciones (sensación de corazón acelerado o latidos irregulares)?',
+    type: 'choice',
+    choices: ['Nunca', 'Ocasionalmente bajo estrés o cafeína', 'Frecuentemente sin causa clara', 'Con frecuencia y me preocupan'],
+    ack: (_v) => 'Anotado.',
+  },
+  {
+    id: 'thyroid_symptoms', section: 'Salud Cardiovascular', sectionIndex: 5,
+    text: '¿Tienes alguno de estos síntomas de forma frecuente?',
+    type: 'choice',
+    choices: ['Ninguno de estos', 'Fatiga excesiva, frío constante, piel seca (puede ser hipotiroidismo)', 'Nerviosismo, calor excesivo, pérdida de peso sin causa (puede ser hipertiroidismo)', 'Cambios de peso inexplicables sin cambios en dieta o ejercicio'],
+    ack: (v) => v === 'Ninguno de estos' ? 'Sin síntomas tiroideos.' : 'Anotado para evaluar.',
+  },
+  {
+    id: 'hormonal_symptoms', section: 'Salud Cardiovascular', sectionIndex: 5,
+    text: '¿Tienes síntomas hormonales? (ej: bochornos, ciclo menstrual irregular, cambios en libido, disfunción eréctil, caída de cabello, acné hormonal)',
+    type: 'text', optional: true,
+    ack: (v) => v ? `Síntomas hormonales anotados: ${v}.` : 'Sin síntomas hormonales.',
+  },
+
+  // ── SECCIÓN 6: Historial Médico ──────────────────────────────────────────
+  {
+    id: 'chronic_conditions', section: 'Historial Médico', sectionIndex: 6,
+    text: '¿Tienes alguna condición médica diagnosticada? Puedes elegir varias.',
     type: 'multiselect',
-    choices: ['Diabetes tipo 2', 'Cáncer', 'Enfermedades del corazón', 'Hipertensión', 'Alzheimer o demencia', 'Obesidad', 'ACV / derrame cerebral', 'Ninguna conocida'],
-    ack: (_v) => 'Historial familiar registrado.'
+    choices: ['Diabetes tipo 1 o 2', 'Hipertensión arterial', 'Hipotiroidismo o hipertiroidismo', 'Síndrome metabólico u obesidad', 'Enfermedad cardiovascular (angina, infarto, arritmia)', 'Enfermedad autoinmune (lupus, artritis, Hashimoto…)', 'Enfermedad renal crónica', 'Apnea del sueño', 'Depresión o ansiedad diagnosticada', 'Cáncer (presente o pasado)', 'Ninguna conocida'],
+    ack: (_v) => 'Condiciones registradas.',
   },
   {
-    id: 'family_details', section: 'Historial Familiar', sectionIndex: 4,
-    text: '¿Quieres agregar algún detalle? Por ejemplo: "mi papá tuvo un infarto a los 55 años".',
+    id: 'surgeries', section: 'Historial Médico', sectionIndex: 6,
+    text: '¿Has tenido cirugías, hospitalizaciones o procedimientos médicos importantes?',
     type: 'text', optional: true,
-    ack: (v) => v ? 'Detalles registrados.' : 'De acuerdo.'
+    ack: (v) => v ? `Historial quirúrgico: ${v}.` : 'Sin cirugías o procedimientos relevantes.',
   },
-  // ── Historial reciente ────────────────────────────────────────────────────
   {
-    id: 'recent_condition', section: 'Historial Reciente', sectionIndex: 5,
-    text: '¿Cuál fue tu enfermedad o condición médica más reciente?',
+    id: 'smoker', section: 'Historial Médico', sectionIndex: 6,
+    text: '¿Fumas o has fumado alguna vez?',
+    type: 'choice',
+    choices: ['Nunca he fumado', 'Exfumador/a (dejé hace más de 1 año)', 'Exfumador/a reciente (dejé hace menos de 1 año)', 'Fumo ocasionalmente (socialmente)', 'Fumo a diario'],
+    ack: (_v) => 'Anotado.',
+  },
+  {
+    id: 'current_meds', section: 'Historial Médico', sectionIndex: 6,
+    text: '¿Tomas algún medicamento de forma regular actualmente? Si sí, ¿cuál(es) y para qué?',
     type: 'text', optional: true,
-    ack: (v) => v ? `Anotado: ${v}.` : 'Sin enfermedades recientes registradas.'
+    ack: (v) => v ? `Medicamentos actuales anotados: ${v}.` : 'Sin medicamentos regulares.',
   },
   {
-    id: 'recent_treatment', section: 'Historial Reciente', sectionIndex: 5,
+    id: 'recent_condition', section: 'Historial Médico', sectionIndex: 6,
+    text: '¿Cuál fue tu enfermedad o condición médica más reciente (último año)?',
+    type: 'text', optional: true,
+    ack: (v) => v ? `Anotado: ${v}.` : 'Sin enfermedades recientes registradas.',
+  },
+  {
+    id: 'recent_treatment', section: 'Historial Médico', sectionIndex: 6,
     text: '¿Qué tratamiento o medicamentos te indicaron en ese momento?',
     type: 'text', optional: true,
-    ack: (v) => v ? 'Tratamiento registrado.' : 'Sin tratamiento específico.'
+    ack: (v) => v ? 'Tratamiento registrado.' : 'Sin tratamiento específico.',
+  },
+
+  // ── SECCIÓN 7: Historial Familiar ────────────────────────────────────────
+  {
+    id: 'family_conditions', section: 'Historial Familiar', sectionIndex: 7,
+    text: '¿Algún familiar de primer grado (padres, hermanos, abuelos) ha tenido alguna de estas condiciones? Puedes elegir varias.',
+    type: 'multiselect',
+    choices: ['Diabetes tipo 2', 'Cáncer (cualquier tipo)', 'Enfermedades del corazón', 'Hipertensión arterial', 'Alzheimer o demencia', 'ACV o derrame cerebral', 'Osteoporosis', 'Enfermedad renal', 'Enfermedades autoinmunes', 'Ninguna conocida'],
+    ack: (_v) => 'Historial familiar registrado.',
   },
   {
-    id: 'current_meds', section: 'Historial Reciente', sectionIndex: 5,
-    text: 'Por último: ¿tomas algún medicamento de forma regular actualmente? Si sí, ¿cuál(es)?',
+    id: 'family_longevity', section: 'Historial Familiar', sectionIndex: 7,
+    text: '¿Tus familiares cercanos han tenido una vida larga?',
+    type: 'choice',
+    choices: ['Sí, varios vivieron o viven más de 85 años', 'La mayoría llegó entre 70 y 85 años', 'Varios fallecieron antes de los 70 años', 'No tengo información suficiente'],
+    ack: (_v) => 'Registrado.',
+  },
+  {
+    id: 'family_details', section: 'Historial Familiar', sectionIndex: 7,
+    text: '¿Quieres agregar algún detalle? (ej: "mi padre tuvo un infarto a los 55 años", "mi madre tiene diabetes tipo 2")',
     type: 'text', optional: true,
-    ack: (v) => v ? `Medicamentos anotados: ${v}.` : 'Sin medicamentos regulares actualmente.'
+    ack: (v) => v ? 'Detalles familiares registrados.' : 'De acuerdo.',
   },
 ]
 
@@ -153,31 +296,56 @@ function buildHistory(ans: Record<string, string>): ClinicalHistory {
     anthropometric: {
       waist_cm: ans['waist'] ? (parseFloat(ans['waist']) || null) : null,
       blood_pressure: ans['bp'] || null,
+      energy_level: ans['energy_level'] || null,
     },
     allergies: {
       food: ans['food_allergy'] || null,
       medication: ans['med_allergy'] || null,
+      environmental: ans['env_allergy'] === 'No tengo' ? null : (ans['env_allergy'] || null),
     },
     diet: {
       type: ans['diet_type'] || '',
       meals_per_day: ans['meals_per_day'] || '',
+      water_intake: ans['water_intake'] || null,
+      processed_food: ans['processed_food'] || null,
       alcohol: ans['alcohol'] || '',
       supplements: ans['supplements'] || null,
     },
-    lifestyle: {
-      exercise: ans['exercise'] || '',
-      sleep_hours: ans['sleep'] || '',
+    physical_activity: {
+      type: ans['exercise_type'] || null,
+      frequency: ans['exercise_frequency'] || null,
+      sedentary_hours: ans['sedentary_hours'] || null,
+    },
+    sleep: {
+      hours: ans['sleep_hours'] || '',
+      quality: ans['sleep_quality'] || null,
+      snoring: ans['snoring'] || null,
+    },
+    mental_health: {
+      stress_level: ans['stress_level'] || '',
+      mood: ans['mood'] || null,
+      anxiety: ans['anxiety'] || null,
+      cognitive: ans['cognitive'] || null,
+    },
+    cardiovascular: {
+      chest_pain: ans['chest_pain'] || null,
+      shortness_of_breath: ans['shortness_of_breath'] || null,
+      palpitations: ans['palpitations'] || null,
+      thyroid_symptoms: ans['thyroid_symptoms'] === 'Ninguno de estos' ? null : (ans['thyroid_symptoms'] || null),
+      hormonal_symptoms: ans['hormonal_symptoms'] || null,
+    },
+    medical_history: {
+      chronic_conditions: ans['chronic_conditions'] ? ans['chronic_conditions'].split('||').filter(c => c !== 'Ninguna conocida') : [],
+      surgeries: ans['surgeries'] || null,
       smoker: ans['smoker'] || '',
-      stress_level: ans['stress'] || '',
+      current_medications: ans['current_meds'] || null,
+      recent_condition: ans['recent_condition'] || null,
+      recent_treatment: ans['recent_treatment'] || null,
     },
     family_history: {
-      conditions: ans['family_conditions'] ? ans['family_conditions'].split('||') : [],
+      conditions: ans['family_conditions'] ? ans['family_conditions'].split('||').filter(c => c !== 'Ninguna conocida') : [],
+      longevity: ans['family_longevity'] || null,
       details: ans['family_details'] || null,
-    },
-    recent_illness: {
-      condition: ans['recent_condition'] || null,
-      treatment: ans['recent_treatment'] || null,
-      current_medications: ans['current_meds'] || null,
     },
     completed_at: new Date().toISOString(),
   }
@@ -213,12 +381,10 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
   const inputRef = useRef<HTMLInputElement>(null)
   const startedRef = useRef(false)
 
-  // Auto-scroll al fondo
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  // Enviar mensaje del bot con delay simulado
   const botSay = useCallback((text: string, delay = 700): Promise<void> => {
     return new Promise(resolve => {
       setIsTyping(true)
@@ -230,23 +396,21 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
     })
   }, [])
 
-  // Saludo inicial
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
 
     async function greet() {
-      await botSay(`¡Hola, ${patientName}! Soy tu asistente de salud de Longevity IA.`, 400)
-      await botSay('Voy a hacerte algunas preguntas para conocer mejor tu condición física, estilo de vida e historial médico.', 1400)
-      await botSay('Esta información complementará tu análisis de longevidad. Puedes saltar cualquier pregunta opcional con el botón de omitir.', 2600)
-      await botSay('¡Empezamos!', 3600)
-      setTimeout(() => setCurrentQIndex(0), 4200)
+      await botSay(`¡Hola, ${patientName}! Soy tu asistente clínico de Longevity IA.`, 400)
+      await botSay('Voy a hacerte una serie de preguntas para construir tu perfil de salud completo. Esta evaluación sigue los estándares clínicos de UpToDate.', 1500)
+      await botSay('Cubre 8 áreas: datos generales, alergias, alimentación, actividad física y sueño, salud mental, salud cardiovascular, historial médico e historial familiar.', 2800)
+      await botSay('Las preguntas opcionales puedes saltarlas con el botón de omitir. ¡Empezamos!', 4200)
+      setTimeout(() => setCurrentQIndex(0), 5000)
     }
 
     greet()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Hacer la siguiente pregunta al cambiar el índice
   useEffect(() => {
     if (currentQIndex < 0 || currentQIndex >= QUESTIONS.length) return
     const q = QUESTIONS[currentQIndex]
@@ -266,12 +430,10 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
     ask()
   }, [currentQIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Procesar respuesta del usuario
   async function handleAnswer(rawValue: string) {
     const q = QUESTIONS[currentQIndex]
     const trimmed = rawValue.trim()
 
-    // Mensaje del usuario en el chat
     setMessages(prev => [...prev, {
       id: crypto.randomUUID(),
       from: 'user',
@@ -280,17 +442,15 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
     setInput('')
     setMultiSelected([])
 
-    // Guardar respuesta
     const newAnswers = { ...answers, [q.id]: trimmed }
     setAnswers(newAnswers)
 
-    // Acuse del bot
     await botSay(q.ack(trimmed), 700)
 
     const next = currentQIndex + 1
     if (next >= QUESTIONS.length) {
-      await botSay('¡Excelente! Ya tengo toda tu información.', 800)
-      await botSay('Guardando tu historial clínico...', 1400)
+      await botSay('¡Excelente! Ya tengo toda tu información de salud.', 800)
+      await botSay('Guardando tu historial clínico completo…', 1400)
       setPhase('saving')
       await saveHistory(newAnswers)
     } else {
@@ -314,7 +474,7 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
       }
 
       setPhase('done')
-      await botSay('¡Historial guardado exitosamente! Tu información está segura en tu perfil de Longevity IA.', 0)
+      await botSay('¡Historial guardado exitosamente! Tu perfil de salud completo está listo en Longevity IA.', 0)
       onComplete?.()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'
@@ -337,7 +497,7 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
   const progress = currentQIndex < 0 ? 0 : Math.round((currentQIndex / QUESTIONS.length) * 100)
 
   return (
-    <div className="flex flex-col" style={{ height: '65vh', minHeight: 480, maxHeight: 760 }}>
+    <div className="flex flex-col" style={{ height: '70vh', minHeight: 520, maxHeight: 820 }}>
 
       {/* Barra de progreso */}
       <div className="mb-4 shrink-0">
@@ -386,7 +546,6 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
           </div>
         ))}
 
-        {/* Indicador de escritura */}
         {isTyping && (
           <div className="flex justify-start">
             <div className="w-7 h-7 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
@@ -402,7 +561,6 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
           </div>
         )}
 
-        {/* Estado completado */}
         {phase === 'done' && (
           <div className="flex justify-center py-6">
             <div className="flex items-center gap-2 text-accent">
@@ -419,7 +577,6 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
       {phase === 'chat' && currentQ && !isTyping && (
         <div className="mt-4 space-y-3 shrink-0">
 
-          {/* Opciones de selección única */}
           {currentQ.type === 'choice' && (
             <div className="flex flex-wrap gap-2">
               {currentQ.choices!.map(c => (
@@ -434,7 +591,6 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
             </div>
           )}
 
-          {/* Selección múltiple */}
           {currentQ.type === 'multiselect' && (
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
@@ -462,7 +618,6 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
             </div>
           )}
 
-          {/* Entrada de texto / número */}
           {(currentQ.type === 'text' || currentQ.type === 'number') && (
             <div className="flex gap-2">
               <input
@@ -495,7 +650,6 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
         </div>
       )}
 
-      {/* Estado guardando */}
       {phase === 'saving' && (
         <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground shrink-0">
           <span className="w-4 h-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />

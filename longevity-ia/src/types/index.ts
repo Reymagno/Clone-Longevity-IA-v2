@@ -194,31 +194,56 @@ export interface ClinicalHistory {
   anthropometric: {
     waist_cm: number | null
     blood_pressure: string | null
+    energy_level: string | null
   }
   allergies: {
     food: string | null
     medication: string | null
+    environmental: string | null
   }
   diet: {
     type: string
     meals_per_day: string
+    water_intake: string | null
+    processed_food: string | null
     alcohol: string
     supplements: string | null
   }
-  lifestyle: {
-    exercise: string
-    sleep_hours: string
-    smoker: string
+  physical_activity: {
+    type: string | null
+    frequency: string | null
+    sedentary_hours: string | null
+  }
+  sleep: {
+    hours: string
+    quality: string | null
+    snoring: string | null
+  }
+  mental_health: {
     stress_level: string
+    mood: string | null
+    anxiety: string | null
+    cognitive: string | null
+  }
+  cardiovascular: {
+    chest_pain: string | null
+    shortness_of_breath: string | null
+    palpitations: string | null
+    thyroid_symptoms: string | null
+    hormonal_symptoms: string | null
+  }
+  medical_history: {
+    chronic_conditions: string[]
+    surgeries: string | null
+    smoker: string
+    current_medications: string | null
+    recent_condition: string | null
+    recent_treatment: string | null
   }
   family_history: {
     conditions: string[]
+    longevity: string | null
     details: string | null
-  }
-  recent_illness: {
-    condition: string | null
-    treatment: string | null
-    current_medications: string | null
   }
   completed_at: string
 }

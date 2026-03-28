@@ -199,52 +199,109 @@ export default function IntakePage({ params }: { params: { id: string } }) {
 // ─── Resumen visual del historial ─────────────────────────────────────────────
 
 function HistorySummary({ history }: { history: ClinicalHistory }) {
+  // Acceso seguro a la estructura nueva y a campos legacy
+  const h = history as unknown as Record<string, unknown>
+  const anthro = h['anthropometric'] as Record<string, unknown> | undefined
+  const allergies = h['allergies'] as Record<string, unknown> | undefined
+  const diet = h['diet'] as Record<string, unknown> | undefined
+  const pa = h['physical_activity'] as Record<string, unknown> | undefined
+  const sleep = h['sleep'] as Record<string, unknown> | undefined
+  const mh = h['mental_health'] as Record<string, unknown> | undefined
+  const cv = h['cardiovascular'] as Record<string, unknown> | undefined
+  const medHist = h['medical_history'] as Record<string, unknown> | undefined
+  const fam = h['family_history'] as Record<string, unknown> | undefined
+
+  // Legacy
+  const lifestyle = h['lifestyle'] as Record<string, unknown> | undefined
+  const recentIllness = h['recent_illness'] as Record<string, unknown> | undefined
+
   const sections = [
     {
-      title: 'Datos Antropométricos',
+      title: 'Datos Generales',
       items: [
-        history.anthropometric.waist_cm != null && `Cintura: ${history.anthropometric.waist_cm} cm`,
-        history.anthropometric.blood_pressure && `Presión arterial: ${history.anthropometric.blood_pressure} mmHg`,
+        anthro?.['waist_cm'] != null && `Cintura: ${anthro['waist_cm']} cm`,
+        anthro?.['blood_pressure'] && `Presión arterial: ${anthro['blood_pressure']} mmHg`,
+        anthro?.['energy_level'] && `Energía: ${(anthro['energy_level'] as string).split(' — ')[0]}`,
       ].filter(Boolean) as string[],
     },
     {
       title: 'Alergias',
       items: [
-        history.allergies.food && `Alimentaria: ${history.allergies.food}`,
-        history.allergies.medication && `Medicamento: ${history.allergies.medication}`,
+        allergies?.['food'] && `Alimentaria: ${allergies['food']}`,
+        allergies?.['medication'] && `⚠ Medicamento: ${allergies['medication']}`,
+        allergies?.['environmental'] && allergies['environmental'] !== 'No tengo' && `Ambiental: ${allergies['environmental']}`,
       ].filter(Boolean) as string[],
     },
     {
       title: 'Alimentación',
       items: [
-        history.diet.type && `Tipo de dieta: ${history.diet.type}`,
-        history.diet.meals_per_day && `Comidas al día: ${history.diet.meals_per_day}`,
-        history.diet.alcohol && `Alcohol: ${history.diet.alcohol}`,
-        history.diet.supplements && `Suplementos: ${history.diet.supplements}`,
+        diet?.['type'] && `Tipo: ${diet['type']}`,
+        diet?.['meals_per_day'] && `Comidas: ${diet['meals_per_day']}`,
+        diet?.['water_intake'] && `Agua: ${diet['water_intake']}`,
+        diet?.['processed_food'] && `Procesados: ${diet['processed_food']}`,
+        diet?.['alcohol'] && `Alcohol: ${diet['alcohol']}`,
+        diet?.['supplements'] && `Suplementos: ${diet['supplements']}`,
       ].filter(Boolean) as string[],
     },
     {
-      title: 'Estilo de Vida',
+      title: 'Actividad Física y Sueño',
       items: [
-        history.lifestyle.exercise && `Ejercicio: ${history.lifestyle.exercise}`,
-        history.lifestyle.sleep_hours && `Sueño: ${history.lifestyle.sleep_hours}`,
-        history.lifestyle.smoker && `Tabaco: ${history.lifestyle.smoker}`,
-        history.lifestyle.stress_level && `Estrés: ${history.lifestyle.stress_level}`,
+        (pa?.['type'] || lifestyle?.['exercise']) && `Ejercicio: ${pa?.['type'] || lifestyle?.['exercise']}`,
+        pa?.['frequency'] && `Frecuencia: ${pa['frequency']}`,
+        pa?.['sedentary_hours'] && `Horas sedentario: ${pa['sedentary_hours']}`,
+        (sleep?.['hours'] || lifestyle?.['sleep_hours']) && `Sueño: ${sleep?.['hours'] || lifestyle?.['sleep_hours']}`,
+        sleep?.['quality'] && `Calidad de sueño: ${(sleep['quality'] as string).split(' — ')[0]}`,
+        sleep?.['snoring'] && sleep['snoring'] !== 'No / No sé' && `Ronquido: ${sleep['snoring']}`,
+      ].filter(Boolean) as string[],
+    },
+    {
+      title: 'Salud Mental',
+      items: [
+        (mh?.['stress_level'] || lifestyle?.['stress_level']) && `Estrés: ${(mh?.['stress_level'] || lifestyle?.['stress_level'] as string)?.split(' — ')[0]}`,
+        mh?.['mood'] && `Ánimo: ${mh['mood']}`,
+        mh?.['anxiety'] && `Ansiedad: ${(mh['anxiety'] as string).split(',')[0]}`,
+        mh?.['cognitive'] && `Cognición: ${(mh['cognitive'] as string).split(' — ')[0]}`,
+      ].filter(Boolean) as string[],
+    },
+    {
+      title: 'Salud Cardiovascular',
+      items: [
+        cv?.['chest_pain'] && cv['chest_pain'] !== 'Nunca' && `Dolor pecho: ${cv['chest_pain']}`,
+        cv?.['shortness_of_breath'] && cv['shortness_of_breath'] !== 'No' && `Disnea: ${cv['shortness_of_breath']}`,
+        cv?.['palpitations'] && cv['palpitations'] !== 'Nunca' && `Palpitaciones: ${cv['palpitations']}`,
+        cv?.['thyroid_symptoms'] && `Tiroides: ${(cv['thyroid_symptoms'] as string).split(',')[0].substring(0, 40)}…`,
+        cv?.['hormonal_symptoms'] && `Hormonal: ${cv['hormonal_symptoms']}`,
+      ].filter(Boolean) as string[],
+    },
+    {
+      title: 'Historial Médico',
+      items: [
+        (() => {
+          const conds = medHist?.['chronic_conditions'] as string[] | undefined
+          return conds && conds.length > 0 ? `Condiciones: ${conds.join(', ')}` : null
+        })(),
+        medHist?.['surgeries'] && `Cirugías: ${medHist['surgeries']}`,
+        (medHist?.['smoker'] || lifestyle?.['smoker']) && `Tabaco: ${medHist?.['smoker'] || lifestyle?.['smoker']}`,
+        medHist?.['current_medications'] && `Medicamentos: ${medHist['current_medications']}`,
+        medHist?.['recent_condition'] && `Condición reciente: ${medHist['recent_condition']}`,
+        (!medHist?.['recent_condition'] && recentIllness?.['condition']) && `Condición reciente: ${recentIllness['condition']}`,
+        (!medHist?.['current_medications'] && recentIllness?.['current_medications']) && `Medicamentos: ${recentIllness['current_medications']}`,
       ].filter(Boolean) as string[],
     },
     {
       title: 'Historial Familiar',
       items: [
-        history.family_history.conditions.length > 0 && `Condiciones: ${history.family_history.conditions.join(', ')}`,
-        history.family_history.details || '',
-      ].filter(Boolean) as string[],
-    },
-    {
-      title: 'Historial Reciente',
-      items: [
-        history.recent_illness.condition && `Condición: ${history.recent_illness.condition}`,
-        history.recent_illness.treatment && `Tratamiento: ${history.recent_illness.treatment}`,
-        history.recent_illness.current_medications && `Medicamentos actuales: ${history.recent_illness.current_medications}`,
+        (() => {
+          const conds = fam?.['conditions'] as string[] | undefined
+          return conds && conds.length > 0 ? `Condiciones: ${conds.join(', ')}` : null
+        })(),
+        fam?.['longevity'] && `Longevidad familiar: ${fam['longevity']}`,
+        fam?.['details'] && `Detalles: ${fam['details']}`,
+        (() => {
+          const legacyConds = (h['family_history'] as Record<string, unknown> | undefined)?.['conditions'] as string[] | undefined
+          if (!fam && legacyConds && legacyConds.length > 0) return `Condiciones: ${legacyConds.join(', ')}`
+          return null
+        })(),
       ].filter(Boolean) as string[],
     },
   ].filter(s => s.items.length > 0)

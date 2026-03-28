@@ -8,11 +8,23 @@ import type { Patient, LabResult } from '@/types'
 import Link from 'next/link'
 import { Upload, ArrowLeft } from 'lucide-react'
 
-async function getServerData(patientId: string, resultId?: string): Promise<{ patient: Patient | null; result: LabResult | null }> {
+interface ResultSummary {
+  id: string
+  result_date: string
+}
+
+async function getServerData(
+  patientId: string,
+  resultId?: string
+): Promise<{
+  patient: Patient | null
+  result: LabResult | null
+  allResults: ResultSummary[]
+}> {
   try {
     const supabase = await createServerComponentClient()
 
-    const [patientRes, resultsRes] = await Promise.all([
+    const [patientRes, resultsRes, allResultsRes] = await Promise.all([
       supabase.from('patients').select('*').eq('id', patientId).maybeSingle(),
       resultId
         ? supabase.from('lab_results').select('*').eq('id', resultId).maybeSingle()
@@ -21,16 +33,24 @@ async function getServerData(patientId: string, resultId?: string): Promise<{ pa
             .select('*')
             .eq('patient_id', patientId)
             .order('result_date', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
+      supabase
+        .from('lab_results')
+        .select('id, result_date, created_at')
+        .eq('patient_id', patientId)
+        .order('result_date', { ascending: false })
+        .order('created_at', { ascending: false }),
     ])
 
     return {
       patient: (patientRes.data as Patient) ?? null,
       result: (resultsRes.data as LabResult) ?? null,
+      allResults: (allResultsRes.data as ResultSummary[]) ?? [],
     }
   } catch {
-    return { patient: null, result: null }
+    return { patient: null, result: null, allResults: [] }
   }
 }
 
@@ -41,7 +61,7 @@ export default async function DashboardPage({
   params: { id: string }
   searchParams: { tab?: string; resultId?: string }
 }) {
-  const { patient, result } = await getServerData(params.id, searchParams.resultId)
+  const { patient, result, allResults } = await getServerData(params.id, searchParams.resultId)
 
   if (!patient) notFound()
 
@@ -74,7 +94,7 @@ export default async function DashboardPage({
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Cargando dashboard...</div>}>
-      <DashboardTabs patient={patient} result={result} />
+      <DashboardTabs patient={patient} result={result} allResults={allResults} />
     </Suspense>
   )
 }

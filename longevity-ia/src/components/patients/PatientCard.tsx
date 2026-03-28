@@ -172,7 +172,7 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
           </Link>
           {result && (
             <Link
-              href={`/patients/${patient.id}/dashboard`}
+              href={`/patients/${patient.id}/dashboard?resultId=${result.id}`}
               className="flex-1 flex items-center justify-center gap-2 border border-border text-foreground text-sm font-medium py-2 rounded-lg hover:bg-muted/40 transition-all"
             >
               <BarChart2 size={14} />

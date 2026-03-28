@@ -244,12 +244,60 @@ export interface AnalyzeResult {
 // ─── Formatea la historia clínica como bloque de texto para el prompt ─────────
 
 export interface ClinicalHistoryForPrompt {
-  anthropometric: { waist_cm: number | null; blood_pressure: string | null }
-  allergies: { food: string | null; medication: string | null }
-  diet: { type: string; meals_per_day: string; alcohol: string; supplements: string | null }
-  lifestyle: { exercise: string; sleep_hours: string; smoker: string; stress_level: string }
-  family_history: { conditions: string[]; details: string | null }
-  recent_illness: { condition: string | null; treatment: string | null; current_medications: string | null }
+  anthropometric: {
+    waist_cm: number | null
+    blood_pressure: string | null
+    energy_level: string | null
+  }
+  allergies: {
+    food: string | null
+    medication: string | null
+    environmental: string | null
+  }
+  diet: {
+    type: string
+    meals_per_day: string
+    water_intake: string | null
+    processed_food: string | null
+    alcohol: string
+    supplements: string | null
+  }
+  physical_activity: {
+    type: string | null
+    frequency: string | null
+    sedentary_hours: string | null
+  }
+  sleep: {
+    hours: string
+    quality: string | null
+    snoring: string | null
+  }
+  mental_health: {
+    stress_level: string
+    mood: string | null
+    anxiety: string | null
+    cognitive: string | null
+  }
+  cardiovascular: {
+    chest_pain: string | null
+    shortness_of_breath: string | null
+    palpitations: string | null
+    thyroid_symptoms: string | null
+    hormonal_symptoms: string | null
+  }
+  medical_history: {
+    chronic_conditions: string[]
+    surgeries: string | null
+    smoker: string
+    current_medications: string | null
+    recent_condition: string | null
+    recent_treatment: string | null
+  }
+  family_history: {
+    conditions: string[]
+    longevity: string | null
+    details: string | null
+  }
 }
 
 export interface PatientContextForPrompt {
@@ -262,7 +310,7 @@ export interface PatientContextForPrompt {
 }
 
 function formatClinicalHistory(patient: PatientContextForPrompt): string {
-  const h = patient.clinical_history
+  const h = patient.clinical_history as Record<string, unknown> | null
   if (!h) return ''
 
   const bmi = patient.weight && patient.height
@@ -270,49 +318,128 @@ function formatClinicalHistory(patient: PatientContextForPrompt): string {
     : null
 
   const lines: string[] = [
-    '=== HISTORIA CLÍNICA DEL PACIENTE ===',
-    `Nombre: ${patient.name} | Edad: ${patient.age} años | Género: ${patient.gender === 'male' ? 'Masculino' : 'Femenino'}`,
+    '=== HISTORIA CLÍNICA COMPLETA DEL PACIENTE (UpToDate Clinical Assessment) ===',
+    `Nombre: ${patient.name} | Edad: ${patient.age} años | Género: ${patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'}`,
   ]
 
   if (patient.weight) lines.push(`Peso: ${patient.weight} kg | Talla: ${patient.height} cm${bmi ? ` | IMC calculado: ${bmi}` : ''}`)
-  if (h.anthropometric.waist_cm) lines.push(`Circunferencia de cintura: ${h.anthropometric.waist_cm} cm`)
-  if (h.anthropometric.blood_pressure) lines.push(`Presión arterial habitual (autorreportada): ${h.anthropometric.blood_pressure} mmHg`)
 
-  lines.push('--- Alergias ---')
-  lines.push(`Alergias alimentarias: ${h.allergies.food || 'Ninguna reportada'}`)
-  if (h.allergies.medication) {
-    lines.push(`⚠ ALERGIA A MEDICAMENTO: ${h.allergies.medication} — NO incluir este medicamento ni sus derivados en el protocolo`)
-  } else {
-    lines.push('Alergias a medicamentos: Ninguna reportada')
+  // Antropométrico
+  const anthro = h['anthropometric'] as Record<string, unknown> | undefined
+  if (anthro) {
+    if (anthro['waist_cm']) lines.push(`Circunferencia de cintura: ${anthro['waist_cm']} cm`)
+    if (anthro['blood_pressure']) lines.push(`Presión arterial habitual (autorreportada): ${anthro['blood_pressure']} mmHg`)
+    if (anthro['energy_level']) lines.push(`Nivel de energía habitual: ${anthro['energy_level']}`)
   }
 
-  lines.push('--- Alimentación ---')
-  if (h.diet.type) lines.push(`Tipo de dieta: ${h.diet.type}`)
-  if (h.diet.meals_per_day) lines.push(`Frecuencia de comidas: ${h.diet.meals_per_day}`)
-  if (h.diet.alcohol) lines.push(`Consumo de alcohol: ${h.diet.alcohol}`)
-  if (h.diet.supplements) lines.push(`Suplementos actuales (no duplicar sin razón): ${h.diet.supplements}`)
-
-  lines.push('--- Estilo de vida ---')
-  if (h.lifestyle.exercise) lines.push(`Actividad física actual: ${h.lifestyle.exercise}`)
-  if (h.lifestyle.sleep_hours) lines.push(`Sueño por noche: ${h.lifestyle.sleep_hours}`)
-  if (h.lifestyle.smoker) lines.push(`Tabaco: ${h.lifestyle.smoker}`)
-  if (h.lifestyle.stress_level) lines.push(`Nivel de estrés: ${h.lifestyle.stress_level}`)
-
-  lines.push('--- Historial familiar ---')
-  if (h.family_history.conditions.length > 0) {
-    lines.push(`Condiciones en familiares directos: ${h.family_history.conditions.join(', ')}`)
+  // Alergias
+  const allerg = h['allergies'] as Record<string, unknown> | undefined
+  if (allerg) {
+    lines.push('--- ALERGIAS ---')
+    lines.push(`Alergias alimentarias: ${allerg['food'] || 'Ninguna reportada'}`)
+    if (allerg['medication']) {
+      lines.push(`⚠ ALERGIA A MEDICAMENTO: ${allerg['medication']} — NO incluir este medicamento ni sus derivados en el protocolo`)
+    } else {
+      lines.push('Alergias a medicamentos: Ninguna reportada')
+    }
+    if (allerg['environmental']) lines.push(`Alergias ambientales: ${allerg['environmental']}`)
   }
-  if (h.family_history.details) lines.push(`Detalles: ${h.family_history.details}`)
 
-  lines.push('--- Historial médico reciente ---')
-  if (h.recent_illness.condition) lines.push(`Condición más reciente: ${h.recent_illness.condition}`)
-  if (h.recent_illness.treatment) lines.push(`Tratamiento indicado: ${h.recent_illness.treatment}`)
-  if (h.recent_illness.current_medications) {
-    lines.push(`⚠ MEDICAMENTOS ACTUALES (no duplicar en protocolo, solo complementar): ${h.recent_illness.current_medications}`)
+  // Alimentación
+  const diet = h['diet'] as Record<string, unknown> | undefined
+  if (diet) {
+    lines.push('--- ALIMENTACIÓN Y NUTRICIÓN ---')
+    if (diet['type']) lines.push(`Patrón alimentario: ${diet['type']}`)
+    if (diet['meals_per_day']) lines.push(`Frecuencia de comidas: ${diet['meals_per_day']}`)
+    if (diet['water_intake']) lines.push(`Hidratación: ${diet['water_intake']} al día`)
+    if (diet['processed_food']) lines.push(`Consumo de ultraprocesados: ${diet['processed_food']}`)
+    if (diet['alcohol']) lines.push(`Consumo de alcohol: ${diet['alcohol']}`)
+    if (diet['supplements']) lines.push(`Suplementos actuales (no duplicar sin razón): ${diet['supplements']}`)
+  }
+
+  // Actividad física
+  const pa = h['physical_activity'] as Record<string, unknown> | undefined
+  if (pa) {
+    lines.push('--- ACTIVIDAD FÍSICA ---')
+    if (pa['type']) lines.push(`Tipo de ejercicio: ${pa['type']}`)
+    if (pa['frequency']) lines.push(`Frecuencia de ejercicio: ${pa['frequency']}`)
+    if (pa['sedentary_hours']) lines.push(`Horas sedentario/a al día: ${pa['sedentary_hours']}`)
+  }
+
+  // Sueño
+  const sleep = h['sleep'] as Record<string, unknown> | undefined
+  if (sleep) {
+    lines.push('--- SUEÑO ---')
+    if (sleep['hours']) lines.push(`Horas de sueño: ${sleep['hours']}`)
+    if (sleep['quality']) lines.push(`Calidad de sueño: ${sleep['quality']}`)
+    if (sleep['snoring'] && sleep['snoring'] !== 'No / No sé') lines.push(`Ronquido/apnea: ${sleep['snoring']}`)
+  }
+
+  // Salud mental
+  const mh = h['mental_health'] as Record<string, unknown> | undefined
+  if (mh) {
+    lines.push('--- SALUD MENTAL Y COGNITIVA ---')
+    if (mh['stress_level']) lines.push(`Nivel de estrés: ${mh['stress_level']}`)
+    if (mh['mood']) lines.push(`Estado de ánimo: ${mh['mood']}`)
+    if (mh['anxiety']) lines.push(`Ansiedad: ${mh['anxiety']}`)
+    if (mh['cognitive']) lines.push(`Función cognitiva: ${mh['cognitive']}`)
+  }
+
+  // Cardiovascular
+  const cv = h['cardiovascular'] as Record<string, unknown> | undefined
+  if (cv) {
+    lines.push('--- SALUD CARDIOVASCULAR Y METABÓLICA ---')
+    if (cv['chest_pain']) lines.push(`Dolor o presión en pecho: ${cv['chest_pain']}`)
+    if (cv['shortness_of_breath']) lines.push(`Disnea: ${cv['shortness_of_breath']}`)
+    if (cv['palpitations']) lines.push(`Palpitaciones: ${cv['palpitations']}`)
+    if (cv['thyroid_symptoms']) lines.push(`Síntomas tiroideos: ${cv['thyroid_symptoms']}`)
+    if (cv['hormonal_symptoms']) lines.push(`Síntomas hormonales: ${cv['hormonal_symptoms']}`)
+  }
+
+  // Historial médico personal
+  const mhist = h['medical_history'] as Record<string, unknown> | undefined
+  if (mhist) {
+    lines.push('--- HISTORIAL MÉDICO PERSONAL ---')
+    const conditions = mhist['chronic_conditions'] as string[] | undefined
+    if (conditions && conditions.length > 0) lines.push(`Condiciones crónicas diagnosticadas: ${conditions.join(', ')}`)
+    if (mhist['surgeries']) lines.push(`Cirugías/procedimientos: ${mhist['surgeries']}`)
+    if (mhist['smoker']) lines.push(`Tabaco: ${mhist['smoker']}`)
+    if (mhist['current_medications']) {
+      lines.push(`⚠ MEDICAMENTOS ACTUALES (no duplicar en protocolo, solo complementar): ${mhist['current_medications']}`)
+    }
+    if (mhist['recent_condition']) lines.push(`Condición médica reciente: ${mhist['recent_condition']}`)
+    if (mhist['recent_treatment']) lines.push(`Tratamiento indicado: ${mhist['recent_treatment']}`)
+  }
+
+  // Historial familiar
+  const fam = h['family_history'] as Record<string, unknown> | undefined
+  if (fam) {
+    lines.push('--- HISTORIAL FAMILIAR ---')
+    const famConditions = fam['conditions'] as string[] | undefined
+    if (famConditions && famConditions.length > 0) {
+      lines.push(`Condiciones en familiares de primer grado: ${famConditions.join(', ')}`)
+    }
+    if (fam['longevity']) lines.push(`Longevidad familiar: ${fam['longevity']}`)
+    if (fam['details']) lines.push(`Detalles: ${fam['details']}`)
+  }
+
+  // Campos legacy (compatibilidad con historias antiguas)
+  const legacy_lifestyle = h['lifestyle'] as Record<string, unknown> | undefined
+  if (legacy_lifestyle) {
+    lines.push('--- ESTILO DE VIDA (datos anteriores) ---')
+    if (legacy_lifestyle['exercise']) lines.push(`Actividad física: ${legacy_lifestyle['exercise']}`)
+    if (legacy_lifestyle['sleep_hours']) lines.push(`Sueño: ${legacy_lifestyle['sleep_hours']}`)
+    if (legacy_lifestyle['smoker']) lines.push(`Tabaco: ${legacy_lifestyle['smoker']}`)
+    if (legacy_lifestyle['stress_level']) lines.push(`Estrés: ${legacy_lifestyle['stress_level']}`)
+  }
+  const legacy_recent = h['recent_illness'] as Record<string, unknown> | undefined
+  if (legacy_recent) {
+    if (legacy_recent['condition']) lines.push(`Enfermedad reciente (dato anterior): ${legacy_recent['condition']}`)
+    if (legacy_recent['current_medications']) lines.push(`⚠ Medicamentos (dato anterior): ${legacy_recent['current_medications']}`)
   }
 
   lines.push('=== FIN DE HISTORIA CLÍNICA ===')
-  lines.push('INSTRUCCIONES ESPECIALES: Usa esta historia clínica para personalizar el análisis: ajusta el protocolo según dieta/ejercicio actuales, considera riesgos familiares en la sección FODA y riesgos, y NUNCA recomendar medicamentos a los que el paciente sea alérgico.')
+  lines.push('INSTRUCCIONES ESPECIALES: Usa esta historia clínica para personalizar el análisis de forma integral: (1) Ajusta el protocolo según actividad física, dieta y suplementos actuales; (2) Considera los riesgos familiares en el FODA; (3) NUNCA recomendar medicamentos a los que el paciente sea alérgico; (4) Evalúa síntomas cardiovasculares y cognitivos como señales de alerta; (5) Ajusta la edad biológica según nivel de energía, calidad de sueño, manejo del estrés y horas sedentarias.')
 
   return lines.join('\n')
 }

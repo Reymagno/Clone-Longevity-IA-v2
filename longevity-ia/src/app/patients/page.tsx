@@ -52,9 +52,22 @@ export default function PatientsPage() {
         return
       }
 
-      // Con perfil → dashboard directo
+      // Con perfil → dashboard directo (con resultId del análisis más reciente)
       if (data.length === 1) {
-        router.replace(`/patients/${data[0].id}/dashboard`)
+        const { data: latestResult } = await supabase
+          .from('lab_results')
+          .select('id')
+          .eq('patient_id', data[0].id)
+          .order('result_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const url = latestResult
+          ? `/patients/${data[0].id}/dashboard?resultId=${latestResult.id}`
+          : `/patients/${data[0].id}/dashboard`
+
+        router.replace(url)
         return
       }
 
