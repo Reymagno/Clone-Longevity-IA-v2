@@ -16,7 +16,7 @@ import { LongevityChat } from './LongevityChat'
 import type { Patient, LabResult } from '@/types'
 import {
   BarChart2, Shield, Activity, FlaskConical,
-  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Dna
+  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Dna, Upload
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -89,14 +89,23 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
                 </p>
               </div>
             </div>
-            <ExportButtons
-              patientName={patient.name}
-              activeTab={activeTab}
-              patient={patient}
-              parsedData={parsedData}
-              analysis={analysis}
-              resultDate={result.result_date}
-            />
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/patients/${patient.id}/upload`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-accent/50 hover:bg-muted/30 transition-all"
+              >
+                <Upload size={13} />
+                <span className="hidden sm:inline">Nuevo Análisis</span>
+              </Link>
+              <ExportButtons
+                patientName={patient.name}
+                activeTab={activeTab}
+                patient={patient}
+                parsedData={parsedData}
+                analysis={analysis}
+                resultDate={result.result_date}
+              />
+            </div>
           </div>
 
           {/* Tabs */}
