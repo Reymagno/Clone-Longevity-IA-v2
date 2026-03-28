@@ -36,6 +36,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [step, setStep] = useState<AnalysisStep>('idle')
   const [progress, setProgress] = useState(0)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [section, setSection] = useState<'upload' | 'history'>('upload')
   const analyzeIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -77,6 +78,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   const handleAnalyze = useCallback(async () => {
     if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return }
 
+    setErrorMsg(null)
     goToProgress('uploading')
 
     try {
@@ -100,41 +102,52 @@ export default function UploadPage({ params }: { params: { id: string } }) {
       let buffer = ''
       let resultId: string | null = null
 
+      const processLine = (line: string) => {
+        if (!line.startsWith('data: ')) return
+        let event: { ok: boolean; step?: string; error?: string; resultId?: string } | null = null
+        try { event = JSON.parse(line.slice(6)) } catch { return }
+        if (!event) return
+
+        if (!event.ok) throw new Error(event.error || 'Error desconocido')
+
+        if (event.step === 'uploading') goToProgress('uploading')
+        else if (event.step === 'analyzing') goToProgress('analyzing')
+        else if (event.step === 'saving') goToProgress('saving')
+        else if (event.step === 'done') {
+          resultId = event.resultId ?? null
+          setProgress(100)
+          setStep('done')
+          toast.success('¡Análisis completado!')
+          setTimeout(() => {
+            router.push(`/patients/${params.id}/dashboard?resultId=${resultId}`)
+          }, 1800)
+        }
+      }
+
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
 
-        buffer += decoder.decode(value, { stream: true })
+        if (value) {
+          buffer += decoder.decode(value, { stream: !done })
+        }
+
         const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
+        // If not done, keep the last incomplete line in the buffer
+        // If done, process all remaining lines
+        buffer = done ? '' : (lines.pop() ?? '')
 
         for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          let event: { ok: boolean; step?: string; error?: string; resultId?: string } | null = null
-          try { event = JSON.parse(line.slice(6)) } catch { continue }
-          if (!event) continue
-
-          if (!event.ok) throw new Error(event.error || 'Error desconocido')
-
-          if (event.step === 'uploading') goToProgress('uploading')
-          else if (event.step === 'analyzing') goToProgress('analyzing')
-          else if (event.step === 'saving') goToProgress('saving')
-          else if (event.step === 'done') {
-            resultId = event.resultId ?? null
-            setProgress(100)
-            setStep('done')
-            toast.success('¡Análisis completado!')
-            setTimeout(() => {
-              router.push(`/patients/${params.id}/dashboard?resultId=${resultId}`)
-            }, 1800)
-          }
+          processLine(line)
         }
+
+        if (done) break
       }
 
     } catch (err) {
       setStep('error')
       setProgress(0)
       const msg = err instanceof Error ? err.message : 'Error desconocido'
+      setErrorMsg(msg)
       toast.error(msg)
     }
   }, [files, date, params.id, router, goToProgress])
@@ -321,8 +334,9 @@ export default function UploadPage({ params }: { params: { id: string } }) {
             </div>
 
             {step === 'error' && (
-              <div className="p-4 rounded-xl border border-danger/30 bg-danger/5 text-sm text-danger">
-                Ocurrió un error en el análisis. Verifica tu conexión e intenta nuevamente.
+              <div className="p-4 rounded-xl border border-danger/30 bg-danger/5 text-sm text-danger space-y-1">
+                <p className="font-medium">Error en el análisis</p>
+                <p className="text-xs opacity-80 break-words">{errorMsg ?? 'Verifica tu conexión e intenta nuevamente.'}</p>
               </div>
             )}
 
