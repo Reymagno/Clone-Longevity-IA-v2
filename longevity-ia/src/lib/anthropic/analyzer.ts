@@ -218,16 +218,16 @@ REGLAS DE FORMATO ESTRICTAS:
 - Scores por sistema: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico
 - overallScore: promedio ponderado de sistemas con datos disponibles
 - longevity_age: edad biológica estimada en años (puede ser menor o mayor a la cronológica)
-- clinicalSummary: párrafo de 3-5 oraciones con hallazgos más importantes y su significado clínico real
-- keyAlerts: arreglo de strings con alertas críticas que requieren atención inmediata
-- FODA mínimo: 5 fortalezas, 4 debilidades, 5 oportunidades, 4 amenazas
-  Formato FODA: { "label": "Título corto", "detail": "Descripción detallada con mecanismo", "expectedImpact": "Impacto cuantificado si aplica (solo fortalezas y oportunidades)", "probability": "Alta/Media/Baja (solo amenazas y debilidades)" }
-- Risks mínimo 4 enfermedades DIRECTAMENTE derivadas de los valores de ESTE paciente:
-  { "disease": "nombre", "probability": número 0-100, "horizon": "X años", "drivers": ["biomarcador: valor actual vs óptimo"], "color": "#hexcolor" }
-- Protocol mínimo 6 intervenciones: usa el formato de FASE 5 con los campos exactos: number, category, molecule (NUNCA vacío), dose, mechanism, evidence, clinicalTrial, targetBiomarkers, expectedResult, action, urgency
-- projectionData: exactamente 10 puntos (años 1-10) con "withoutIntervention", "withIntervention" (scores 0-100) y "yearRisk": { "biomarkers": [máximo 3 strings: "biomarcador: tendencia proyectada en ese año"], "conditions": [máximo 3 strings: "padecimiento que podría desarrollarse sin tratamiento"], "urgencyNote": "1 frase sobre la ventana terapéutica en ese año" }, mostrando divergencia creciente si sigue el protocolo
-- projectionFactors: entre 4 y 6 factores directamente vinculados a los biomarcadores alterados de ESTE paciente: { "factor": "nombre clínico corto del factor", "currentValue": "valor actual con unidad", "optimalValue": "valor óptimo con unidad", "medicalJustification": "1-2 oraciones: autor, institución, año y magnitud del efecto", "withoutProtocol": "2-3 oraciones sobre la trayectoria sin intervención", "withProtocol": "2-3 oraciones sobre los beneficios con el protocolo" }
-- Todo el texto en español mexicano. Lenguaje técnico pero comprensible.
+- clinicalSummary: párrafo de 2-3 oraciones con los hallazgos más importantes
+- keyAlerts: máximo 4 strings con alertas críticas
+- FODA: exactamente 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas
+  Formato FODA: { "label": "Título corto (máx 5 palabras)", "detail": "1 oración con el mecanismo clave", "expectedImpact": "dato cuantificado breve (solo fortalezas/oportunidades)", "probability": "Alta/Media/Baja (solo amenazas/debilidades)" }
+- Risks exactamente 4 enfermedades derivadas de los valores de ESTE paciente:
+  { "disease": "nombre", "probability": número 0-100, "horizon": "X años", "drivers": ["biomarcador: valor"], "color": "#hexcolor" }
+- Protocol exactamente 5 intervenciones con los campos: number, category, molecule (NUNCA vacío), dose, mechanism (1 oración), evidence (autor, año, efecto), clinicalTrial, targetBiomarkers, expectedResult (1 oración), action (1 oración), urgency
+- projectionData: exactamente 10 puntos (años 1-10) con "withoutIntervention", "withIntervention" (scores 0-100) y "yearRisk": { "biomarkers": [máximo 2 strings], "conditions": [máximo 2 strings], "urgencyNote": "1 frase breve" }
+- projectionFactors: exactamente 3 factores: { "factor": "nombre corto", "currentValue": "valor con unidad", "optimalValue": "valor óptimo", "medicalJustification": "1 oración: autor, año, efecto", "withoutProtocol": "1 oración", "withProtocol": "1 oración" }
+- Todo el texto en español mexicano. Lenguaje técnico pero conciso.
 - Analiza ÚNICAMENTE lo que aparece en el documento. No inventes valores no presentes.`
 
 export interface AnalyzeFileParams {
@@ -544,7 +544,7 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 20000,
+      max_tokens: 12000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
@@ -599,7 +599,7 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
   }
 }
 
-REGLAS DE FORMATO: Idénticas al análisis estándar. Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA mínimo 5/4/5/4. Protocol mínimo 6 intervenciones. projectionData exactamente 10 puntos (años 1-10). Todo en español mexicano.`
+REGLAS DE FORMATO: Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA exactamente 4+3+4+3. Protocol exactamente 5 intervenciones (campos concisos: mechanism/expectedResult/action = 1 oración). projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores (withoutProtocol/withProtocol = 1 oración). Todo en español mexicano, lenguaje conciso.`
 
 export async function reanalyzeWithClinicalHistory(
   parsedData: object,
@@ -618,7 +618,7 @@ export async function reanalyzeWithClinicalHistory(
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 20000,
+      max_tokens: 12000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
