@@ -71,9 +71,16 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           {/* Fila superior */}
           <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-4">
-              <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors">
-                <ArrowLeft size={18} />
+            <div className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-2 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+                  <Dna size={15} className="text-background" />
+                </div>
+                <span className="hidden sm:block font-semibold text-foreground text-sm">Longevity IA</span>
+              </Link>
+              <span className="text-border hidden sm:block">|</span>
+              <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors" title="Mis pacientes">
+                <ArrowLeft size={17} />
               </Link>
               <div>
                 <p className="font-semibold text-foreground">{patient.name}</p>

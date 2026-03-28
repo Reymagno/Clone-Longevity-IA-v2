@@ -1,5 +1,10 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Dna, Brain, Shield, BarChart2, Zap, FlaskConical } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 
 const FEATURES = [
   {
@@ -35,6 +40,14 @@ const FEATURES = [
 ]
 
 export default function LandingPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace('/patients')
+    })
+  }, [router])
+
   return (
     <div className="min-h-screen hero-gradient">
       {/* Navbar */}
@@ -88,7 +101,7 @@ export default function LandingPage() {
             <ArrowRight size={20} />
           </Link>
           <Link
-            href="/login"
+            href="/patients"
             className="inline-flex items-center gap-2 border border-border text-foreground font-medium px-8 py-4 rounded-xl hover:bg-muted/40 transition-all text-lg"
           >
             Ver pacientes
