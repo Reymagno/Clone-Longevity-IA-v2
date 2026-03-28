@@ -240,7 +240,7 @@ function HistorySummary({ history }: { history: ClinicalHistory }) {
     {
       title: 'Salud Mental',
       items: [
-        (mh?.['stress_level'] || lifestyle?.['stress_level']) && `Estrés: ${((mh?.['stress_level'] || lifestyle?.['stress_level']) as string)?.split(' — ')[0]}`,
+        (mh?.['stress_level'] || lifestyle?.['stress_level']) && `Estrés: ${String(mh?.['stress_level'] ?? lifestyle?.['stress_level'] ?? '').split(' — ')[0]}`,
         mh?.['mood'] && `Ánimo: ${mh['mood']}`,
         mh?.['anxiety'] && `Ansiedad: ${(mh['anxiety'] as string).split(',')[0]}`,
         mh?.['cognitive'] && `Cognición: ${(mh['cognitive'] as string).split(' — ')[0]}`,
