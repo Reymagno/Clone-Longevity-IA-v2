@@ -4,7 +4,8 @@
       "Bash(npx tsc:*)",
       "Bash(node:*)",
       "Bash(npx next:*)",
-      "Bash(node_modules/.bin/next build:*)"
+      "Bash(node_modules/.bin/next build:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

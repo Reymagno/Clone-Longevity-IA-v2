@@ -127,10 +127,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-border py-6 text-center text-sm text-muted-foreground">
-        <p>Longevity IA — Medicina de precisión impulsada por Claude</p>
-      </div>
     </div>
   )
 }

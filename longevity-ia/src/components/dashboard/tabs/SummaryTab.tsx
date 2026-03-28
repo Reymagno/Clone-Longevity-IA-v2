@@ -138,9 +138,9 @@ const ORGANS: OrganDef[] = [
   },
 ]
 
-// ── Arc Gauge (tema oscuro) ──────────────────────────────────────
+// ── Arc Gauge (tema oscuro — premium) ───────────────────────────
 function ArcGauge({ score }: { score: number }) {
-  const cx = 100, cy = 84, r = 66, sw = 10
+  const cx = 130, cy = 110, r = 86, sw = 14
   const safe = Math.max(0, Math.min(score, 100))
   const toXY = (angle: number, rad: number) => ({
     x: +(cx + rad * Math.cos(angle)).toFixed(3),
@@ -155,29 +155,120 @@ function ArcGauge({ score }: { score: number }) {
   const largeArc = safe > 75 ? 1 : 0
   const fgPath = safe === 0 ? '' : `M ${s0.x} ${s0.y} A ${r} ${r} 0 ${largeArc} 1 ${fgEnd.x} ${fgEnd.y}`
   const col = scoreColor(score)
+  // Gradient: pick a lighter tint for the end stop
+  const colLight = score >= 85 ? '#7fffd4' : score >= 65 ? '#93d5f7' : score >= 40 ? '#ffd07f' : '#ff8fa3'
   const needleRad = fgEndDeg * Math.PI / 180
-  const tip = { x: +(cx + (r - 10) * Math.cos(needleRad)).toFixed(2), y: +(cy + (r - 10) * Math.sin(needleRad)).toFixed(2) }
+  // Needle: long line from pivot to arc, with a short tail going back
+  const tip  = { x: +(cx + (r - 6)  * Math.cos(needleRad)).toFixed(2), y: +(cy + (r - 6)  * Math.sin(needleRad)).toFixed(2) }
+  const tail = { x: +(cx + 18 * Math.cos(needleRad + Math.PI)).toFixed(2), y: +(cy + 18 * Math.sin(needleRad + Math.PI)).toFixed(2) }
+
+  // Tick marks at 25, 50, 75
+  const ticks = [25, 50, 75]
 
   return (
-    <svg width="200" height="128" viewBox="0 0 200 128" style={{ overflow: 'visible' }}>
+    <svg width="260" height="170" viewBox="0 0 260 170" style={{ overflow: 'visible' }}>
       <defs>
-        <filter id="sglow"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        <linearGradient id="arcGrad" gradientUnits="userSpaceOnUse"
+          x1={s0.x} y1={s0.y} x2={fgEnd.x} y2={fgEnd.y}>
+          <stop offset="0%" stopColor={col} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={colLight} stopOpacity="1" />
+        </linearGradient>
+        {/* Outer glow blur */}
+        <filter id="arcGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        {/* Needle drop shadow */}
+        <filter id="needleShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor={col} floodOpacity="0.6" />
+        </filter>
+        {/* Tip glow pulse */}
+        <filter id="tipGlow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        {/* Score number glow */}
+        <filter id="scoreGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
       </defs>
+
+      {/* Background track */}
       <path d={bgPath} fill="none" stroke="#1e293b" strokeWidth={sw} strokeLinecap="round" />
-      {safe > 0 && <>
-        <path d={fgPath} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" filter="url(#sglow)" opacity="0.4" />
-        <path d={fgPath} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" />
-      </>}
-      {[{ t: 0, label: '0' }, { t: 100, label: '100' }].map(({ t, label }) => {
-        const pos = toXY((BG_START + (t / 100) * 240) * Math.PI / 180, r + sw / 2 + 12)
-        return <text key={t} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#475569" fontFamily="ui-monospace,monospace">{label}</text>
+      {/* Inner track shadow */}
+      <path d={bgPath} fill="none" stroke="#0f172a" strokeWidth={sw - 4} strokeLinecap="round" opacity="0.5" />
+
+      {/* Foreground arc — glow layer */}
+      {safe > 0 && (
+        <path d={fgPath} fill="none" stroke={col} strokeWidth={sw + 4}
+          strokeLinecap="round" filter="url(#arcGlow)" opacity="0.25" />
+      )}
+      {/* Foreground arc — gradient fill */}
+      {safe > 0 && (
+        <path d={fgPath} fill="none" stroke="url(#arcGrad)" strokeWidth={sw}
+          strokeLinecap="round" />
+      )}
+
+      {/* Tick marks at 25 / 50 / 75 */}
+      {ticks.map(t => {
+        const deg = BG_START + (t / 100) * 240
+        const rad = deg * Math.PI / 180
+        const inner = toXY(rad, r - sw / 2 - 3)
+        const outer = toXY(rad, r + sw / 2 + 3)
+        return (
+          <line key={t}
+            x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y}
+            stroke="#334155" strokeWidth="1.5" strokeLinecap="round" />
+        )
       })}
-      {safe > 0 && <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke={col} strokeWidth="2.5" strokeLinecap="round" />}
-      <circle cx={cx} cy={cy} r={8} fill="#0f172a" stroke="#1e293b" strokeWidth="1.5" />
-      <circle cx={cx} cy={cy} r={4} fill={col} />
-      <text x={cx} y={cy - 16} textAnchor="middle" fill="#f1f5f9" fontSize="34" fontWeight="900" fontFamily="ui-monospace,monospace" letterSpacing="-1.5">{score}</text>
-      <text x={cx} y={cy - 2} textAnchor="middle" fill="#475569" fontSize="10" fontFamily="system-ui,sans-serif">/ 100</text>
-      <text x={cx} y={cy + 16} textAnchor="middle" fill="#475569" fontSize="8" fontFamily="system-ui,sans-serif" letterSpacing="1.2">ÍNDICE LONGEVITY</text>
+
+      {/* End-cap labels: 0 and 100 */}
+      {[{ t: 0, label: '0' }, { t: 100, label: '100' }].map(({ t, label }) => {
+        const pos = toXY((BG_START + (t / 100) * 240) * Math.PI / 180, r + sw / 2 + 14)
+        return (
+          <text key={t} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle"
+            fontSize="9" fill="#475569" fontFamily="ui-monospace,monospace">
+            {label}
+          </text>
+        )
+      })}
+
+      {/* Needle */}
+      {safe > 0 && (
+        <>
+          <line x1={tail.x} y1={tail.y} x2={tip.x} y2={tip.y}
+            stroke={col} strokeWidth="2" strokeLinecap="round"
+            filter="url(#needleShadow)" opacity="0.9" />
+          {/* Glowing tip dot */}
+          <circle cx={tip.x} cy={tip.y} r="5" fill={col} filter="url(#tipGlow)" opacity="0.5" />
+          <circle cx={tip.x} cy={tip.y} r="3" fill={colLight} />
+        </>
+      )}
+
+      {/* Pivot hub */}
+      <circle cx={cx} cy={cy} r="11" fill="#0f172a" stroke="#1e2d40" strokeWidth="2" />
+      <circle cx={cx} cy={cy} r="5.5" fill={col} />
+
+      {/* Score number — glow layer */}
+      <text x={cx} y={cy - 22} textAnchor="middle" fill={col}
+        fontSize="44" fontWeight="900" fontFamily="ui-monospace,monospace" letterSpacing="-2"
+        filter="url(#scoreGlow)" opacity="0.4">
+        {score}
+      </text>
+      {/* Score number — crisp top layer */}
+      <text x={cx} y={cy - 22} textAnchor="middle" fill={col}
+        fontSize="44" fontWeight="900" fontFamily="ui-monospace,monospace" letterSpacing="-2">
+        {score}
+      </text>
+      <text x={cx} y={cy - 5} textAnchor="middle" fill="#475569"
+        fontSize="11" fontFamily="system-ui,sans-serif">
+        / 100
+      </text>
+      <text x={cx} y={cy + 13} textAnchor="middle" fill="#64748b"
+        fontSize="8" fontFamily="system-ui,sans-serif" letterSpacing="1.8" fontWeight="600">
+        ÍNDICE LONGEVITY
+      </text>
     </svg>
   )
 }
@@ -301,70 +392,136 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
 
       {/* ══ 1. DIAGNÓSTICO GLOBAL ══════════════════════════════════ */}
       <div className="card-medical overflow-hidden p-0">
+        {/* Colored accent line at top */}
+        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${gaugeCol}00 0%, ${gaugeCol} 40%, ${gaugeCol}aa 70%, ${gaugeCol}00 100%)` }} />
+
         {/* Header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
-          <BarChart2 size={15} className="text-accent shrink-0" />
-          <h2 className="font-semibold text-foreground text-sm">Diagnóstico Global</h2>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <div className="flex items-center gap-2">
+            <BarChart2 size={15} className="text-accent shrink-0" />
+            <div>
+              <h2 className="font-semibold text-foreground text-sm leading-none">Diagnóstico Global</h2>
+              <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">Evaluación integral de longevidad</p>
+            </div>
+          </div>
+          <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full tracking-wide"
+            style={{ background: `${gaugeCol}15`, color: gaugeCol, border: `1px solid ${gaugeCol}30` }}>
+            <CheckCircle2 size={9} />
+            {scoreLabel(analysis.overallScore)}
+          </span>
         </div>
 
         {/* Fila superior: Gauge + Edades + Delta */}
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+
           {/* Gauge */}
-          <div className="flex flex-col items-center justify-center p-6 relative">
+          <div className="flex flex-col items-center justify-center py-8 px-6 relative">
+            {/* Strong radial glow */}
             <div className="absolute inset-0 pointer-events-none"
-              style={{ background: `radial-gradient(circle at 50% 65%, ${gaugeCol}12 0%, transparent 65%)` }} />
+              style={{ background: `radial-gradient(ellipse at 50% 60%, ${gaugeCol}1a 0%, ${gaugeCol}08 40%, transparent 70%)` }} />
+            {/* Outer ring decoration */}
+            <div className="absolute inset-6 rounded-full pointer-events-none"
+              style={{ boxShadow: `0 0 40px ${gaugeCol}0d` }} />
             <ArcGauge score={analysis.overallScore} />
-            <span className="mt-2 text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: `${gaugeCol}18`, color: gaugeCol, border: `1px solid ${gaugeCol}30` }}>
+            <span className="mt-3 text-xs font-bold px-4 py-1.5 rounded-full tracking-wider uppercase"
+              style={{ background: `${gaugeCol}1a`, color: gaugeCol, border: `1px solid ${gaugeCol}35`, letterSpacing: '0.08em' }}>
               {scoreLabel(analysis.overallScore)}
             </span>
           </div>
 
           {/* Edades */}
           <div className="flex divide-x divide-border">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 gap-1.5">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Biológica</p>
-              <span className="text-5xl font-black font-mono leading-none" style={{ color: gaugeCol }}>
-                {analysis.longevity_age}
-              </span>
-              <span className="text-xs text-muted-foreground">años</span>
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mt-1"
-                style={{ background: `${gaugeCol}15`, color: gaugeCol }}>
+            {/* Edad Biológica */}
+            <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full"
+                  style={{ background: `${gaugeCol}18`, border: `1px solid ${gaugeCol}30` }}>
+                  <Heart size={10} style={{ color: gaugeCol }} />
+                </span>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Biológica</p>
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-6xl font-black font-mono leading-none" style={{ color: gaugeCol }}>
+                  {analysis.longevity_age}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">años</span>
+              </div>
+              <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full text-center leading-tight"
+                style={{ background: `${gaugeCol}12`, color: gaugeCol, border: `1px solid ${gaugeCol}25` }}>
                 cómo envejece tu cuerpo
               </span>
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center p-8 gap-1.5 bg-muted/20">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Real</p>
-              <span className="text-5xl font-black font-mono leading-none text-foreground">{patientAge}</span>
-              <span className="text-xs text-muted-foreground">años</span>
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 bg-muted text-muted-foreground">
-                tu fecha de nacimiento
+
+            {/* Edad Real */}
+            <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-3 bg-muted/10">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted/50 border border-border">
+                  <Clock size={10} className="text-muted-foreground" />
+                </span>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Edad Real</p>
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-6xl font-black font-mono leading-none text-foreground">{patientAge}</span>
+                <span className="text-xs text-muted-foreground font-medium">años</span>
+              </div>
+              <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground border border-border">
+                fecha de nacimiento
               </span>
             </div>
           </div>
 
-          {/* Delta */}
-          <div className="flex flex-col items-center justify-center p-8 gap-3">
+          {/* Delta — Diferencia Biológica */}
+          <div className="flex flex-col items-center justify-center px-7 py-8 gap-4">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold text-center">
               Diferencia Biológica
             </p>
-            <div className="rounded-2xl px-8 py-5 text-center w-full"
+
+            {/* Main delta block */}
+            <div className="rounded-2xl px-6 py-6 text-center w-full flex flex-col items-center gap-3"
               style={{
-                background: ageDiff > 2 ? '#00e5a010' : ageDiff < -2 ? '#ff4d6d10' : '#f5a62310',
-                border: `1px solid ${ageDiff > 2 ? '#00e5a035' : ageDiff < -2 ? '#ff4d6d35' : '#f5a62335'}`,
+                background: ageDiff > 2 ? '#00e5a00d' : ageDiff < -2 ? '#ff4d6d0d' : '#f5a6230d',
+                border: `1px solid ${ageDiff > 2 ? '#00e5a030' : ageDiff < -2 ? '#ff4d6d30' : '#f5a62330'}`,
               }}>
-              <p className="text-4xl font-black font-mono leading-none"
+
+              {/* Icon */}
+              <span className="inline-flex items-center justify-center w-10 h-10 rounded-full"
+                style={{
+                  background: ageDiff > 2 ? '#00e5a015' : ageDiff < -2 ? '#ff4d6d15' : '#f5a62315',
+                  border: `1px solid ${ageDiff > 2 ? '#00e5a040' : ageDiff < -2 ? '#ff4d6d40' : '#f5a62340'}`,
+                }}>
+                {ageDiff > 2
+                  ? <TrendingUp size={18} style={{ color: '#00e5a0' }} />
+                  : ageDiff < -2
+                  ? <TrendingUp size={18} style={{ color: '#ff4d6d', transform: 'scaleY(-1)' }} />
+                  : <Activity size={18} style={{ color: '#f5a623' }} />
+                }
+              </span>
+
+              {/* Delta number */}
+              <p className="text-5xl font-black font-mono leading-none"
                 style={{ color: ageDiff > 2 ? '#00e5a0' : ageDiff < -2 ? '#ff4d6d' : '#f5a623' }}>
                 {ageDiff > 2 ? `−${ageDiff}` : ageDiff < -2 ? `+${Math.abs(ageDiff)}` : '≈ 0'}
               </p>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                {ageDiff > 2
-                  ? `Tu cuerpo funciona como el de alguien ${ageDiff} años más joven`
-                  : ageDiff < -2
-                  ? `Tu cuerpo muestra ${Math.abs(ageDiff)} años de desgaste extra`
-                  : 'Tu cuerpo va exactamente acorde a tu edad'}
-              </p>
+
+              {/* Descriptive badge */}
+              <span className="text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                style={{
+                  background: ageDiff > 2 ? '#00e5a015' : ageDiff < -2 ? '#ff4d6d15' : '#f5a62315',
+                  color: ageDiff > 2 ? '#00e5a0' : ageDiff < -2 ? '#ff4d6d' : '#f5a623',
+                  border: `1px solid ${ageDiff > 2 ? '#00e5a030' : ageDiff < -2 ? '#ff4d6d30' : '#f5a62330'}`,
+                }}>
+                {ageDiff > 2 ? 'más joven' : ageDiff < -2 ? 'desgaste extra' : 'en equilibrio'}
+              </span>
             </div>
+
+            {/* Caption */}
+            <p className="text-[11px] text-muted-foreground text-center leading-relaxed px-1">
+              {ageDiff > 2
+                ? `Tu cuerpo funciona como el de alguien ${ageDiff} años más joven`
+                : ageDiff < -2
+                ? `Tu cuerpo muestra ${Math.abs(ageDiff)} años de desgaste extra`
+                : 'Tu cuerpo va exactamente acorde a tu edad cronológica'}
+            </p>
           </div>
         </div>
 
