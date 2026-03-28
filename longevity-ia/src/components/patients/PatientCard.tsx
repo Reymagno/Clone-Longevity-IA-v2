@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { User, Calendar, AlertTriangle, Activity, Upload, BarChart2, Trash2, X, TriangleAlert, ShieldOff, Archive } from 'lucide-react'
+import { User, Calendar, AlertTriangle, Activity, Upload, BarChart2, Trash2, X, TriangleAlert, ShieldOff, Archive, ClipboardList, CheckCircle2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { PatientWithLatestResult } from '@/types'
 import { formatDate, getScoreColor } from '@/lib/utils'
@@ -180,6 +180,26 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
             </Link>
           )}
         </div>
+
+        {/* Botón historia clínica */}
+        <Link
+          href={`/patients/${patient.id}/intake`}
+          className="mt-2 w-full flex items-center justify-center gap-2 border border-border text-muted-foreground text-sm py-2 rounded-lg hover:text-foreground hover:border-accent/50 hover:bg-muted/20 transition-all"
+        >
+          {patient.clinical_history ? (
+            <>
+              <CheckCircle2 size={13} className="text-accent" />
+              <span>Historia Clínica</span>
+              <span className="ml-auto text-xs text-accent font-medium">Completada</span>
+            </>
+          ) : (
+            <>
+              <ClipboardList size={13} />
+              <span>Completar Historia Clínica</span>
+              <span className="ml-auto text-xs text-warning font-medium">Pendiente</span>
+            </>
+          )}
+        </Link>
       </div>
 
       {/* ── Modal de confirmación ── */}

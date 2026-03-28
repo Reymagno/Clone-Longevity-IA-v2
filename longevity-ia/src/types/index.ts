@@ -187,6 +187,43 @@ export interface AIAnalysis {
 }
 
 // ============================================================
+// HISTORIA CLÍNICA (chatbot de intake)
+// ============================================================
+
+export interface ClinicalHistory {
+  anthropometric: {
+    waist_cm: number | null
+    blood_pressure: string | null
+  }
+  allergies: {
+    food: string | null
+    medication: string | null
+  }
+  diet: {
+    type: string
+    meals_per_day: string
+    alcohol: string
+    supplements: string | null
+  }
+  lifestyle: {
+    exercise: string
+    sleep_hours: string
+    smoker: string
+    stress_level: string
+  }
+  family_history: {
+    conditions: string[]
+    details: string | null
+  }
+  recent_illness: {
+    condition: string | null
+    treatment: string | null
+    current_medications: string | null
+  }
+  completed_at: string
+}
+
+// ============================================================
 // MODELOS DE BASE DE DATOS
 // ============================================================
 
@@ -201,6 +238,7 @@ export interface Patient {
   weight: number | null
   height: number | null
   notes: string | null
+  clinical_history: ClinicalHistory | null
   created_at: string
 }
 
