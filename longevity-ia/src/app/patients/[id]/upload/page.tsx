@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { FileUploader } from '@/components/upload/FileUploader'
 import { Button } from '@/components/ui/button'
 import { ProgressRing } from '@/components/ui/progress-ring'
+import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
 import { toast } from 'sonner'
 import {
   Dna, ArrowLeft, Calendar, Cpu,
-  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles
+  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles, ClipboardList
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
@@ -35,6 +36,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [step, setStep] = useState<AnalysisStep>('idle')
   const [progress, setProgress] = useState(0)
+  const [section, setSection] = useState<'upload' | 'history'>('upload')
   const analyzeIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -131,9 +133,40 @@ export default function UploadPage({ params }: { params: { id: string } }) {
               <Dna size={16} className="text-background" />
             </div>
             <span className="font-semibold text-foreground">
-              {patient ? `${patient.name} — Subir Estudio` : 'Longevity IA'}
+              {patient ? patient.name : 'Longevity IA'}
             </span>
           </div>
+
+          {/* Tabs del header — solo visibles si no está analizando */}
+          {!isAnalyzing && (
+            <div className="flex gap-1 ml-auto">
+              <button
+                onClick={() => setSection('upload')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
+                  section === 'upload'
+                    ? 'bg-accent text-background font-medium'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                }`}
+              >
+                <Upload size={13} />
+                Subir Estudio
+              </button>
+              <button
+                onClick={() => setSection('history')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all ${
+                  section === 'history'
+                    ? 'bg-accent text-background font-medium'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                }`}
+              >
+                <ClipboardList size={13} />
+                Historia Clínica
+                {patient && !patient.clinical_history && (
+                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-warning inline-block" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -237,7 +270,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-        ) : (
+        ) : section === 'upload' ? (
           /* Vista de subida de archivo */
           <div className="space-y-6 animate-fade-in">
             <div className="mb-8">
@@ -275,6 +308,26 @@ export default function UploadPage({ params }: { params: { id: string } }) {
               <Cpu size={18} />
               Analizar con IA
             </Button>
+          </div>
+        ) : (
+          /* Vista de historia clínica */
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Historia Clínica</h1>
+              <p className="text-muted-foreground">
+                Completa tu información de salud para personalizar el análisis con IA.
+              </p>
+            </div>
+            {patient && (
+              <PatientIntakeChat
+                patientId={params.id}
+                patientName={patient.name}
+                onComplete={() => {
+                  toast.success('Historia clínica guardada')
+                  setSection('upload')
+                }}
+              />
+            )}
           </div>
         )}
       </div>
