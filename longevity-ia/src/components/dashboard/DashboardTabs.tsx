@@ -58,8 +58,35 @@ export function DashboardTabs({ patient, result }: DashboardTabsProps) {
 
   if (!analysis || !parsedData) {
     return (
-      <div className="text-center py-20 text-muted-foreground">
-        Este resultado no tiene análisis disponible.
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-card">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+                <Dna size={15} className="text-background" />
+              </div>
+              <span className="hidden sm:block font-semibold text-foreground text-sm">Longevity IA</span>
+            </Link>
+            <span className="text-border hidden sm:block">|</span>
+            <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors" title="Mis pacientes">
+              <ArrowLeft size={17} />
+            </Link>
+            <div>
+              <p className="font-semibold text-foreground">{patient.name}</p>
+              <p className="text-xs text-muted-foreground font-mono">{patient.code}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-24 gap-6 text-center px-4">
+          <p className="text-muted-foreground">Este resultado no tiene análisis disponible.</p>
+          <Link
+            href={`/patients/${patient.id}/upload`}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
+          >
+            <Upload size={14} />
+            Realizar nuevo análisis
+          </Link>
+        </div>
       </div>
     )
   }
