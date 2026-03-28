@@ -220,6 +220,7 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
             patientName={patient.name}
             resultDate={result.result_date}
             parsedData={parsedData}
+            patient={patient}
           />
         )}
         {activeTab === 1 && (

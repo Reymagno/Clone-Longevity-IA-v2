@@ -1,10 +1,11 @@
 'use client'
 
-import type { AIAnalysis, ParsedData, BiomarkerValue } from '@/types'
+import type { AIAnalysis, ParsedData, BiomarkerValue, Patient } from '@/types'
 import {
   Heart, Layers, Droplets, FlaskConical, Activity, Shield, Zap, Sun,
   BarChart2, HeartPulse, TrendingUp, ClipboardList, ShieldCheck,
-  AlertTriangle, Sparkles, Clock,
+  AlertTriangle, Sparkles, Clock, FileText, Pill, Dumbbell,
+  Brain, AlertCircle, CheckCircle2, Info,
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -201,6 +202,26 @@ function BmRow({ label, bm }: { label: string; bm: BiomarkerValue | null | undef
   )
 }
 
+// ── Fila de contexto clínico ─────────────────────────────────────
+function CtxRow({ icon, color, label, value, alert }: {
+  icon: React.ReactNode; color: string; label: string; value: string; alert?: boolean
+}) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+      style={{
+        background: alert ? `${color}08` : 'transparent',
+        border: `1px solid ${alert ? color + '25' : 'hsl(var(--border) / 0.5)'}`,
+        borderLeft: alert ? `3px solid ${color}` : undefined,
+      }}>
+      <span className="mt-0.5 shrink-0" style={{ color }}>{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: alert ? color : 'hsl(var(--muted-foreground))' }}>{label}</p>
+        <p className="text-xs text-foreground/85 leading-relaxed">{value}</p>
+      </div>
+    </div>
+  )
+}
+
 // ── Props ────────────────────────────────────────────────────────
 interface SummaryTabProps {
   analysis: AIAnalysis
@@ -208,12 +229,53 @@ interface SummaryTabProps {
   patientName?: string
   resultDate?: string
   parsedData?: ParsedData | null
+  patient?: Patient
+}
+
+// ── Extrae puntos clave de la historia clínica para el reporte ───
+function extractClinicalContext(patient: Patient | undefined): {
+  medications: string | null
+  conditions: string | null
+  allergies: string | null
+  lifestyle: string | null
+  risk: string | null
+} {
+  if (!patient?.clinical_history) return { medications: null, conditions: null, allergies: null, lifestyle: null, risk: null }
+
+  const h = patient.clinical_history as unknown as Record<string, unknown>
+  const medHist = h['medical_history'] as Record<string, unknown> | undefined
+  const allergiesH = h['allergies'] as Record<string, unknown> | undefined
+  const pa = h['physical_activity'] as Record<string, unknown> | undefined
+  const sleepH = h['sleep'] as Record<string, unknown> | undefined
+  const mhH = h['mental_health'] as Record<string, unknown> | undefined
+  const fam = h['family_history'] as Record<string, unknown> | undefined
+  const legacy = h['lifestyle'] as Record<string, unknown> | undefined
+
+  const conds = medHist?.['chronic_conditions'] as string[] | undefined
+  const famConds = fam?.['conditions'] as string[] | undefined
+
+  const medications = medHist?.['current_medications'] as string | null ?? null
+  const conditions = conds?.length ? conds.join(', ') : null
+  const allergyMed = allergiesH?.['medication'] as string | null ?? null
+  const allergyFood = allergiesH?.['food'] as string | null ?? null
+  const allergiesStr = [allergyMed && `Medicamento: ${allergyMed}`, allergyFood && `Alimento: ${allergyFood}`].filter(Boolean).join(' · ') || null
+
+  const exercise = pa?.['type'] as string | null ?? legacy?.['exercise'] as string | null ?? null
+  const sleep = sleepH?.['hours'] as string | null ?? legacy?.['sleep_hours'] as string | null ?? null
+  const stress = String(mhH?.['stress_level'] ?? legacy?.['stress_level'] ?? '').split(' — ')[0] || null
+  const parts = [exercise && `Ejercicio: ${exercise}`, sleep && `Sueño: ${sleep}`, stress && `Estrés: ${stress}`].filter(Boolean)
+  const lifestyle = parts.length ? parts.join(' · ') : null
+
+  const risk = famConds?.length ? famConds.join(', ') : null
+
+  return { medications, conditions, allergies: allergiesStr, lifestyle, risk }
 }
 
 // ── Componente principal ─────────────────────────────────────────
-export function SummaryTab({ analysis, patientAge, parsedData }: SummaryTabProps) {
+export function SummaryTab({ analysis, patientAge, patientName, resultDate, parsedData, patient }: SummaryTabProps) {
   const ageDiff = patientAge - analysis.longevity_age
   const gaugeCol = scoreColor(analysis.overallScore)
+  const clinicalCtx = extractClinicalContext(patient)
 
   const topProtocol = [...(analysis.protocol ?? [])].sort((a, b) => {
     const o: Record<string, number> = { immediate: 0, high: 1, medium: 2, low: 3 }
@@ -306,23 +368,118 @@ export function SummaryTab({ analysis, patientAge, parsedData }: SummaryTabProps
           </div>
         </div>
 
-        {/* Franja inferior: Resumen en lenguaje claro */}
-        <div className="border-t border-border bg-muted/10 px-6 py-6">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: `${gaugeCol}20`, border: `1px solid ${gaugeCol}35` }}>
-              <BarChart2 size={13} style={{ color: gaugeCol }} />
+        {/* ── Reporte Médico Estructurado ──────────────────────── */}
+        <div className="border-t border-border">
+          {/* Cabecera del reporte */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-muted/5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: `${gaugeCol}20`, border: `1px solid ${gaugeCol}35` }}>
+                <FileText size={13} style={{ color: gaugeCol }} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Evaluación Clínica Integrada</p>
+                <p className="text-[10px] text-muted-foreground font-mono">
+                  {patientName && `${patientName} · `}{patientAge} años
+                  {resultDate && ` · ${new Date(resultDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                </p>
+              </div>
             </div>
-            <p className="text-sm font-semibold text-foreground">
-              ¿Cómo está tu salud en este momento?
-            </p>
-            <span className="ml-auto text-[10px] text-muted-foreground font-mono hidden sm:block">
-              resumen del análisis
+            <span className="hidden sm:flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full"
+              style={{ background: `${gaugeCol}15`, color: gaugeCol, border: `1px solid ${gaugeCol}30` }}>
+              <CheckCircle2 size={9} />
+              Análisis con IA
             </span>
           </div>
-          <p className="text-sm leading-7 text-foreground/85 max-w-4xl">
-            {analysis.clinicalSummary}
-          </p>
+
+          <div className="px-6 py-5 space-y-5">
+
+            {/* SECCIÓN 1: Valoración General */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Valoración General</span>
+                <div className="flex-1 h-px bg-border/60" />
+              </div>
+              <p className="text-sm leading-7 text-foreground/90">
+                {analysis.clinicalSummary}
+              </p>
+            </div>
+
+            {/* SECCIÓN 2: Alertas prioritarias */}
+            {(analysis.keyAlerts ?? []).filter(a => a.level === 'danger' || a.level === 'warning').length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Hallazgos Clínicos Relevantes</span>
+                  <div className="flex-1 h-px bg-border/60" />
+                </div>
+                <div className="space-y-2">
+                  {(analysis.keyAlerts ?? [])
+                    .filter(a => a.level === 'danger' || a.level === 'warning')
+                    .slice(0, 4)
+                    .map((alert, i) => {
+                      const isDanger = alert.level === 'danger'
+                      const col = isDanger ? '#ff4d6d' : '#f5a623'
+                      return (
+                        <div key={i} className="flex items-start gap-3 rounded-lg px-3.5 py-3"
+                          style={{ background: `${col}08`, border: `1px solid ${col}25`, borderLeft: `3px solid ${col}` }}>
+                          <AlertCircle size={13} className="mt-0.5 shrink-0" style={{ color: col }} />
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold text-foreground">{alert.title}</span>
+                            {alert.value && (
+                              <span className="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded"
+                                style={{ background: `${col}15`, color: col }}>
+                                {alert.value}
+                              </span>
+                            )}
+                            {alert.description && (
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{alert.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* SECCIÓN 3: Contexto Clínico del paciente */}
+            {(clinicalCtx.conditions || clinicalCtx.medications || clinicalCtx.allergies || clinicalCtx.lifestyle || clinicalCtx.risk) && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Contexto Clínico del Paciente</span>
+                  <div className="flex-1 h-px bg-border/60" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {clinicalCtx.conditions && (
+                    <CtxRow icon={<Info size={11} />} color="#f5a623" label="Condiciones crónicas" value={clinicalCtx.conditions} />
+                  )}
+                  {clinicalCtx.medications && (
+                    <CtxRow icon={<Pill size={11} />} color="#f97316" label="Medicamentos actuales" value={clinicalCtx.medications} alert />
+                  )}
+                  {clinicalCtx.allergies && (
+                    <CtxRow icon={<AlertCircle size={11} />} color="#ff4d6d" label="Alergias" value={clinicalCtx.allergies} alert />
+                  )}
+                  {clinicalCtx.lifestyle && (
+                    <CtxRow icon={<Dumbbell size={11} />} color="#3b82f6" label="Estilo de vida" value={clinicalCtx.lifestyle} />
+                  )}
+                  {clinicalCtx.risk && (
+                    <CtxRow icon={<Brain size={11} />} color="#a78bfa" label="Antecedentes familiares" value={clinicalCtx.risk} />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Si no hay historia clínica, mostrar aviso sutil */}
+            {!patient?.clinical_history && (
+              <div className="flex items-center gap-2.5 rounded-lg px-4 py-3 bg-amber-500/5 border border-amber-500/20">
+                <Info size={13} className="text-amber-400 shrink-0" />
+                <p className="text-[11px] text-muted-foreground">
+                  Sin historia clínica registrada. El análisis se basa exclusivamente en los biomarcadores del laboratorio.{' '}
+                  <span className="text-amber-400 font-medium">Completar la historia clínica personaliza el protocolo.</span>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
