@@ -303,17 +303,23 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
       const history = buildHistory(finalAnswers)
       const res = await fetch(`/api/patients/${patientId}`, {
         method: 'PATCH',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinical_history: history }),
       })
-      if (!res.ok) throw new Error('Error al guardar')
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || `Error ${res.status}`)
+      }
 
       setPhase('done')
       await botSay('¡Historial guardado exitosamente! Tu información está segura en tu perfil de Longevity IA.', 0)
       onComplete?.()
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
       setPhase('chat')
-      await botSay('Hubo un error al guardar. Por favor intenta nuevamente.', 0)
+      await botSay(`No se pudo guardar el historial: ${msg}. Por favor intenta nuevamente.`, 0)
     }
   }
 
