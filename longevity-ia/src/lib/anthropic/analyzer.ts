@@ -485,7 +485,7 @@ function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiA
   }
 }
 
-export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext?: PatientContextForPrompt): Promise<AnalyzeResult> {
+export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext?: PatientContextForPrompt, onProgress?: () => void): Promise<AnalyzeResult> {
   const userContent: Anthropic.MessageParam['content'] = []
 
   // Incluir historia clínica al inicio si existe
@@ -533,20 +533,22 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
     text: USER_PROMPT,
   })
 
-  const response = await client.messages.create({
+  let rawText = ''
+  const stream = client.messages.stream({
     model: MODEL,
-    max_tokens: 32000,
+    max_tokens: 12000,
     temperature: 0,
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: userContent,
-      },
-    ],
+    messages: [{ role: 'user', content: userContent }],
   })
 
-  const rawText = response.content[0]?.type === 'text' ? response.content[0].text : ''
+  stream.on('text', (chunk) => {
+    rawText += chunk
+    onProgress?.()
+  })
+
+  await stream.finalMessage()
+
   const validated = validateAndParseAiResponse(rawText || `Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
 
   if (!validated.parsedData) {
@@ -591,7 +593,8 @@ REGLAS DE FORMATO: Idénticas al análisis estándar. Scores: 85-100 óptimo, 65
 
 export async function reanalyzeWithClinicalHistory(
   parsedData: object,
-  patientContext: PatientContextForPrompt
+  patientContext: PatientContextForPrompt,
+  onProgress?: () => void
 ): Promise<object> {
   const historyText = formatClinicalHistory(patientContext)
 
@@ -601,15 +604,22 @@ export async function reanalyzeWithClinicalHistory(
     { type: 'text', text: REANALYZE_PROMPT },
   ]
 
-  const response = await client.messages.create({
+  let rawText = ''
+  const stream = client.messages.stream({
     model: MODEL,
-    max_tokens: 32000,
+    max_tokens: 12000,
     temperature: 0,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userContent }],
   })
 
-  const rawText = response.content[0]?.type === 'text' ? response.content[0].text : ''
+  stream.on('text', (chunk) => {
+    rawText += chunk
+    onProgress?.()
+  })
+
+  await stream.finalMessage()
+
   const validated = validateAndParseAiResponse(rawText || 'Claude no devolvió respuesta.')
 
   return validated.aiAnalysis

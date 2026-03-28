@@ -57,11 +57,32 @@ export default function IntakePage({ params }: { params: { id: string } }) {
         method: 'POST',
         credentials: 'same-origin',
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error((data as { error?: string })?.error || `Error ${res.status}`)
 
-      toast.success('¡Análisis actualizado con tu historia clínica!')
-      router.push(`/patients/${params.id}/dashboard?resultId=${latestResult.id}`)
+      if (!res.ok || !res.body) throw new Error(`Error ${res.status}`)
+
+      // Read SSE stream — keepalive bytes prevent Vercel 504
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          let event: { ok: boolean; step?: string; error?: string } | null = null
+          try { event = JSON.parse(line.slice(6)) } catch { continue }
+          if (!event) continue
+          if (!event.ok) throw new Error(event.error || 'Error al re-analizar')
+          if (event.step === 'done') {
+            toast.success('¡Análisis actualizado con tu historia clínica!')
+            router.push(`/patients/${params.id}/dashboard?resultId=${latestResult.id}`)
+          }
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al re-analizar')
       setReanalyzing(false)

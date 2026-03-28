@@ -85,29 +85,51 @@ export default function UploadPage({ params }: { params: { id: string } }) {
       formData.append('patientId', params.id)
       formData.append('resultDate', date)
 
-      goToProgress('reading')
-      await new Promise(r => setTimeout(r, 600))
-
-      goToProgress('analyzing')
-
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
       })
 
-      goToProgress('saving')
-      await new Promise(r => setTimeout(r, 500))
+      if (!response.ok || !response.body) {
+        throw new Error(`Error ${response.status}`)
+      }
 
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error((data as { error?: string })?.error || `Error ${response.status}`)
+      // Read the SSE stream — keepalive bytes keep Vercel from 504-ing
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let resultId: string | null = null
 
-      setProgress(100)
-      setStep('done')
-      toast.success('¡Análisis completado!')
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-      setTimeout(() => {
-        router.push(`/patients/${params.id}/dashboard?resultId=${data.resultId}`)
-      }, 1800)
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          let event: { ok: boolean; step?: string; error?: string; resultId?: string } | null = null
+          try { event = JSON.parse(line.slice(6)) } catch { continue }
+          if (!event) continue
+
+          if (!event.ok) throw new Error(event.error || 'Error desconocido')
+
+          if (event.step === 'uploading') goToProgress('uploading')
+          else if (event.step === 'analyzing') goToProgress('analyzing')
+          else if (event.step === 'saving') goToProgress('saving')
+          else if (event.step === 'done') {
+            resultId = event.resultId ?? null
+            setProgress(100)
+            setStep('done')
+            toast.success('¡Análisis completado!')
+            setTimeout(() => {
+              router.push(`/patients/${params.id}/dashboard?resultId=${resultId}`)
+            }, 1800)
+          }
+        }
+      }
 
     } catch (err) {
       setStep('error')
