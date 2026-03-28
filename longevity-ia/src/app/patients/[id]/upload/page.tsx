@@ -98,8 +98,8 @@ export default function UploadPage({ params }: { params: { id: string } }) {
       goToProgress('saving')
       await new Promise(r => setTimeout(r, 500))
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Error en el análisis')
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error((data as { error?: string })?.error || `Error ${response.status}`)
 
       setProgress(100)
       setStep('done')

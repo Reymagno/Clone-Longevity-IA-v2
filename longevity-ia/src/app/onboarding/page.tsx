@@ -48,8 +48,8 @@ export default function OnboardingPage() {
         }),
       })
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al crear perfil')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as { error?: string })?.error || `Error ${res.status}`)
 
       toast.success('Perfil creado correctamente')
       router.replace(`/patients/${data.id}/dashboard`)

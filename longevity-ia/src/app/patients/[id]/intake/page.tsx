@@ -53,9 +53,12 @@ export default function IntakePage({ params }: { params: { id: string } }) {
     if (!latestResult) return
     setReanalyzing(true)
     try {
-      const res = await fetch(`/api/results/${latestResult.id}/reanalyze`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error en el re-análisis')
+      const res = await fetch(`/api/results/${latestResult.id}/reanalyze`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as { error?: string })?.error || `Error ${res.status}`)
 
       toast.success('¡Análisis actualizado con tu historia clínica!')
       router.push(`/patients/${params.id}/dashboard?resultId=${latestResult.id}`)
