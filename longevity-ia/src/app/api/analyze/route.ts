@@ -15,6 +15,12 @@ export async function POST(request: NextRequest) {
   const patientId = formData.get('patientId') as string | null
   const resultDate = formData.get('resultDate') as string | null
 
+  // Cache buffers immediately — arrayBuffer() on a File can only be reliably
+  // read once in some serverless environments (Node.js undici FormData)
+  const fileBuffers: Buffer[] = await Promise.all(
+    files.map(async (f) => Buffer.from(await f.arrayBuffer()))
+  )
+
   const stream = new ReadableStream({
     async start(controller) {
       const enqueue = (chunk: string) => {
@@ -23,10 +29,10 @@ export async function POST(request: NextRequest) {
       const send = (data: Record<string, unknown>) =>
         enqueue(`data: ${JSON.stringify(data)}\n\n`)
 
-      // Immediate first byte — starts the clock reset on Vercel's edge proxy
+      // Immediate first byte — starts the clock on Vercel's edge proxy
       enqueue(': keepalive\n\n')
 
-      // Every 5s so no 60s idle window can accumulate
+      // Fallback keepalive every 5s for non-Claude phases (auth, upload, DB)
       const keepalive = setInterval(() => enqueue(': keepalive\n\n'), 5_000)
 
       try {
@@ -56,14 +62,15 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 1. Upload files
+        // 1. Upload files (use cached buffers)
         send({ ok: true, step: 'uploading' })
         const fileUrls: string[] = []
         const timestamp = Date.now()
 
-        for (const file of files) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i]
+          const buffer = fileBuffers[i]
           const fileName = `${patientId}/${timestamp}-${file.name.replace(/\s/g, '_')}`
-          const buffer = Buffer.from(await file.arrayBuffer())
 
           const { error: uploadError } = await supabase.storage
             .from('lab-files')
@@ -90,19 +97,14 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        // 3. Prepare files for Claude
-        const fileParams = await Promise.all(
-          files.map(async (file) => {
-            const base64 = Buffer.from(await file.arrayBuffer()).toString('base64')
-            return {
-              fileBase64: base64,
-              fileType: file.type.startsWith('image/') ? 'image' as const : 'pdf' as const,
-              mimeType: file.type,
-            }
-          })
-        )
+        // 3. Prepare files for Claude (reuse cached buffers)
+        const fileParams = files.map((file, i) => ({
+          fileBase64: fileBuffers[i].toString('base64'),
+          fileType: file.type.startsWith('image/') ? 'image' as const : 'pdf' as const,
+          mimeType: file.type,
+        }))
 
-        // 4. Call Claude — onProgress enqueues a keepalive on every streamed chunk
+        // 4. Call Claude — onProgress fires a keepalive on every streamed token
         send({ ok: true, step: 'analyzing' })
 
         const analysisResult = await analyzeLabFiles(fileParams, {

@@ -541,21 +541,19 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
   })
 
   let rawText = ''
-  const anthropicStream = await client.messages.create({
-    model: MODEL,
-    max_tokens: 12000,
-    temperature: 0,
-    stream: true,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }],
-  })
-
-  for await (const event of anthropicStream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      rawText += event.delta.text
+  await client.messages
+    .stream({
+      model: MODEL,
+      max_tokens: 20000,
+      temperature: 0,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+    })
+    .on('text', (text) => {
+      rawText += text
       onProgress?.()
-    }
-  }
+    })
+    .finalMessage()
 
   if (!rawText) {
     throw new Error(`Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
@@ -617,21 +615,19 @@ export async function reanalyzeWithClinicalHistory(
   ]
 
   let rawText = ''
-  const anthropicStream = await client.messages.create({
-    model: MODEL,
-    max_tokens: 12000,
-    temperature: 0,
-    stream: true,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }],
-  })
-
-  for await (const event of anthropicStream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      rawText += event.delta.text
+  await client.messages
+    .stream({
+      model: MODEL,
+      max_tokens: 20000,
+      temperature: 0,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+    })
+    .on('text', (text) => {
+      rawText += text
       onProgress?.()
-    }
-  }
+    })
+    .finalMessage()
 
   if (!rawText) throw new Error('Claude no devolvió respuesta.')
 
