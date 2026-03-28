@@ -457,10 +457,12 @@ function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiA
   }
 
   let parsed: Record<string, unknown>
+  const jsonSlice = rawText.slice(firstBrace, lastBrace + 1)
   try {
-    parsed = JSON.parse(rawText.slice(firstBrace, lastBrace + 1))
+    parsed = JSON.parse(jsonSlice)
   } catch {
-    throw new Error(`JSON inválido recibido del modelo. Respuesta: ${rawText.substring(0, 300)}...`)
+    const tail = rawText.slice(-200)
+    throw new Error(`JSON inválido o truncado. Longitud respuesta: ${rawText.length} chars. Final: ...${tail}`)
   }
 
   // Acepta tanto { parsedData, aiAnalysis } como { aiAnalysis } directo
@@ -514,8 +516,13 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
       })
     } else if (fileType === 'pdf') {
       const buffer = Buffer.from(fileBase64, 'base64')
-      const pdfData = await pdfParse(buffer)
-      const pdfText = pdfData.text
+      let pdfText: string
+      try {
+        const pdfData = await pdfParse(buffer)
+        pdfText = pdfData.text
+      } catch (e) {
+        throw new Error(`No se pudo leer el archivo PDF ${i + 1}. Verifica que no esté protegido con contraseña o intenta con una imagen.`)
+      }
 
       if (!pdfText || pdfText.trim().length < 10) {
         throw new Error(`No se pudo extraer texto del archivo ${i + 1}. Intenta con una imagen del estudio.`)
@@ -534,22 +541,27 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
   })
 
   let rawText = ''
-  const stream = client.messages.stream({
+  const anthropicStream = await client.messages.create({
     model: MODEL,
     max_tokens: 12000,
     temperature: 0,
+    stream: true,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userContent }],
   })
 
-  stream.on('text', (chunk) => {
-    rawText += chunk
-    onProgress?.()
-  })
+  for await (const event of anthropicStream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      rawText += event.delta.text
+      onProgress?.()
+    }
+  }
 
-  await stream.finalMessage()
+  if (!rawText) {
+    throw new Error(`Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
+  }
 
-  const validated = validateAndParseAiResponse(rawText || `Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
+  const validated = validateAndParseAiResponse(rawText)
 
   if (!validated.parsedData) {
     throw new Error('Estructura JSON incompleta: falta parsedData')
@@ -605,22 +617,25 @@ export async function reanalyzeWithClinicalHistory(
   ]
 
   let rawText = ''
-  const stream = client.messages.stream({
+  const anthropicStream = await client.messages.create({
     model: MODEL,
     max_tokens: 12000,
     temperature: 0,
+    stream: true,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userContent }],
   })
 
-  stream.on('text', (chunk) => {
-    rawText += chunk
-    onProgress?.()
-  })
+  for await (const event of anthropicStream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      rawText += event.delta.text
+      onProgress?.()
+    }
+  }
 
-  await stream.finalMessage()
+  if (!rawText) throw new Error('Claude no devolvió respuesta.')
 
-  const validated = validateAndParseAiResponse(rawText || 'Claude no devolvió respuesta.')
+  const validated = validateAndParseAiResponse(rawText)
 
   return validated.aiAnalysis
 }

@@ -133,14 +133,8 @@ export async function POST(request: NextRequest) {
 
       } catch (error) {
         console.error('Error en análisis:', error)
-        const isUserFacing = error instanceof Error &&
-          (error.message.includes('No se pudo extraer texto') ||
-           error.message.includes('Archivos') ||
-           error.message.includes('Tipo de archivo'))
-        send({
-          ok: false,
-          error: isUserFacing ? (error as Error).message : 'Error al procesar el análisis. Intenta de nuevo.',
-        })
+        const msg = error instanceof Error ? error.message : String(error)
+        send({ ok: false, error: msg || 'Error al procesar el análisis. Intenta de nuevo.' })
       } finally {
         clearInterval(keepalive)
         controller.close()
