@@ -201,7 +201,9 @@ Genera ÚNICAMENTE este JSON, sin ningún texto antes ni después, sin markdown:
       "opportunities": [],
       "threats": []
     },
-    "risks": [],
+    "risks": [
+      { "disease": "Nombre de enfermedad", "probability": 0, "horizon": "X años", "drivers": ["biomarcador: valor"], "color": "#hexcolor" }
+    ],
     "protocol": [
       { "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }
     ],
@@ -222,8 +224,9 @@ REGLAS DE FORMATO ESTRICTAS:
 - keyAlerts: máximo 4 strings con alertas críticas
 - FODA: exactamente 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas
   Formato FODA: { "label": "Título corto (máx 5 palabras)", "detail": "1 oración con el mecanismo clave", "expectedImpact": "dato cuantificado breve (solo fortalezas/oportunidades)", "probability": "Alta/Media/Baja (solo amenazas/debilidades)" }
-- Risks exactamente 4 enfermedades derivadas de los valores de ESTE paciente:
-  { "disease": "nombre", "probability": número 0-100, "horizon": "X años", "drivers": ["biomarcador: valor"], "color": "#hexcolor" }
+- OBLIGATORIO: "risks" debe tener exactamente 4 enfermedades derivadas de los biomarcadores de ESTE paciente. NUNCA dejar vacío.
+  Formato: { "disease": "nombre enfermedad", "probability": número 0-100, "horizon": "X años", "drivers": ["biomarcador: valor actual"], "color": "#hexcolor" }
+  Colores sugeridos: cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8
 - Protocol exactamente 5 intervenciones con los campos: number, category, molecule (NUNCA vacío), dose, mechanism (1 oración), evidence (autor, año, efecto), clinicalTrial, targetBiomarkers, expectedResult (1 oración), action (1 oración), urgency
 - projectionData: exactamente 10 puntos (años 1-10) con "withoutIntervention", "withIntervention" (scores 0-100) y "yearRisk": { "biomarkers": [máximo 2 strings], "conditions": [máximo 2 strings], "urgencyNote": "1 frase breve" }
 - projectionFactors: exactamente 3 factores: { "factor": "nombre corto", "currentValue": "valor con unidad", "optimalValue": "valor óptimo", "medicalJustification": "1 oración: autor, año, efecto", "withoutProtocol": "1 oración", "withProtocol": "1 oración" }
@@ -565,8 +568,11 @@ function validateSwot(raw: unknown): object {
 function validateRisk(raw: unknown): object | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
+  const disease = ensureString(r.disease || r.name)
+  // Skip placeholder/template entries or empty disease names
+  if (!disease || disease === 'Nombre de enfermedad' || disease === 'Nombre') return null
   return {
-    disease: ensureString(r.disease || r.name),
+    disease,
     probability: isNumber(r.probability) ? Math.max(0, Math.min(100, r.probability)) : 0,
     horizon: ensureString(r.horizon),
     drivers: ensureArray(r.drivers).map(d => ensureString(d)).filter(Boolean),
@@ -789,14 +795,14 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
     "clinicalSummary": "",
     "keyAlerts": [],
     "swot": { "strengths": [], "weaknesses": [], "opportunities": [], "threats": [] },
-    "risks": [],
+    "risks": [{ "disease": "Nombre", "probability": 0, "horizon": "X años", "drivers": ["biomarcador: valor"], "color": "#hex" }],
     "protocol": [{ "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }],
     "projectionData": [{ "year": 1, "withoutIntervention": 0, "withIntervention": 0, "yearRisk": { "biomarkers": [], "conditions": [], "urgencyNote": "" } }],
     "projectionFactors": []
   }
 }
 
-REGLAS DE FORMATO: Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA exactamente 4+3+4+3. Protocol exactamente 5 intervenciones (campos concisos: mechanism/expectedResult/action = 1 oración). projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores (withoutProtocol/withProtocol = 1 oración). Todo en español mexicano, lenguaje conciso.`
+REGLAS DE FORMATO: Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol exactamente 5 intervenciones (campos concisos: mechanism/expectedResult/action = 1 oración). projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores (withoutProtocol/withProtocol = 1 oración). Todo en español mexicano, lenguaje conciso.`
 
 export async function reanalyzeWithClinicalHistory(
   parsedData: object,

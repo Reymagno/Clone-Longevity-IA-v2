@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { AIAnalysis, Patient } from '@/types'
-import { Dna, X, Send, Sparkles, ChevronDown, RotateCcw } from 'lucide-react'
+import { Dna, X, Send, Sparkles, ChevronDown, RotateCcw, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 // ─────────────────────────────────────────────────────────────────
 // TIPOS
@@ -28,14 +29,14 @@ const WELCOME: Message = {
   id: 'welcome',
   role: 'assistant',
   content:
-    '¡Hola! Soy **Longevity IA**, tu asistente de salud personalizado.\n\nTengo acceso completo a tu análisis de laboratorio y puedo responderte cualquier pregunta sobre tus biomarcadores, recomendaciones, riesgos o proyección de salud.\n\n¿En qué te puedo ayudar hoy?',
+    '¡Hola! Soy **Longevity IA**, tu asistente de salud personalizado.\n\nTengo acceso completo a tu análisis de laboratorio y puedo responderte cualquier pregunta sobre tus biomarcadores, recomendaciones, riesgos o proyección de salud.\n\nTambién puedes **compartirme información de tu salud** (medicamentos, alergias, hábitos, síntomas) y la guardaré automáticamente en tu historia clínica.\n\n¿En qué te puedo ayudar hoy?',
 }
 
 const SUGGESTIONS = [
   '¿Qué significa mi score general?',
   '¿Cuáles son mis principales riesgos?',
   'Explícame mi protocolo de suplementos',
-  '¿Cómo puedo mejorar mi edad biológica?',
+  'Tomo metformina y vitamina D diario',
 ]
 
 // ─────────────────────────────────────────────────────────────────
@@ -73,6 +74,35 @@ function saveChatHistory(key: string | null, messages: Message[]) {
   } catch {
     // localStorage full or unavailable — silently fail
   }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// EXTRACCIÓN DE DATOS CLÍNICOS DEL CHAT
+// ─────────────────────────────────────────────────────────────────
+
+const CLINICAL_MARKER_RE = /\[CLINICAL_UPDATE\]\s*([\s\S]*?)\s*\[\/CLINICAL_UPDATE\]/
+
+function extractClinicalData(text: string): { cleanText: string; data: Record<string, unknown> | null } {
+  const match = text.match(CLINICAL_MARKER_RE)
+  if (!match) return { cleanText: text, data: null }
+
+  const cleanText = text.replace(CLINICAL_MARKER_RE, '').trimEnd()
+  try {
+    const data = JSON.parse(match[1])
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      return { cleanText, data }
+    }
+  } catch { /* ignore parse errors */ }
+  return { cleanText, data: null }
+}
+
+async function saveClinicalUpdate(patientId: string, data: Record<string, unknown>) {
+  const res = await fetch(`/api/patients/${patientId}/clinical-update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data }),
+  })
+  return res.ok
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -242,11 +272,30 @@ export function LongevityChat({ patient, analysis, resultId }: Props) {
           const { done, value } = await reader.read()
           if (done) break
           accumulated += decoder.decode(value, { stream: true })
-          // Snapshot para el closure
-          const snap = accumulated
+          // Strip marker from display during streaming so user never sees it
+          const { cleanText } = extractClinicalData(accumulated)
           setMessages(prev =>
-            prev.map(m => m.id === assistantId ? { ...m, content: snap } : m),
+            prev.map(m => m.id === assistantId ? { ...m, content: cleanText } : m),
           )
+        }
+
+        // After stream completes, extract and save clinical data if present
+        const { cleanText, data: clinicalData } = extractClinicalData(accumulated)
+        if (cleanText !== accumulated) {
+          setMessages(prev =>
+            prev.map(m => m.id === assistantId ? { ...m, content: cleanText } : m),
+          )
+        }
+        if (clinicalData && patient.id) {
+          saveClinicalUpdate(patient.id, clinicalData).then(ok => {
+            if (ok) {
+              toast.success('Información clínica actualizada', {
+                description: 'Los datos que compartiste fueron registrados en tu historia clínica.',
+                icon: <CheckCircle2 size={16} />,
+                duration: 4000,
+              })
+            }
+          })
         }
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
@@ -382,7 +431,7 @@ export function LongevityChat({ patient, analysis, resultId }: Props) {
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Pregúntame sobre tu análisis…"
+              placeholder="Pregunta o comparte info de salud…"
               disabled={isStreaming}
               rows={1}
               className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 resize-none outline-none leading-5 disabled:opacity-50 py-0.5"

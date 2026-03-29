@@ -17,7 +17,7 @@ interface ChatMessage {
 
 interface ChatRequest {
   messages: ChatMessage[]
-  patient: Pick<Patient, 'name' | 'age' | 'gender'>
+  patient: Pick<Patient, 'name' | 'age' | 'gender'> & { id?: string; clinical_history?: unknown }
   analysis: AIAnalysis
 }
 
@@ -40,6 +40,33 @@ const GENDER_LABEL: Record<string, string> = {
   male:   'Masculino',
   female: 'Femenino',
   other:  'Otro',
+}
+
+function formatExistingClinicalHistory(ch: unknown): string {
+  if (!ch || typeof ch !== 'object') return '  (sin historia clínica registrada)'
+  const h = ch as Record<string, unknown>
+  const parts: string[] = []
+
+  const section = (key: string, label: string) => {
+    const s = h[key]
+    if (!s || typeof s !== 'object') return
+    const entries = Object.entries(s as Record<string, unknown>)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0))
+      .map(([k, v]) => `    ${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+    if (entries.length > 0) parts.push(`  ${label}:\n${entries.join('\n')}`)
+  }
+
+  section('anthropometric', 'Antropométricos')
+  section('allergies', 'Alergias')
+  section('diet', 'Alimentación')
+  section('physical_activity', 'Actividad Física')
+  section('sleep', 'Sueño')
+  section('mental_health', 'Salud Mental')
+  section('cardiovascular', 'Cardiovascular')
+  section('medical_history', 'Historial Médico')
+  section('family_history', 'Historial Familiar')
+
+  return parts.length > 0 ? parts.join('\n') : '  (sin historia clínica registrada)'
 }
 
 function buildSystemPrompt(
@@ -109,6 +136,9 @@ ${strengths}
 ━━━ ÁREAS DE MEJORA ━━━
 ${weaknesses}
 
+━━━ HISTORIA CLÍNICA REGISTRADA ━━━
+${formatExistingClinicalHistory(patient.clinical_history)}
+
 ━━━ INSTRUCCIONES DE COMPORTAMIENTO ━━━
 • Responde siempre en español mexicano, con tono cálido, empático y motivador.
 • Usa lenguaje claro y accesible; evita jerga médica innecesaria, pero puedes ser técnico si el paciente lo pide.
@@ -117,7 +147,35 @@ ${weaknesses}
 • Usa **negritas** para resaltar valores o términos importantes.
 • Usa guiones para listas cuando ayude a organizar la información.
 • Si la pregunta requiere un diagnóstico clínico o intervención urgente, recomienda consultar a su médico.
-• Si te preguntan sobre algo completamente ajeno a la salud de ${patient.name}, redirige amablemente.`
+• Si te preguntan sobre algo completamente ajeno a la salud de ${patient.name}, redirige amablemente.
+
+━━━ RECOLECCIÓN DE INFORMACIÓN CLÍNICA ━━━
+IMPORTANTE: Cuando el paciente comparta información sobre su salud en la conversación (medicamentos, alergias, síntomas, hábitos, condiciones, ejercicio, sueño, historial familiar, etc.), debes:
+1. Responder naturalmente reconociendo y comentando la información compartida.
+2. Al FINAL de tu respuesta, agregar un bloque de extracción con los datos detectados en este formato EXACTO:
+
+[CLINICAL_UPDATE]
+{"seccion": {"campo": "valor"}}
+[/CLINICAL_UPDATE]
+
+Secciones válidas y sus campos:
+- anthropometric: waist_cm (número), blood_pressure (texto), energy_level (texto)
+- allergies: food (texto), medication (texto), environmental (texto)
+- diet: type (texto), meals_per_day (texto), water_intake (texto), processed_food (texto), alcohol (texto), supplements (texto)
+- physical_activity: type (texto), frequency (texto), sedentary_hours (texto)
+- sleep: hours (texto), quality (texto), snoring (texto)
+- mental_health: stress_level (texto), mood (texto), anxiety (texto), cognitive (texto)
+- cardiovascular: chest_pain (texto), shortness_of_breath (texto), palpitations (texto), thyroid_symptoms (texto), hormonal_symptoms (texto)
+- medical_history: chronic_conditions (array de strings), surgeries (texto), smoker (texto), current_medications (texto), recent_condition (texto), recent_treatment (texto)
+- family_history: conditions (array de strings), longevity (texto), details (texto)
+
+REGLAS:
+- Solo incluye campos que el paciente mencionó EXPLÍCITAMENTE en su mensaje. No inventes datos.
+- Si el mensaje es solo una pregunta sin compartir datos nuevos de salud, NO incluyas el bloque.
+- El bloque va al final, después de tu respuesta completa. El paciente NO verá este bloque.
+- Puedes incluir múltiples secciones en un solo bloque.
+- Para arrays (chronic_conditions, conditions), incluye los valores como array JSON.
+- Si el paciente menciona que YA NO tiene una condición o cambió un hábito, actualiza con el valor nuevo.`
 }
 
 // ─────────────────────────────────────────────────────────────────
