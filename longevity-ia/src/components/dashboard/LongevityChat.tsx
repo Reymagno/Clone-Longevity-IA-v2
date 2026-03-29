@@ -361,7 +361,7 @@ export function LongevityChat({ patient, analysis, resultId }: Props) {
         {/* ── Cabecera ── */}
         <div
           className="flex items-center gap-3 px-4 py-3 border-b border-border/60 shrink-0"
-          style={{ background: 'linear-gradient(135deg, #122F23 0%, #0F2A1E 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #153626 0%, #112F22 100%)' }}
         >
           {/* Icono + branding */}
           <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-accent/15 border border-accent/25 shrink-0">

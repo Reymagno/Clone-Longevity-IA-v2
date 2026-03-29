@@ -661,7 +661,7 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
                       <Icon size={18} className={organ.iconClassName} />
                     </div>
                     <div className="absolute -bottom-1 -right-1 text-[9px] font-bold font-mono px-1 py-0.5 rounded-full leading-none"
-                      style={{ background: col, color: '#0F2A1E' }}>
+                      style={{ background: col, color: '#112F22' }}>
                       {score !== null ? score : '–'}
                     </div>
                   </div>
@@ -796,12 +796,12 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
               <>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={analysis.projectionData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1E4A38" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#215440" />
                     <XAxis dataKey="year" tick={{ fill: '#6B6660', fontSize: 10, fontFamily: 'ui-monospace' }}
                       tickFormatter={(v) => `Año ${v}`} />
                     <YAxis domain={[0, 100]} tick={{ fill: '#6B6660', fontSize: 10 }} width={28} />
                     <Tooltip
-                      contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8, fontSize: 11 }}
+                      contentStyle={{ background: '#112F22', border: '1px solid #215440', borderRadius: 8, fontSize: 11 }}
                       labelFormatter={(v) => `Año ${v}`}
                       formatter={(val: number, name: string) => [
                         val.toFixed(1),

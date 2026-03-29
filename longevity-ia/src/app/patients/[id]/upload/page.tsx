@@ -246,8 +246,8 @@ export default function UploadPage({ params }: { params: { id: string } }) {
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-500"
                       style={{
-                        background: isActive || isDone ? `${s.color}20` : '#1E4A38',
-                        border: `1px solid ${isActive || isDone ? s.color + '50' : '#1E4A38'}`,
+                        background: isActive || isDone ? `${s.color}20` : '#215440',
+                        border: `1px solid ${isActive || isDone ? s.color + '50' : '#215440'}`,
                       }}
                     >
                       {isDone ? (

@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#091A12',
-        card: '#0F2A1E',
-        'card-elevated': '#163528',
+        background: '#0B2118',
+        card: '#112F22',
+        'card-elevated': '#183C2C',
         accent: '#2EAE7B',
         'accent-hover': '#38C78E',
         'accent-muted': '#1E7A56',
@@ -19,8 +19,8 @@ const config: Config = {
         warning: '#D4A03A',
         danger: '#D4536A',
         info: '#5BA4C9',
-        border: '#1E4A38',
-        muted: '#1E4A38',
+        border: '#215440',
+        muted: '#215440',
         'muted-foreground': '#6B6660',
         foreground: '#E2DFD6',
         'card-foreground': '#F5E6B8',
@@ -36,9 +36,9 @@ const config: Config = {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'card-gradient': 'linear-gradient(135deg, #0F2A1E 0%, #122F23 100%)',
+        'card-gradient': 'linear-gradient(135deg, #112F22 0%, #122F23 100%)',
         'accent-gradient': 'linear-gradient(135deg, #2EAE7B 0%, #1E8A62 100%)',
-        'glass': 'linear-gradient(135deg, rgba(15, 42, 30, 0.75) 0%, rgba(22, 53, 40, 0.5) 100%)',
+        'glass': 'linear-gradient(135deg, rgba(17, 47, 34, 0.75) 0%, rgba(24, 60, 44, 0.5) 100%)',
       },
       boxShadow: {
         'card': '0 4px 24px rgba(0,0,0,0.4)',

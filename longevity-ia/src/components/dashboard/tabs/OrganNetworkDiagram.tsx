@@ -232,7 +232,7 @@ function calcStrength(scoreA: number | null, scoreB: number | null, baseWeight: 
 function NodeLabel({ name, cx, cy, r, dimmed }: {
   name: string; cx: number; cy: number; r: number; dimmed: boolean
 }) {
-  const fill = dimmed ? '#1E4A38' : '#6B6660'
+  const fill = dimmed ? '#215440' : '#6B6660'
   const words = name.split(' ')
   const line1 = words[0]
   const line2 = words.slice(1).join(' ')
@@ -429,7 +429,7 @@ export function OrganNetworkDiagram({ organScores }: Props) {
         )}
 
         {/* ── SVG Network ── */}
-        <div className="relative rounded-xl border border-border bg-[#091A12] overflow-hidden">
+        <div className="relative rounded-xl border border-border bg-[#0B2118] overflow-hidden">
 
           {/* Controles de zoom */}
           <div className="absolute top-3 right-3 flex flex-col gap-1 z-10">
@@ -530,10 +530,10 @@ export function OrganNetworkDiagram({ organScores }: Props) {
             </defs>
 
             {/* Fondo — extendido para cubrir zoom-out */}
-            <rect x={-200} y={-200} width={W + 400} height={H + 400} fill="#091A12" />
+            <rect x={-200} y={-200} width={W + 400} height={H + 400} fill="#0B2118" />
             {Array.from({ length: Math.ceil(W / 32) }).map((_, xi) =>
               Array.from({ length: Math.ceil(H / 32) }).map((_, yi) => (
-                <circle key={`d-${xi}-${yi}`} cx={xi * 32 + 4} cy={yi * 32 + 4} r={0.6} fill="#1E4A38" />
+                <circle key={`d-${xi}-${yi}`} cx={xi * 32 + 4} cy={yi * 32 + 4} r={0.6} fill="#215440" />
               ))
             )}
 

@@ -30,7 +30,7 @@ export function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#1E4A38"
+          stroke="#215440"
           strokeWidth={strokeWidth}
         />
         {/* Arco de progreso */}

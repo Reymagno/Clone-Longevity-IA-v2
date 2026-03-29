@@ -86,7 +86,7 @@ export function LipidsTab({ lipids }: LipidsTabProps) {
                 />
                 <YAxis tick={{ fill: '#6B6660', fontSize: 11, fontFamily: 'DM Mono' }} />
                 <Tooltip
-                  contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8 }}
+                  contentStyle={{ background: '#112F22', border: '1px solid #215440', borderRadius: 8 }}
                   formatter={(value: number, _: string, props) => [
                     <span key="v" className="font-mono">{value} {props.payload.unit}</span>,
                     props.payload.name,
