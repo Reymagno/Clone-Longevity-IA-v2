@@ -46,7 +46,6 @@ export async function POST(
           .single()
 
         if (patientError || !patient) { send({ ok: false, error: 'No autorizado' }); return }
-        if (!patient.clinical_history) { send({ ok: false, error: 'El paciente no tiene historia clínica registrada' }); return }
 
         send({ ok: true, step: 'analyzing' })
 

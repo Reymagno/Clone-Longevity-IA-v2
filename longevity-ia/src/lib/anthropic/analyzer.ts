@@ -985,10 +985,19 @@ export async function reanalyzeWithClinicalHistory(
   patientContext: PatientContextForPrompt,
   onProgress?: () => void
 ): Promise<object> {
-  const historyText = formatClinicalHistory(patientContext)
+  let contextText: string
+  if (patientContext.clinical_history) {
+    contextText = formatClinicalHistory(patientContext)
+  } else {
+    const genderLabel = patientContext.gender === 'male' ? 'Masculino' : patientContext.gender === 'female' ? 'Femenino' : 'Otro'
+    const bmi = patientContext.weight && patientContext.height
+      ? (patientContext.weight / Math.pow(patientContext.height / 100, 2)).toFixed(1)
+      : null
+    contextText = `=== DATOS DEL PACIENTE ===\nNombre: ${patientContext.name} | Edad: ${patientContext.age} años | Género: ${genderLabel}${patientContext.weight ? ` | Peso: ${patientContext.weight} kg` : ''}${patientContext.height ? ` | Talla: ${patientContext.height} cm` : ''}${bmi ? ` | IMC: ${bmi}` : ''}\nNo hay historia clínica registrada. Personaliza el protocolo según edad (${patientContext.age}) y género (${genderLabel}).\n=== FIN DATOS ===`
+  }
 
   const userContent: Anthropic.MessageParam['content'] = [
-    { type: 'text', text: historyText },
+    { type: 'text', text: contextText },
     { type: 'text', text: `BIOMARCADORES DEL PACIENTE (extraídos del estudio de laboratorio):\n${JSON.stringify(parsedData, null, 2)}` },
     { type: 'text', text: REANALYZE_PROMPT },
   ]

@@ -66,10 +66,6 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
 
   const handleReanalyze = useCallback(async () => {
     if (isReanalyzing) return
-    if (!patient.clinical_history) {
-      toast.error('Primero completa la Historia Clínica para re-analizar')
-      return
-    }
     setIsReanalyzing(true)
     try {
       const res = await fetch(`/api/results/${result.id}/reanalyze`, { method: 'POST' })
@@ -105,7 +101,7 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
     } finally {
       setIsReanalyzing(false)
     }
-  }, [isReanalyzing, patient.clinical_history, result.id, router])
+  }, [isReanalyzing, result.id, router])
 
   function handleTabChange(tabId: number) {
     setActiveTab(tabId)
@@ -171,12 +167,12 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
             )}
 
             {/* Botón re-análisis */}
-            {analysis && patient.clinical_history && (
+            {analysis && (
               <button
                 onClick={handleReanalyze}
                 disabled={isReanalyzing}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-accent/30 rounded-lg text-accent hover:bg-accent/10 transition-all disabled:opacity-50"
-                title="Re-analizar con historia clínica actualizada"
+                title="Re-analizar estudio con IA"
               >
                 <RefreshCw size={13} className={isReanalyzing ? 'animate-spin' : ''} />
                 <span className="hidden sm:inline">{isReanalyzing ? 'Re-analizando...' : 'Re-analizar'}</span>
