@@ -949,7 +949,7 @@ function OrganButton({
         <Icon size={20} className={organ.iconColor} />
         <div
           className="absolute -bottom-1.5 -right-1 rounded-full px-1 py-0.5 text-[9px] font-bold font-mono leading-none"
-          style={{ background: color, color: '#112F22' }}
+          style={{ background: color, color: '#0A1729' }}
         >
           {score !== null ? score : '–'}
         </div>

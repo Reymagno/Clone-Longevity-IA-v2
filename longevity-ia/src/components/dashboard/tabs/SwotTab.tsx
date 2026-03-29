@@ -376,7 +376,7 @@ export function SwotTab({ analysis }: SwotTabProps) {
                 tick={{ fill: '#E2DFD6', fontSize: 11, fontFamily: 'Space Grotesk' }}
               />
               <Tooltip
-                contentStyle={{ background: '#112F22', border: '1px solid #215440', borderRadius: 10, padding: '8px 12px' }}
+                contentStyle={{ background: '#0A1729', border: '1px solid #1A2E4C', borderRadius: 10, padding: '8px 12px' }}
                 formatter={(value: number, _name: string, props) => [
                   <span key="v" className="font-mono">{value}% — {props.payload.horizon}</span>,
                   props.payload.fullName,

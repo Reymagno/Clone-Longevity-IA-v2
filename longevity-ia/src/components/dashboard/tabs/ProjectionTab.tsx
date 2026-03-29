@@ -73,7 +73,7 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
             <div onMouseLeave={() => setHoveredYear(null)}>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={projectionData} margin={{ top: 10, right: 20, bottom: 5, left: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#215440" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1A2E4C" />
                   <XAxis
                     dataKey="year"
                     tick={{ fill: '#6B6660', fontSize: 11, fontFamily: 'DM Mono' }}
@@ -92,7 +92,7 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
                     }}
                   />
                   <Tooltip
-                    contentStyle={{ background: '#112F22', border: '1px solid #215440', borderRadius: 8 }}
+                    contentStyle={{ background: '#0A1729', border: '1px solid #1A2E4C', borderRadius: 8 }}
                     labelFormatter={(v) => `Año ${v}`}
                     formatter={(value: number, name: string) => [
                       <span key={name} className="font-mono">{value.toFixed(1)}</span>,
