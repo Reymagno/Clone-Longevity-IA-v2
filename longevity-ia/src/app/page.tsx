@@ -1,10 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Dna, Brain, Shield, BarChart2, Zap, FlaskConical, Sparkles } from 'lucide-react'
+import {
+  ArrowRight, Dna, Brain, Shield, BarChart2, Zap, FlaskConical, Sparkles,
+  User, Stethoscope, Building2, Check,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { RegisterModal, type RoleType } from '@/components/auth/RegisterModal'
+
+// ─────────────────────────────────────────────────────────────────
+// Features
+// ─────────────────────────────────────────────────────────────────
 
 const FEATURES = [
   {
@@ -45,8 +53,71 @@ const FEATURES = [
   },
 ]
 
+// ─────────────────────────────────────────────────────────────────
+// Subscription plans
+// ─────────────────────────────────────────────────────────────────
+
+const PLANS: {
+  role: RoleType
+  title: string
+  subtitle: string
+  icon: typeof User
+  color: string
+  benefits: string[]
+}[] = [
+  {
+    role: 'paciente',
+    title: 'Persona / Paciente',
+    subtitle: 'Monitorea tu salud personal con IA',
+    icon: User,
+    color: '#00e5a0',
+    benefits: [
+      'Dashboard de salud personalizado',
+      'Analisis de biomarcadores con IA',
+      'Protocolo de longevidad individual',
+      'Historial de estudios y comparativas',
+      'Chat con Longevity IA',
+    ],
+  },
+  {
+    role: 'medico',
+    title: 'Medico',
+    subtitle: 'Herramientas avanzadas para profesionales',
+    icon: Stethoscope,
+    color: '#38bdf8',
+    benefits: [
+      'Gestion de multiples pacientes',
+      'Reportes medicos PDF profesionales',
+      'Protocolo con evidencia cientifica',
+      'Algoritmo de celulas madre y exosomas',
+      'Re-analisis con historia clinica',
+      'Exportacion de datos clinicos',
+    ],
+  },
+  {
+    role: 'clinica',
+    title: 'Clinica',
+    subtitle: 'Plataforma institucional de medicina',
+    icon: Building2,
+    color: '#a78bfa',
+    benefits: [
+      'Todo lo de Medico incluido',
+      'Panel de administracion de medicos',
+      'Estadisticas de la clinica',
+      'Marca personalizada en reportes',
+      'Soporte prioritario',
+      'Integracion con sistemas hospitalarios',
+    ],
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────
+
 export default function LandingPage() {
   const router = useRouter()
+  const [modalRole, setModalRole] = useState<RoleType | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -103,18 +174,18 @@ export default function LandingPage() {
         </p>
 
         <div className="flex items-center justify-center gap-4 flex-wrap animate-fade-in" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
-          <Link
-            href="/login"
+          <a
+            href="#planes"
             className="group inline-flex items-center gap-2.5 bg-accent text-background font-semibold px-8 py-4 rounded-2xl hover:bg-accent/90 transition-all shadow-accent-lg text-lg hover-lift"
           >
             Comenzar ahora
             <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-          </Link>
+          </a>
           <Link
-            href="/patients"
+            href="/login"
             className="inline-flex items-center gap-2 border border-border text-foreground font-medium px-8 py-4 rounded-2xl hover:bg-white/5 hover:border-accent/30 transition-all text-lg"
           >
-            Ver pacientes
+            Ya tengo cuenta
           </Link>
         </div>
       </div>
@@ -132,7 +203,6 @@ export default function LandingPage() {
                 key={i}
                 className={`card-medical p-6 hover-lift hover-glow stagger-${i + 1} animate-slide-up relative overflow-hidden`}
               >
-                {/* Subtle gradient background */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${feat.gradient} opacity-50 pointer-events-none`} />
                 <div className="relative">
                   <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
@@ -147,11 +217,106 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Footer accent */}
+      {/* Divider */}
+      <div className="divider-glow max-w-4xl mx-auto" />
+
+      {/* ═══════════════════════════════════════════════════════════
+          SUBSCRIPTION CARDS
+          ═══════════════════════════════════════════════════════════ */}
+      <div id="planes" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24">
+        <div className="text-center mb-16 animate-fade-in">
+          <h2
+            className="text-3xl sm:text-4xl font-bold mb-4"
+            style={{
+              background: 'linear-gradient(120deg, #f1f5f9 0%, #C9A84C 60%, #E8C46A 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            Elige tu perfil
+          </h2>
+          <p className="text-muted-foreground max-w-lg mx-auto">
+            Selecciona el plan que mejor se adapte a tus necesidades y comienza a transformar tu salud con inteligencia artificial.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {PLANS.map((plan, i) => {
+            const Icon = plan.icon
+            const isFeatured = plan.role === 'medico'
+            return (
+              <div
+                key={plan.role}
+                className={`relative flex flex-col rounded-2xl border transition-all duration-300 hover:-translate-y-2 animate-slide-up ${
+                  isFeatured
+                    ? 'border-accent/40 bg-card/80 shadow-[0_0_40px_-8px] shadow-accent/20'
+                    : 'border-border/60 bg-card/60 hover:border-accent/30 hover:shadow-xl hover:shadow-black/20'
+                }`}
+                style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
+              >
+                {/* Featured badge */}
+                {isFeatured && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-accent text-background text-[11px] font-bold uppercase tracking-wider">
+                    Recomendado
+                  </div>
+                )}
+
+                <div className="p-7 flex-1 flex flex-col">
+                  {/* Icon + Title */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: `${plan.color}15`, border: `1.5px solid ${plan.color}30` }}
+                    >
+                      <Icon size={22} style={{ color: plan.color }} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground text-lg">{plan.title}</h3>
+                      <p className="text-xs text-muted-foreground">{plan.subtitle}</p>
+                    </div>
+                  </div>
+
+                  {/* Benefits */}
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {plan.benefits.map((b, j) => (
+                      <li key={j} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <Check size={14} className="shrink-0 mt-0.5" style={{ color: plan.color }} />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <button
+                    onClick={() => setModalRole(plan.role)}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                      isFeatured
+                        ? 'bg-accent text-background hover:bg-accent/90 shadow-lg shadow-accent/20'
+                        : 'border border-border text-foreground hover:bg-accent/10 hover:border-accent/40 hover:text-accent'
+                    }`}
+                  >
+                    Ingresar
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Footer */}
       <div className="divider-glow max-w-2xl mx-auto mb-12" />
       <p className="text-center text-xs text-muted-foreground/40 pb-8">
         Longevity IA — Ciencia de longevidad al alcance de tu salud
       </p>
+
+      {/* Registration Modal */}
+      <RegisterModal
+        role={modalRole ?? 'paciente'}
+        isOpen={modalRole !== null}
+        onClose={() => setModalRole(null)}
+      />
     </div>
   )
 }

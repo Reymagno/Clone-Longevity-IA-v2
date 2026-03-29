@@ -14,13 +14,14 @@ import {
 // NORMALIZERS
 // ─────────────────────────────────────────────────────────────────
 
-function normalizeSwotItem(item: unknown): { label: string; detail: string; expectedImpact?: string; probability?: string } {
+function normalizeSwotItem(item: unknown): { label: string; detail: string; evidence?: string; expectedImpact?: string; probability?: string } {
   if (typeof item === 'string') return { label: item, detail: '' }
   if (item && typeof item === 'object') {
     const obj = item as Record<string, unknown>
     return {
       label: String(obj.label || obj.title || obj.name || ''),
       detail: String(obj.detail || obj.description || obj.desc || ''),
+      evidence:       obj.evidence       ? String(obj.evidence)       : undefined,
       expectedImpact: obj.expectedImpact ? String(obj.expectedImpact) : undefined,
       probability:    obj.probability    ? String(obj.probability)    : undefined,
     }
@@ -73,12 +74,22 @@ function HealthGainChip({ text }: { text: string }) {
   )
 }
 
+function EvidenceChip({ text }: { text: string }) {
+  return (
+    <div className="mt-2 flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border/40">
+      <Activity size={10} className="text-muted-foreground shrink-0 mt-0.5" />
+      <p className="text-[10px] text-muted-foreground leading-relaxed italic">{text}</p>
+    </div>
+  )
+}
+
 function SwotItem({
-  index, label, detail, expectedImpact, probability, color,
+  index, label, detail, evidence, expectedImpact, probability, color,
 }: {
   index: number
   label: string
   detail: string
+  evidence?: string
   expectedImpact?: string
   probability?: string
   color: string
@@ -96,6 +107,7 @@ function SwotItem({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-foreground leading-snug">{label}</p>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{detail}</p>
+        {evidence       && <EvidenceChip text={evidence} />}
         {probability    && <div className="mt-2"><ProbabilityBadge value={probability} /></div>}
         {expectedImpact && <HealthGainChip text={expectedImpact} />}
       </div>
@@ -108,7 +120,7 @@ function SwotQuadrant({
 }: {
   title: string
   subtitle: string
-  items: { label: string; detail: string; expectedImpact?: string; probability?: string }[]
+  items: { label: string; detail: string; evidence?: string; expectedImpact?: string; probability?: string }[]
   color: string
   icon: ElementType
 }) {
@@ -143,6 +155,7 @@ function SwotQuadrant({
             index={i}
             label={item.label}
             detail={item.detail}
+            evidence={item.evidence}
             expectedImpact={item.expectedImpact}
             probability={item.probability}
             color={color}

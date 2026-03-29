@@ -550,12 +550,14 @@ export async function generateMedicalReport(
         const it = item as Record<string, unknown>
         const lbl = normalize(it, ['label', 'title', 'name', 'factor'])
         const det = normalize(it, ['detail', 'description', 'desc'])
+        const evi = normalize(it, ['evidence'])
         const impact = normalize(it, ['expectedImpact', 'impact'])
         const prob = normalize(it, ['probability'])
 
         const detMaxW = CW - (impact ? 55 : 8)
         const detLines = pdf.splitTextToSize(det, detMaxW) as string[]
-        const RH = Math.max(14, 7 + detLines.length * 4.2 + 3)
+        const eviLines = evi ? pdf.splitTextToSize(evi, CW - 10) as string[] : []
+        const RH = Math.max(14, 7 + detLines.length * 4.2 + (eviLines.length > 0 ? eviLines.length * 3.5 + 2 : 0) + 3)
         guard(RH + 1)
         box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
         box(MG, y, 2, RH, color)
@@ -563,6 +565,11 @@ export async function generateMedicalReport(
         t(lbl, MG + 5, y + 5)
         ink(C.muted); sz(7.5); n()
         pdf.text(detLines, MG + 5, y + 10)
+        if (eviLines.length > 0) {
+          const eviY = y + 10 + detLines.length * 4.2
+          ink(C.light); sz(6.5); n()
+          pdf.text(eviLines, MG + 5, eviY)
+        }
         if (impact) {
           ink(color); sz(6.5); b()
           t(impact, MG + CW - 2, y + 5, 'right')

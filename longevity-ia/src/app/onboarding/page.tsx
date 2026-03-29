@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,17 @@ import { supabase } from '@/lib/supabase/client'
 export default function OnboardingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+
+  // Guard: medicos y clinicas no deben crear perfil de paciente
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.replace('/login'); return }
+      const role = user.user_metadata?.role
+      if (role === 'medico' || role === 'clinica') {
+        router.replace('/patients')
+      }
+    })
+  }, [router])
   const [form, setForm] = useState({
     name: '',
     age: '',

@@ -8,11 +8,11 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Dna, LogIn, UserPlus } from 'lucide-react'
+import { Dna, LogIn } from 'lucide-react'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
 
@@ -29,23 +29,13 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: form.email,
-          password: form.password,
-        })
-        if (error) throw error
-        router.push('/patients')
-        router.refresh()
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-        })
-        if (error) throw error
-        toast.success('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesion.')
-        setMode('login')
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      })
+      if (error) throw error
+      router.push('/patients')
+      router.refresh()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       toast.error(msg)
@@ -72,36 +62,13 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="card-medical p-7">
-          <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl mb-6">
-            <button
-              type="button"
-              onClick={() => setMode('login')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                mode === 'login'
-                  ? 'bg-card text-foreground shadow-sm shadow-black/20'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Iniciar sesion
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('register')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                mode === 'register'
-                  ? 'bg-card text-foreground shadow-sm shadow-black/20'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Registrarse
-            </button>
-          </div>
+          <h2 className="text-lg font-semibold text-foreground mb-6 text-center">Iniciar sesion</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Correo electronico"
               type="email"
-              placeholder="doctor@clinica.com"
+              placeholder="tu@correo.com"
               value={form.email}
               onChange={e => set('email', e.target.value)}
               required
@@ -109,20 +76,26 @@ export default function LoginPage() {
             <Input
               label="Contrasena"
               type="password"
-              placeholder="Minimo 6 caracteres"
+              placeholder="Tu contrasena"
               value={form.password}
               onChange={e => set('password', e.target.value)}
               required
             />
 
             <Button type="submit" loading={loading} className="w-full mt-2">
-              {mode === 'login' ? (
-                <><LogIn size={16} /> Entrar</>
-              ) : (
-                <><UserPlus size={16} /> Crear cuenta</>
-              )}
+              <LogIn size={16} />
+              Entrar
             </Button>
           </form>
+
+          <div className="mt-6 pt-4 border-t border-border/40 text-center">
+            <p className="text-sm text-muted-foreground">
+              No tienes cuenta?{' '}
+              <Link href="/#planes" className="text-accent font-medium hover:underline">
+                Registrate aqui
+              </Link>
+            </p>
+          </div>
         </div>
 
         {/* Footer */}

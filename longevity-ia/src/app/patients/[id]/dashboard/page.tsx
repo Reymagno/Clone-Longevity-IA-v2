@@ -20,9 +20,13 @@ async function getServerData(
   patient: Patient | null
   result: LabResult | null
   allResults: ResultSummary[]
+  viewerRole: string
 }> {
   try {
     const supabase = await createServerComponentClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const viewerRole = user?.user_metadata?.role ?? 'paciente'
 
     const [patientRes, resultsRes, allResultsRes] = await Promise.all([
       supabase.from('patients').select('*').eq('id', patientId).maybeSingle(),
@@ -48,9 +52,10 @@ async function getServerData(
       patient: (patientRes.data as Patient) ?? null,
       result: (resultsRes.data as LabResult) ?? null,
       allResults: (allResultsRes.data as ResultSummary[]) ?? [],
+      viewerRole,
     }
   } catch {
-    return { patient: null, result: null, allResults: [] }
+    return { patient: null, result: null, allResults: [], viewerRole: 'paciente' }
   }
 }
 
@@ -61,7 +66,7 @@ export default async function DashboardPage({
   params: { id: string }
   searchParams: { tab?: string; resultId?: string }
 }) {
-  const { patient, result, allResults } = await getServerData(params.id, searchParams.resultId)
+  const { patient, result, allResults, viewerRole } = await getServerData(params.id, searchParams.resultId)
 
   if (!patient) notFound()
 
@@ -99,7 +104,7 @@ export default async function DashboardPage({
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Cargando dashboard...</div>}>
-      <DashboardTabs patient={patient} result={result} allResults={allResults} />
+      <DashboardTabs patient={patient} result={result} allResults={allResults} viewerRole={viewerRole} />
     </Suspense>
   )
 }

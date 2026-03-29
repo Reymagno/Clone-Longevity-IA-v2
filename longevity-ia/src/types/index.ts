@@ -118,6 +118,7 @@ export interface KeyAlert {
 export interface SwotItem {
   label: string
   detail: string
+  evidence?: string
   expectedImpact?: string
   probability?: string
 }

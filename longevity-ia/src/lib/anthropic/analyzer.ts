@@ -383,7 +383,7 @@ REGLAS DE FORMATO ESTRICTAS:
 - clinicalSummary: párrafo de 2-3 oraciones con los hallazgos más importantes
 - keyAlerts: máximo 4 objetos con alertas críticas. Formato: { "title": "título corto", "description": "explicación clínica", "level": "warning|danger", "value": "valor actual del biomarcador", "target": "valor objetivo óptimo" }
 - FODA: exactamente 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas
-  Formato FODA: { "label": "Título corto (máx 5 palabras)", "detail": "1 oración con el mecanismo clave", "expectedImpact": "dato cuantificado breve (solo fortalezas/oportunidades)", "probability": "Alta/Media/Baja (solo amenazas/debilidades)" }
+  Formato FODA: { "label": "Título corto (máx 5 palabras)", "detail": "1 oración con el mecanismo clave", "evidence": "Autor, Revista, Año — hallazgo clave que respalda este punto", "expectedImpact": "dato cuantificado breve (solo fortalezas/oportunidades)", "probability": "Alta/Media/Baja (solo amenazas/debilidades)" }
 - OBLIGATORIO: "risks" debe tener exactamente 4 enfermedades derivadas de los biomarcadores de ESTE paciente. NUNCA dejar vacío.
   Formato: { "disease": "nombre enfermedad", "probability": número 0-100, "horizon": "X años", "drivers": ["biomarcador: valor actual"], "color": "#hexcolor" }
   Colores sugeridos: cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8
@@ -714,6 +714,7 @@ function validateSwotItem(raw: unknown): object {
   return {
     label: ensureString(item.label || item.title || item.name),
     detail: ensureString(item.detail || item.description || item.desc),
+    ...(item.evidence ? { evidence: ensureString(item.evidence) } : {}),
     ...(item.expectedImpact ? { expectedImpact: ensureString(item.expectedImpact) } : {}),
     ...(item.probability ? { probability: ensureString(item.probability) } : {}),
   }

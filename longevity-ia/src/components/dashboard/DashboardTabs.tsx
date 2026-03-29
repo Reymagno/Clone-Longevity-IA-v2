@@ -34,6 +34,7 @@ interface DashboardTabsProps {
   patient: Patient
   result: LabResult
   allResults?: ResultSummary[]
+  viewerRole?: string
 }
 
 const TABS = [
@@ -50,7 +51,7 @@ const TABS = [
   { id: 10, label: 'Historia Clínica', icon: FileText },
 ]
 
-export function DashboardTabs({ patient, result, allResults = [] }: DashboardTabsProps) {
+export function DashboardTabs({ patient, result, allResults = [], viewerRole = 'paciente' }: DashboardTabsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState(() => {
@@ -264,8 +265,10 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
     <div className="min-h-screen bg-background">
       {Header}
 
-      {/* Chat flotante */}
-      <LongevityChat patient={patient} analysis={analysis} resultId={result.id} />
+      {/* Chat flotante — solo para pacientes */}
+      {viewerRole === 'paciente' && (
+        <LongevityChat patient={patient} analysis={analysis} resultId={result.id} />
+      )}
 
       {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6" id="dashboard-export">
