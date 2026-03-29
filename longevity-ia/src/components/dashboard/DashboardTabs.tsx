@@ -23,6 +23,7 @@ import {
   GitCompareArrows, RefreshCw
 } from 'lucide-react'
 import Link from 'next/link'
+import { formatDate } from '@/lib/utils'
 
 interface ResultSummary {
   id: string
@@ -48,14 +49,6 @@ const TABS = [
   { id: 9, label: 'Células Madre', icon: Dna },
   { id: 10, label: 'Historia Clínica', icon: FileText },
 ]
-
-function formatResultDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('es-MX', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 export function DashboardTabs({ patient, result, allResults = [] }: DashboardTabsProps) {
   const router = useRouter()
@@ -162,7 +155,7 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
                 >
                   {allResults.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {formatResultDate(r.result_date)}
+                      {formatDate(r.result_date)}
                     </option>
                   ))}
                 </select>
@@ -173,7 +166,7 @@ export function DashboardTabs({ patient, result, allResults = [] }: DashboardTab
             {/* Fecha actual (un solo análisis) */}
             {allResults.length <= 1 && (
               <span className="hidden sm:block text-xs text-muted-foreground">
-                {formatResultDate(result.result_date)}
+                {formatDate(result.result_date)}
               </span>
             )}
 

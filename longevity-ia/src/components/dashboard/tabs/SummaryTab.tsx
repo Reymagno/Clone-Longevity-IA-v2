@@ -11,9 +11,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, Tooltip, ReferenceLine,
 } from 'recharts'
-import { getStatusColor, getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
+import { getStatusColor, getStatusLabel, getScoreColor, getScoreLabel, getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
 
-// ── Score helpers (mismos que OrganHealthTab) ────────────────────
+// ── Score helpers (compartidos con OrganHealthTab) ───────────────
 const STATUS_SCORE: Record<string, number> = {
   optimal: 100, normal: 72, warning: 42, danger: 12,
 }
@@ -32,29 +32,9 @@ function calcOrganScore(bms: OrganBm[]): number | null {
   return total === 0 ? null : Math.round(sum / total)
 }
 
-function scoreColor(score: number | null): string {
-  if (score === null) return '#64748b'
-  if (score >= 85) return '#00e5a0'
-  if (score >= 65) return '#38bdf8'
-  if (score >= 40) return '#f5a623'
-  return '#ff4d6d'
-}
-function scoreLabel(score: number | null): string {
-  if (score === null) return 'Sin datos'
-  if (score >= 85) return 'Óptimo'
-  if (score >= 65) return 'Normal'
-  if (score >= 40) return 'Atención'
-  return 'Crítico'
-}
-function statusLabel(status: string | null): string {
-  switch (status) {
-    case 'optimal': return 'Óptimo'
-    case 'normal':  return 'Normal'
-    case 'warning': return 'Atención'
-    case 'danger':  return 'Crítico'
-    default:        return 'N/D'
-  }
-}
+const scoreColor = getScoreColor
+const scoreLabel = getScoreLabel
+const statusLabel = getStatusLabel
 
 // ── Definición de órganos (condensada) ──────────────────────────
 interface OrganDef {

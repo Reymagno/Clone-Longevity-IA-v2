@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { ParsedData, AIAnalysis, BiomarkerValue } from '@/types'
-import { getStatusColor } from '@/lib/utils'
+import { getStatusColor, getStatusLabel, getScoreColor, getScoreLabel } from '@/lib/utils'
 import {
   Heart, Layers, Droplets, FlaskConical, Activity, Shield,
   Zap, Settings, Brain, Dumbbell, Flame, Sun,
@@ -106,31 +106,9 @@ function calcOrganScore(biomarkers: OrganBiomarker[]): number | null {
   return Math.round(weightedSum / totalWeight)
 }
 
-function scoreColor(score: number | null): string {
-  if (score === null) return '#64748b'
-  if (score >= 85) return '#00e5a0'
-  if (score >= 65) return '#38bdf8'
-  if (score >= 40) return '#f5a623'
-  return '#ff4d6d'
-}
-
-function scoreLabel(score: number | null): string {
-  if (score === null) return 'Sin datos'
-  if (score >= 85) return 'Óptimo'
-  if (score >= 65) return 'Normal'
-  if (score >= 40) return 'Atención'
-  return 'Crítico'
-}
-
-function statusLabel(status: string | null): string {
-  switch (status) {
-    case 'optimal': return 'Óptimo'
-    case 'normal': return 'Normal'
-    case 'warning': return 'Atención'
-    case 'danger': return 'Crítico'
-    default: return 'N/D'
-  }
-}
+const scoreColor = getScoreColor
+const scoreLabel = getScoreLabel
+const statusLabel = getStatusLabel
 
 // ─────────────────────────────────────────────────────────────────
 // ORGAN DEFINITIONS

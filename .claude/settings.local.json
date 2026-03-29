@@ -7,7 +7,11 @@
       "Bash(node_modules/.bin/next build:*)",
       "Bash(xargs grep:*)",
       "Bash(npx --no-install next build)",
-      "Bash(find 'C:/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia' -type f -iname *pdf*)"
+      "Bash(find 'C:/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia' -type f -iname *pdf*)",
+      "Bash(find /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(grep -rn eslint-disable /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -rn catchs*{s*} /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -rn \"unused\\\\|never\\\\|void\" /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src --include=*.ts --include=*.tsx)"
     ]
   }
 }

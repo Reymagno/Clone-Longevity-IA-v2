@@ -3,12 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
-
-function generatePatientCode(): string {
-  const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
-  return `LNG-${timestamp}-${random}`
-}
+import { generatePatientCode } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   const supabase = createClientFromRequest(request)

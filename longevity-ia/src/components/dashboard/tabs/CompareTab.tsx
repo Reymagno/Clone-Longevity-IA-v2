@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import type { Patient, LabResult, ParsedData, AIAnalysis, BiomarkerValue } from '@/types'
 import { supabase } from '@/lib/supabase/client'
-import { getStatusColor } from '@/lib/utils'
+import { getStatusColor, formatDateShort, formatDateFull } from '@/lib/utils'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, Tooltip, Legend,
@@ -38,18 +38,6 @@ interface BiomarkerTrend {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'short', year: '2-digit',
-  })
-}
-
-function formatDateFull(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'long', year: 'numeric',
-  })
-}
 
 function extractBiomarker(parsed: ParsedData | null, category: string, key: string): BiomarkerValue | null {
   if (!parsed) return null
@@ -125,7 +113,7 @@ function ScoreCompareCard({ label, scores }: { label: string; scores: { date: st
       </div>
       <div className="flex items-center gap-1 mt-2">
         {scores.map((s, i) => (
-          <div key={i} className="flex-1 relative" title={`${formatDate(s.date)}: ${s.value}`}>
+          <div key={i} className="flex-1 relative" title={`${formatDateShort(s.date)}: ${s.value}`}>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
               <div className="h-full rounded-full transition-all" style={{ width: `${s.value}%`, backgroundColor: getStatusColor(s.value >= 85 ? 'optimal' : s.value >= 65 ? 'normal' : s.value >= 40 ? 'warning' : 'danger') }} />
             </div>
@@ -156,7 +144,7 @@ function TrendRow({ trend }: { trend: BiomarkerTrend }) {
       <div className="flex items-center gap-3 shrink-0">
         {values.map((v, i) => (
           <div key={i} className="text-center min-w-[52px]">
-            <p className="text-[10px] text-muted-foreground">{formatDate(v.date)}</p>
+            <p className="text-[10px] text-muted-foreground">{formatDateShort(v.date)}</p>
             <p className="font-mono text-sm font-semibold" style={{ color: getStatusColor(v.status) }}>
               {v.value}
             </p>
@@ -302,7 +290,7 @@ export function CompareTab({ patient, currentResult, allResults }: CompareTabPro
   const scoreChartData = fullResults.map(r => {
     const a = r.ai_analysis as AIAnalysis | null
     return {
-      date: formatDate(r.result_date),
+      date: formatDateShort(r.result_date),
       overall: a?.overallScore ?? null,
       longevityAge: a?.longevity_age ?? null,
     }
@@ -396,7 +384,7 @@ export function CompareTab({ patient, currentResult, allResults }: CompareTabPro
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={fullResults.map(r => {
-                const point: Record<string, unknown> = { date: formatDate(r.result_date) }
+                const point: Record<string, unknown> = { date: formatDateShort(r.result_date) }
                 for (const t of chartBiomarkers.slice(0, 4)) {
                   const bm = extractBiomarker(r.parsed_data, t.category, t.key)
                   point[t.key] = bm?.value ?? null

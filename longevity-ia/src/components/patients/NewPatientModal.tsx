@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { generatePatientCode } from '@/lib/supabase/queries'
+import { generatePatientCode } from '@/lib/utils'
 
 interface NewPatientModalProps {
   isOpen: boolean
@@ -42,7 +42,7 @@ export function NewPatientModal({ isOpen, onClose, onCreated }: NewPatientModalP
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No autorizado')
 
-      const code = await generatePatientCode()
+      const code = generatePatientCode()
 
       const { data, error } = await supabase
         .from('patients')
