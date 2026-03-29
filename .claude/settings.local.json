@@ -6,7 +6,8 @@
       "Bash(npx next:*)",
       "Bash(node_modules/.bin/next build:*)",
       "Bash(xargs grep:*)",
-      "Bash(npx --no-install next build)"
+      "Bash(npx --no-install next build)",
+      "Bash(find 'C:/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia' -type f -iname *pdf*)"
     ]
   }
 }

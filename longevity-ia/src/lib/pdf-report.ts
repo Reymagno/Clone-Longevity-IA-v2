@@ -327,11 +327,11 @@ export async function generateMedicalReport(
   }
 
   // ── Texto párrafo ─────────────────────────────────────────────
-  function para(text: string, maxW = CW, color = C.muted, size = 8, lineH = 4.8): number {
+  function para(text: string, maxW = CW - 2, color = C.muted, size = 8, lineH = 5): number {
     const lines = pdf.splitTextToSize(text, maxW) as string[]
     guard(lines.length * lineH + 4)
     ink(color); sz(size); n()
-    pdf.text(lines, MG, y)
+    pdf.text(lines, MG + 1, y)
     skip(lines.length * lineH + 3)
     return lines.length
   }
@@ -427,13 +427,17 @@ export async function generateMedicalReport(
   skip(54)
 
   // Nota legal
+  guard(20)
   ink(C.muted); sz(7); n()
   const legalLines = pdf.splitTextToSize(
     'Este reporte es generado por Longevity IA con base en los estudios de laboratorio proporcionados. ' +
     'Los datos y recomendaciones deben ser interpretados por un médico certificado. No sustituye el diagnóstico clínico profesional.',
-    CW
+    CW - 4
   ) as string[]
-  pdf.text(legalLines, MG, y)
+  const legalH = legalLines.length * 4 + 6
+  boxStroke(MG, y, CW, legalH, C.sheet, C.border, 0.15)
+  pdf.text(legalLines, MG + 2, y + 4)
+  skip(legalH)
 
   // Footer portada
   box(0, PH - 10, PW, 10, C.dark)
@@ -450,10 +454,42 @@ export async function generateMedicalReport(
   section('RESUMEN EJECUTIVO', '— Síntesis clínica general')
 
   ink(C.text); sz(8.5); n()
-  const sumLines = pdf.splitTextToSize(analysis.clinicalSummary ?? '', CW) as string[]
-  guard(sumLines.length * 5 + 4)
-  pdf.text(sumLines, MG, y)
-  skip(sumLines.length * 5 + 6)
+  const LH_SUM = 4.8
+  const sumLines = pdf.splitTextToSize(analysis.clinicalSummary ?? '', CW - 2) as string[]
+  guard(sumLines.length * LH_SUM + 6)
+  // Wrapped summary in a subtle box
+  const sumBoxH = sumLines.length * LH_SUM + 8
+  boxStroke(MG, y - 2, CW, sumBoxH, C.sheet, C.border, 0.15)
+  box(MG, y - 2, 3, sumBoxH, C.green)
+  pdf.text(sumLines, MG + 7, y + 2)
+  skip(sumBoxH + 4)
+
+  // Alertas clínicas
+  const alerts = analysis.keyAlerts ?? []
+  if (alerts.length > 0) {
+    section('ALERTAS CLÍNICAS', `— ${alerts.length} hallazgo${alerts.length > 1 ? 's' : ''} relevante${alerts.length > 1 ? 's' : ''}`)
+    alerts.forEach((alert) => {
+      const a = alert as unknown as Record<string, unknown>
+      const title = String(a.title ?? a.label ?? '')
+      const desc = String(a.description ?? a.detail ?? '')
+      const level = String(a.level ?? 'warning')
+      const val = a.value != null ? String(a.value) : ''
+      const target = a.target != null ? String(a.target) : ''
+
+      const alertColor = level === 'danger' ? C.danger : C.warning
+      const alertBg = level === 'danger' ? [252, 213, 213] as RGB : [252, 233, 207] as RGB
+      const fullText = `${title}${desc ? ': ' + desc : ''}${val ? '  (Actual: ' + val + (target ? ' → Objetivo: ' + target : '') + ')' : ''}`
+      const aLines = pdf.splitTextToSize(fullText, CW - 12) as string[]
+      const AH = aLines.length * 4.5 + 5
+      guard(AH + 2)
+      box(MG, y, CW, AH, alertBg)
+      box(MG, y, 3, AH, alertColor)
+      ink(alertColor); sz(7.5); n()
+      pdf.text(aLines, MG + 7, y + 4.5)
+      skip(AH + 2)
+    })
+    skip(2)
+  }
 
   // Scores por sistema
   section('SCORES POR SISTEMA ORGÁNICO', '— Evaluación de 8 sistemas')
@@ -515,20 +551,27 @@ export async function generateMedicalReport(
         const lbl = normalize(it, ['label', 'title', 'name', 'factor'])
         const det = normalize(it, ['detail', 'description', 'desc'])
         const impact = normalize(it, ['expectedImpact', 'impact'])
-        guard(14)
-        box(MG, y, CW, 14, i % 2 === 0 ? C.bg : C.sheet)
-        box(MG, y, 2, 14, color)
+        const prob = normalize(it, ['probability'])
+
+        const detMaxW = CW - (impact ? 55 : 8)
+        const detLines = pdf.splitTextToSize(det, detMaxW) as string[]
+        const RH = Math.max(14, 7 + detLines.length * 4.2 + 3)
+        guard(RH + 1)
+        box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
+        box(MG, y, 2, RH, color)
         ink(C.text); sz(8.5); b()
         t(lbl, MG + 5, y + 5)
         ink(C.muted); sz(7.5); n()
-        const detLines = pdf.splitTextToSize(det, CW - (impact ? 55 : 8)) as string[]
-        pdf.text(detLines.slice(0, 2), MG + 5, y + 10)
+        pdf.text(detLines, MG + 5, y + 10)
         if (impact) {
-          ink(color); sz(7); b()
-          t(impact.slice(0, 45), MG + CW - 2, y + 5, 'right')
+          ink(color); sz(6.5); b()
+          t(impact, MG + CW - 2, y + 5, 'right')
+        } else if (prob) {
+          ink(color); sz(6.5); b()
+          t(prob, MG + CW - 2, y + 5, 'right')
         }
-        hline(y + 14)
-        skip(14)
+        hline(y + RH)
+        skip(RH)
       })
     }
     skip(4)
@@ -668,36 +711,42 @@ export async function generateMedicalReport(
 
   box(MG, y, CW, 7, C.dark)
   ink(C.bg); sz(7); b()
-  t('ENFERMEDAD', MG + 3, y + 5)
-  t('DRIVERS PRINCIPALES', MG + 60, y + 5)
-  t('PROBABILIDAD', MG + CW - 35, y + 5)
+  t('ENFERMEDAD / DRIVERS', MG + 3, y + 5)
+  t('PROBABILIDAD', MG + CW - 60, y + 5)
   t('HORIZONTE', MG + CW - 2, y + 5, 'right')
   skip(7)
 
   ;(analysis.risks ?? []).slice(0, 12).forEach((risk, i) => {
     const disease = risk.disease ?? ''
-    const prob = typeof risk.probability === 'number' ? risk.probability : 0
+    const prob = typeof risk.probability === 'number' ? Math.min(100, Math.max(0, risk.probability)) : 0
     const horizon = risk.horizon ?? ''
     const drivers = Array.isArray(risk.drivers) ? risk.drivers : []
-    const rColor = prob >= 0.7 ? C.danger : prob >= 0.4 ? C.warning : prob >= 0.2 ? C.normal : C.optimal
+    const rColor = prob >= 70 ? C.danger : prob >= 40 ? C.warning : prob >= 20 ? C.normal : C.optimal
 
     const driverText = drivers.slice(0, 3).join(' · ')
-    const dLines = pdf.splitTextToSize(driverText, CW - 75) as string[]
-    const RH = Math.max(11, dLines.length * 4.5 + 7)
+    const dLines = pdf.splitTextToSize(driverText, 80) as string[]
+    const RH = Math.max(14, dLines.length * 4.5 + 10)
     guard(RH + 1)
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
     box(MG, y, 3, RH, rColor)
+
+    // Disease name
     ink(C.text); sz(8.5); b()
     t(disease, MG + 6, y + 5.5)
-    ink(C.muted); sz(7.5); n()
+
+    // Drivers — below disease name
+    ink(C.muted); sz(7); n()
     pdf.text(dLines, MG + 6, y + 10)
-    // Probability bar
-    const BBAR = 40
-    const BX = MG + CW - BBAR - 28
-    box(BX, y + (RH - 4) / 2, BBAR, 3.5, C.border)
-    box(BX, y + (RH - 4) / 2, prob * BBAR, 3.5, rColor)
-    ink(rColor); sz(8.5); b()
-    t(`${(prob * 100).toFixed(0)}%`, BX + BBAR + 3, y + RH / 2 + 1.5)
+
+    // Probability bar — right side
+    const BBAR = 36
+    const BX = MG + CW - BBAR - 26
+    box(BX, y + 2, BBAR, 3.5, C.border)
+    box(BX, y + 2, (prob / 100) * BBAR, 3.5, rColor)
+    ink(rColor); sz(9); b()
+    t(`${Math.round(prob)}%`, BX + BBAR + 3, y + 5.5)
+
+    // Horizon — bottom right
     ink(C.muted); sz(7); n()
     t(horizon, MG + CW - 2, y + RH - 2, 'right')
     hline(y + RH)
@@ -709,30 +758,51 @@ export async function generateMedicalReport(
     skip(6)
     section('FACTORES DE PROYECCIÓN', '— Comparativa sin y con intervención')
 
-    box(MG, y, CW, 7, C.dark)
-    ink(C.bg); sz(6.8); b()
-    t('FACTOR', MG + 3, y + 5)
-    t('ACTUAL', MG + 55, y + 5)
-    t('ÓPTIMO', MG + 82, y + 5)
-    t('SIN PROTOCOLO', MG + 112, y + 5)
-    t('CON PROTOCOLO', MG + 150, y + 5)
-    skip(7)
-
+    // Layout: each factor as a card block instead of cramped table
     analysis.projectionFactors.slice(0, 8).forEach((pf, i) => {
-      guard(12)
-      box(MG, y, CW, 10, i % 2 === 0 ? C.bg : C.sheet)
-      ink(C.text); sz(7.5); b()
-      t(pf.factor?.slice(0, 28) ?? '', MG + 3, y + 6)
-      ink(C.text); sz(7.5); n()
-      t(pf.currentValue?.slice(0, 14) ?? '—', MG + 55, y + 6)
-      ink(C.optimal); b()
-      t(pf.optimalValue?.slice(0, 14) ?? '—', MG + 82, y + 6)
-      ink(C.danger); n()
-      t(pf.withoutProtocol?.slice(0, 22) ?? '—', MG + 112, y + 6)
+      const factor = pf.factor ?? ''
+      const current = pf.currentValue ?? '—'
+      const optimal = pf.optimalValue ?? '—'
+      const withoutP = pf.withoutProtocol ?? '—'
+      const withP = pf.withProtocol ?? '—'
+      const justification = pf.medicalJustification ?? ''
+
+      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, CW / 2 - 6) as string[]
+      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, CW / 2 - 6) as string[]
+      const justLines = justification ? pdf.splitTextToSize(justification, CW - 10) as string[] : []
+      const RH = 18 + Math.max(withoutLines.length, withLines.length) * 4 + (justLines.length > 0 ? justLines.length * 3.5 + 2 : 0)
+
+      guard(RH + 2)
+      box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
+      box(MG, y, 3, RH, C.green)
+
+      // Factor name
+      ink(C.text); sz(8.5); b()
+      t(factor, MG + 7, y + 5.5)
+
+      // Current + optimal values on same line
+      ink(C.muted); sz(7.5); n()
+      t(`Actual: `, MG + 7, y + 11)
+      ink(C.text); b(); t(current, MG + 22, y + 11)
+      ink(C.muted); n(); t(`Óptimo: `, MG + CW / 2, y + 11)
+      ink(C.optimal); b(); t(optimal, MG + CW / 2 + 17, y + 11)
+
+      // Without / with protocol side by side
+      const projY = y + 16
+      ink(C.danger); sz(7); n()
+      pdf.text(withoutLines, MG + 7, projY)
       ink(C.optimal)
-      t(pf.withProtocol?.slice(0, 22) ?? '—', MG + 150, y + 6)
-      hline(y + 10)
-      skip(10)
+      pdf.text(withLines, MG + CW / 2, projY)
+
+      // Medical justification
+      if (justLines.length > 0) {
+        const jY = projY + Math.max(withoutLines.length, withLines.length) * 4 + 1
+        ink(C.light); sz(6.5); n()
+        pdf.text(justLines, MG + 7, jY)
+      }
+
+      hline(y + RH)
+      skip(RH)
     })
   }
 
@@ -758,13 +828,29 @@ export async function generateMedicalReport(
       item.urgency === 'high'      ? 'ALTO' :
       item.urgency === 'medium'    ? 'MEDIO' : 'BAJO'
 
-    const mechLines = pdf.splitTextToSize(item.mechanism ?? '', CW - 85) as string[]
-    const RH = Math.max(16, mechLines.length * 4 + 12)
+    // Layout: top row = number + urgency badge + category
+    // Left column (half width): molecule, dose
+    // Right column (half width): mechanism, expected result, evidence
+    const leftW = CW * 0.42
+    const rightW = CW - leftW - 8
+
+    const mechText = item.mechanism ?? ''
+    const evidText = item.evidence ?? ''
+    const resultText = item.expectedResult ? `→ ${item.expectedResult}` : ''
+    const rightContent = [mechText, evidText, resultText].filter(Boolean).join('\n')
+    const rightLines = pdf.splitTextToSize(rightContent, rightW) as string[]
+
+    const moleculeLines = pdf.splitTextToSize(item.molecule ?? '', leftW - 4) as string[]
+    const doseLines = pdf.splitTextToSize(item.dose ?? '', leftW - 4) as string[]
+    const leftHeight = 8 + moleculeLines.length * 4.5 + doseLines.length * 4 + 2
+    const rightHeight = 8 + rightLines.length * 4 + 2
+    const RH = Math.max(20, Math.max(leftHeight, rightHeight) + 2)
+
     guard(RH + 2)
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
     box(MG, y, 3, RH, urgColor)
 
-    // Number + urgency
+    // Number + urgency badge
     ink(urgColor); sz(7.5); b()
     t(`${item.number ?? i + 1}`, MG + 7, y + 5.5)
     box(MG + 13, y + 1.5, 22, 5, sbg(item.urgency ?? 'low'))
@@ -775,28 +861,25 @@ export async function generateMedicalReport(
     ink(C.light); sz(6.5); n()
     t(item.category ?? '', MG + 38, y + 5.5)
 
-    // Molecule + dose
+    // Left column: molecule + dose
     ink(C.text); sz(9); b()
-    t(item.molecule ?? '', MG + 7, y + 11)
+    pdf.text(moleculeLines, MG + 7, y + 11)
+    const doseY = y + 11 + moleculeLines.length * 4.5
     ink(C.muted); sz(7.5); n()
-    t(item.dose ?? '', MG + 7, y + 15)
+    pdf.text(doseLines, MG + 7, doseY)
 
-    // Mechanism
-    ink(C.muted); sz(7.5); n()
-    pdf.text(mechLines, MG + CW * 0.45, y + 5.5)
-
-    // Action badge
+    // Action badge — below dose
     if (item.action) {
-      box(MG + CW - 35, y + RH - 7, 33, 5, sbg(item.urgency ?? 'low'))
-      ink(urgColor); sz(6); b()
-      t(item.action.slice(0, 18), MG + CW - 18, y + RH - 3.5, 'center')
+      const actionLines = pdf.splitTextToSize(item.action, leftW - 10) as string[]
+      const actionY = doseY + doseLines.length * 4 + 2
+      ink(urgColor); sz(6.5); b()
+      pdf.text(actionLines, MG + 7, actionY)
     }
 
-    // Expected result
-    if (item.expectedResult) {
-      ink(C.optimal); sz(6.5); n()
-      t(`→ ${item.expectedResult.slice(0, 55)}`, MG + CW * 0.45, y + RH - 3)
-    }
+    // Right column: mechanism + evidence + expected result
+    const rightX = MG + leftW + 6
+    ink(C.muted); sz(7.5); n()
+    pdf.text(rightLines, rightX, y + 5.5)
 
     hline(y + RH)
     skip(RH)
@@ -921,23 +1004,34 @@ export async function generateMedicalReport(
   }
 
   stemFactors.forEach(([factor, value, status, mult], i) => {
-    guard(9)
-    box(MG, y, CW, 8, i % 2 === 0 ? C.bg : C.sheet)
-    ink(C.text); sz(7.5); b(); t(factor, MG + 3, y + 5.5)
-    ink(C.muted); sz(7.5); n(); t(value.slice(0, 20), MG + 60, y + 5.5)
+    const RH = 9
+    guard(RH + 1)
+    box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
+
+    // Factor name (wider column)
+    ink(C.text); sz(7.5); b(); t(factor, MG + 3, y + 6)
+
+    // Value
+    ink(C.muted); sz(7); n()
+    const valText = value.length > 26 ? value.slice(0, 24) + '…' : value
+    t(valText, MG + 56, y + 6)
+
     // Status badge
-    box(MG + 98, y + 1.5, 28, 5, sbg(status))
-    ink(sc(status)); sz(6.5); b()
-    t(sl(status), MG + 112, y + 5.5, 'center')
+    box(MG + 100, y + 2, 24, 5, sbg(status))
+    ink(sc(status)); sz(6); b()
+    t(sl(status), MG + 112, y + 6, 'center')
+
     // Multiplier
     const mColor = mult > 1.1 ? C.danger : mult > 1.0 ? C.warning : mult < 1.0 ? C.normal : C.optimal
     ink(mColor); sz(8); b()
-    t(`×${mult.toFixed(2)}`, MG + 138, y + 5.5)
+    t(`×${mult.toFixed(2)}`, MG + 130, y + 6)
+
     // Justification
     ink(C.muted); sz(6.5); n()
-    t(justMap[status] ?? '—', MG + 162, y + 5.5)
-    hline(y + 8)
-    skip(8)
+    t(justMap[status] ?? '—', MG + 152, y + 6)
+
+    hline(y + RH)
+    skip(RH)
   })
 
   // Total row
@@ -997,19 +1091,19 @@ export async function generateMedicalReport(
   skip(4)
 
   // Nota clínica final
-  guard(18)
-  box(MG, y, CW, 16, [232, 244, 253] as RGB)
-  box(MG, y, 3, 16, C.normal)
+  const noteText =
+    'Este protocolo es una estimación algorítmica basada en evidencia clínica publicada. No sustituye el criterio del médico tratante. ' +
+    'La dosis final debe ser validada considerando el estado clínico actual, disponibilidad del producto celular y potencia por lote (batch potency).'
+  const noteLines = pdf.splitTextToSize(noteText, CW - 14) as string[]
+  const noteH = noteLines.length * 4.2 + 12
+  guard(noteH + 2)
+  box(MG, y, CW, noteH, [232, 244, 253] as RGB)
+  box(MG, y, 3, noteH, C.normal)
   ink(C.normal); sz(7.5); b()
   t('NOTA CLÍNICA IMPORTANTE', MG + 7, y + 6)
   ink(C.text); sz(7.5); n()
-  const noteLines = pdf.splitTextToSize(
-    'Este protocolo es una estimación algorítmica basada en evidencia clínica publicada. No sustituye el criterio del médico tratante. ' +
-    'La dosis final debe ser validada considerando el estado clínico actual, disponibilidad del producto celular y potencia por lote (batch potency).',
-    CW - 10
-  ) as string[]
   pdf.text(noteLines, MG + 7, y + 11)
-  skip(20)
+  skip(noteH + 4)
 
   // ─── Pie de página final ─────────────────────────────────────
   drawFooter()
