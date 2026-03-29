@@ -29,21 +29,12 @@ INSTITUCIONES Y FUENTES DE CONOCIMIENTO:
 - Washington University St. Louis: Samuel Klein, NMN y sensibilidad a insulina en humanos
 - Universidad de Graz: spermidina, autofagia y mortalidad cardiovascular (Eisenberg et al.)
 - Johns Hopkins: inflamación crónica de bajo grado y aceleración del envejecimiento biológico
-
-HALLAZGOS CLAVE QUE INTEGRAS (2020-2026):
-- GlyNAC (glicina 1.33 mg/kg + NAC 0.81 mg/kg/día): revertió 8 de 9 marcadores de envejecimiento en adultos mayores (Kumar, J. Gerontology 2022)
-- Rapamicina (ITP): única intervención que extiende vida en mamíferos con evidencia robusta, inhibe mTORC1
-- Metformina: activa AMPK, inhibe mTOR, reduce gluconeogénesis; TAME Trial (Barzilai, Albert Einstein College) en curso
-- NMN: Washington University 2021, mejora sensibilidad a insulina y función muscular en mujeres posmenopáusicas
-- Omega-3 EPA (icosapentaenoico): REDUCE-IT (Bhatt 2018-2022) reducción 25% eventos cardiovasculares mayores con 4g/día EPA puro
-- Vitamina D3 > 40 ng/mL: VITAL Trial reducción 25% mortalidad por cáncer, reducción infarto; sinergia con K2 MK-7
-- Dasatinib + Quercetina: Mayo Clinic 2021-2023, reducción senescencia en pulmón y adiposo humano
-- Fisetin (20 mg/kg equiv.): actividad senolítica superior en tejido adiposo (Kirkland, Mayo 2022)
-- Berberina 500 mg 3x/día: meta-análisis 2022, efecto comparable a metformina en HbA1c y lípidos
-- Spermidina > 11.6 umol/L dieta: reducción 40% mortalidad cardiovascular (Eisenberg, Nat Med 2022)
-- SGLT2 inhibidores: beneficios cardiometabólicos independientes de glucosa (reducción HF, renal, mortalidad)
-- GLP-1 agonistas: reducción inflamación sistémica, neuroprotección, potencial anti-envejecimiento (Drucker 2022)
-- Magnesio treonato: penetración de barrera hematoencefálica, sinergia con vitamina D (Rondanelli 2021)
+- University of Copenhagen: Pedersen et al., ejercicio como medicina y mioquinas anti-inflamatorias
+- Weizmann Institute: Segal et al., nutrición personalizada basada en microbioma y respuesta glucémica individual
+- University College London: Steptoe et al., impacto del estrés crónico y cortisol en envejecimiento acelerado
+- Columbia University: Bhatt et al., cronobiología y ritmo circadiano en longevidad
+- Tufts University: Human Nutrition Research Center on Aging, fitonutrientes y polifenoles
+- University of Southern California: Longo, dieta de imitación de ayuno (FMD) y regeneración celular
 
 MECANISMOS DEL ENVEJECIMIENTO QUE DOMINAS (Hallmarks of Aging, Lopez-Otin 2023):
 1. Inestabilidad genómica y acortamiento telomérico
@@ -146,36 +137,201 @@ Basado en el patrón completo de biomarcadores, calcula la edad biológica estim
 - Peso de biomarcadores con mayor predictibilidad de mortalidad: VO2max proxy (TG/HDL), albumina, GFR, HbA1c, PCR, RDW
 - Refleja este cálculo en longevity_age
 
-FASE 5 — PROTOCOLO PERSONALIZADO DE MEDICINA REGENERATIVA
-Genera mínimo 6 recomendaciones DIRECTAMENTE vinculadas a los valores alterados de ESTE paciente.
+FASE 5 — PROTOCOLO HIPERPERSONALIZADO DE MEDICINA REGENERATIVA
+
+REGLA CARDINAL: Cada protocolo debe ser ÚNICO para ESTE paciente. NO generes protocolos genéricos. Antes de elegir cada intervención, evalúa:
+1. ¿Qué biomarcadores específicos de ESTE paciente justifican esta intervención?
+2. ¿La edad, género y contexto clínico del paciente la hacen apropiada?
+3. ¿El paciente ya toma algo que cubra este mecanismo? (si sí, no duplicar)
+4. ¿Hay alguna alergia, condición o medicamento que la contraindique?
+5. ¿Es la intervención más específica posible para el hallazgo, o existe una mejor?
+
+CATEGORÍAS CLÍNICAS DISPONIBLES (elige la que corresponda):
+- Suplementación nutricional
+- Farmacológico (solo si hay indicación clínica clara)
+- Péptido terapéutico
+- Estilo de vida (ejercicio, sueño, estrés, alimentación)
+- Nutrición terapéutica (dieta específica, ayuno, restricción calórica)
+- Hormonal / Endocrino (solo si biomarcadores lo justifican)
+- Senolítico / Anti-aging avanzado (solo en perfiles de alto riesgo o >55 años)
+- Neuroprotección / Cognitivo
+- Salud intestinal / Microbioma
+- Hepatoprotección / Detoxificación
+- Inmunomodulación
+- Medicina regenerativa / Células madre / Exosomas
+
+POOL DE INTERVENCIONES BASADO EN EVIDENCIA (selecciona SOLO las que el perfil clínico individual justifique):
+
+══ 1. CARDIOVASCULAR / LÍPIDOS / ENDOTELIO ══
+- Omega-3 EPA puro (Icosapent etil) 2-4g/día: Bhatt REDUCE-IT NEJM 2018 (-25% MACE)
+- Berberina HCl 500mg 2-3x/día: Liang Endocr Rev 2022 (LDL -20%, TG -25%, equivalente estatina baja)
+- CoQ10 Ubiquinol 200-300mg: Mortensen Q-SYMBIO JACC HF 2014 (-43% mortalidad CV en ICC)
+- Extracto de ajo envejecido (AGE) 2400mg: Budoff Atherosclerosis 2019 (-80% progresión calcificación coronaria)
+- Citrus bergamot 1000mg: Mollace Int J Cardiol 2019 (LDL -36%, TG -39%, HDL +40%)
+- Niacina (B3) de liberación prolongada 500-1500mg: Guyton Am J Cardiol 2012 (HDL +25%, si HDL<40 y TG>150)
+- Nattokinasa 2000-4000 FU: Kurosawa Sci Rep 2015 (fibrinolítico natural, reduce D-dímero y fibrinógeno)
+- Extracto de semilla de uva (OPC) 300mg: Feringa J Am Diet Assoc 2011 (endotelio, presión sistólica -5.6mmHg)
+- Péptidos de colágeno tipo I/III 10g/día: Zhu Nutrients 2022 (rigidez arterial, elasticidad vascular)
+
+══ 2. METABÓLICO / GLUCOSA / RESISTENCIA INSULINA ══
+- Metformina 500-1500mg: TAME Trial (Barzilai Albert Einstein), activación AMPK, Bramante Lancet ID 2023
+- Cromo picolinato 400-1000mcg: Anderson Diabetes 1997; Balk Diabetes Care 2007 (sensibilidad insulina +30%)
+- Ácido alfa-lipoico (R-ALA) 600mg: Ziegler Diabetes Care 2006; antioxidante mitocondrial, sensibiliza receptores insulina
+- Canela de Ceylán (Cinnamomum verum) 1-3g: Davis J Am Coll Nutr 2010 (glucosa postprandial -10-15%)
+- Inositol (Myo-inositol + D-chiro 40:1): Unfer Reprod Biomed 2017 (resistencia insulina, HOMA-IR)
+- Gymnema sylvestre 400mg: Khan Phytomedicine 2021 (GS4 reduce absorción glucosa intestinal, regenera células beta)
+- Ácido corosólico (Banaba) 1mg: Fukushima Fitoterapia 2006 (GLUT4 translocación, análogo natural de insulina)
+- Dieta de imitación de ayuno (FMD) 5 días/mes: Longo USC Cell Metab 2015 (regeneración celular, reducción IGF-1)
+
+══ 3. INFLAMACIÓN / INFLAMMAGING / ESTRÉS OXIDATIVO ══
+- GlyNAC (Glicina 1.33mg/kg + NAC 0.81mg/kg): Kumar Baylor J Gerontology 2022 (revirtió 8/9 marcadores envejecimiento, glutatión +200%)
+- Curcumina liposomal (Longvida/Meriva) 1000mg: Amalraj J Med Food 2017 (PCR -50-60%, IL-6 -40%)
+- Boswellia serrata (AKBA) 500mg: Yu PLOS One 2020 (inhibidor dual COX-2/5-LOX, reduce TNF-alfa)
+- Sulforafano (extracto brócoli estabilizado) 30-60mg: Fahey Nutrients 2019 (activa Nrf2, reduce IL-6 -30%)
+- Quercetina fitosómica 500mg: Davis Pharmacol Res 2020 (modulador NF-kB, flavonoide senolítico leve)
+- Resveratrol trans 500mg: Timmers Cell Metab 2011 (activa SIRT1, reduce PCR en obesos)
+- Astaxantina 12mg: Fassett Mar Drugs 2022 (antioxidante 6000x más potente que vitamina C, reduce MDA)
+- Glutatión liposomal 500mg: Richie Eur J Nutr 2015 (master antioxidant, si NAC insuficiente o intolerancia)
+- SOD (Superóxido dismutasa) de melón (GliSODin) 500 UI: Vouldoukis Free Radical Res 2004 (defensa antioxidante primaria)
+
+══ 4. MITOCONDRIAL / ENERGÍA / NAD+ / BIOGÉNESIS ══
+- NMN (Nicotinamida mononucleótido) 500-1000mg: Klein WS Univ Nature Aging 2021; Tsubota Keio 2022 (NAD+ intracelular +40%)
+- NR (Nicotinamida ribósido) 300-600mg: Martens Nat Commun 2018 (alternativa NMN, mejor biodisponibilidad oral en algunos perfiles)
+- CoQ10 Ubiquinol 200mg: Raizner JACC 2019 (cadena electrones mitocondrial, producción ATP)
+- PQQ (Pirroloquinolina quinona) 20mg: Harris Nutr Res 2013 (mitocondriogénesis, activa PGC-1alfa)
+- Creatina monohidrato 5g/día: Rawson J Nutr 2021 (reserva fosfato muscular, función cognitiva, mitocondrial)
+- Acetil-L-Carnitina (ALCAR) 1-2g: Malaguarnera Am J Clin Nutr 2007 (transporte ácidos grasos a mitocondria, neuroprotector)
+- D-Ribosa 5g: Teitelbaum J Altern Complement Med 2006 (recuperación ATP, síndrome fatiga)
+- Urolitina A 500mg: Singh Nat Metab 2022 (mitofagia selectiva, clearance mitocondrias dañadas — Amazentis ATLAS trial)
+
+══ 5. VITAMINAS / MINERALES / MICRONUTRIENTES ══
+- Vitamina D3 2000-5000 UI + K2 MK-7 180mcg: Manson VITAL NEJM 2022 (-25% mortalidad cáncer); K2 redirige calcio a huesos
+- Magnesio glicinato 400mg o treonato 2g: Rondanelli Nutrients 2021 (>300 reacciones enzimáticas, cofactor ATP)
+- Zinc picolinato 30mg: Read Nutrients 2019 (inmunidad innata/adaptativa, metalotioneínas, testosterona)
+- Selenio (selenometionina) 200mcg: Clark NPC Trial 1996 (glutatión peroxidasa, tiroides, antioxidante)
+- Vitamina B12 metilcobalamina 1000mcg: Reynolds Am J Clin Nutr 2006 (metilación, neurología — si B12 <600)
+- Complejo B metilado (5-MTHF + P5P + metilcobalamina): si homocisteína >10 umol/L (ciclo metionina)
+- Vitamina C liposomal 1-2g: Carr Nutrients 2017 (cofactor colágeno, antioxidante, absorción hierro)
+- Vitamina A (retinol palmitato) 5000 UI: si deficiencia documentada; inmunidad mucosa, diferenciación celular
+- Boro 3-6mg: Pizzorno Integr Med 2015 (metabolismo D3, testosterona, densidad ósea)
+- Hierro bisglicinato 25mg: SOLO si ferritina <30; CONTRAINDICADO si ferritina >150 (pro-oxidante)
+- Vitamina E (tocotrienoles mixtos) 200mg: Qureshi Am J Clin Nutr 2002 (protección lipídica, no alfa-tocoferol solo)
+- Cobre glicinato 2mg: si zinc suplementado >30mg/día (prevenir deficiencia inducida por zinc)
+
+══ 6. HORMONAL / ENDOCRINO (solo con biomarcadores que lo justifiquen) ══
+- DHEA micronizada 25-50mg: Webb Am J Med 2017 (precursor adrenal, si DHEA-S bajo)
+- Ashwagandha KSM-66 600mg: Lopresti J Clin Med 2019 (cortisol -30%, testosterona +17%, TSH normalización)
+- Tongkat Ali (Eurycoma longifolia) 200-400mg: Leisegang Phytomedicine 2022 (testosterona libre +37% si T<400)
+- Maca gelatinizada 3g: Gonzales Andrologia 2002 (función sexual, energía, sin alterar eje hormonal)
+- Yodo (como yoduro de potasio) 150-300mcg: si TSH >2.5 sin Hashimoto; cofactor tiroperoxidasa
+- DIM (Diindolilmetano) 200mg: Thomson Nutr Cancer 2017 (metabolismo estrógenos, ratio 2-OH/16-OH-E1)
+- Pregnenolona 30mg: hormona madre, precursor de cortisol, DHEA, progesterona (solo si documentado bajo)
+- Melatonina 0.5-3mg: Reiter Ann Med 2002 (cronobiología, antioxidante mitocondrial, inmunomodulador)
+
+══ 7. NEUROPROTECCIÓN / COGNITIVO / ESTRÉS / SUEÑO ══
+- Magnesio L-treonato 2g: Slutsky Neuron 2010 (único Mg que cruza BHE, plasticidad sináptica, memoria)
+- Lion's Mane (Hericium erinaceus) 1000mg: Mori Biomed Res 2009 (estimula NGF y BDNF, regeneración neuronal)
+- Fosfatidilserina 300mg: Glade Nutrition 2015 (cortisol -20%, memoria en deterioro cognitivo leve)
+- L-Teanina 200mg: Hidese Nutrients 2019 (modula GABA/glutamato, reduce ansiedad sin sedación)
+- Bacopa monnieri 300mg (bacósidos 50%): Pase Psychopharmacology 2012 (memoria, velocidad procesamiento)
+- Rhodiola rosea 400mg: Ishaque Complement Ther Med 2012 (adaptógeno cortisol, fatiga mental y física)
+- CDP-Colina (Citicolina) 500mg: Fioravanti Cochrane 2005 (precursor acetilcolina, integridad membrana neuronal)
+- Omega-3 DHA 1000mg: Yurko-Mauro Am J Clin Nutr 2010 (DHA específico para cerebro, -70% en estructura sináptica)
+
+══ 8. HEPATOPROTECCIÓN / DETOXIFICACIÓN / FUNCIÓN HEPÁTICA ══
+- NAC (N-Acetilcisteína) 600-1200mg: Mokhtari J Clin Pharm Ther 2017 (precursor glutatión hepático, estándar en toxicidad)
+- Silimarina (cardo mariano) 420mg: Saller Drugs 2001 (citoprotección hepatocitos, anti-fibrótico)
+- TUDCA (ácido tauroursodeoxicólico) 500mg: Kusaczuk Chem Biol Interact 2019 (estrés RE, flujo biliar, apoptosis)
+- Fosfolípidos de lecitina (fosfatidilcolina) 1200mg: Gundermann Drug Dev Ind Pharm 2016 (membrana hepatocito, esteatosis)
+- Extracto de alcachofa 600mg: Sahebkar Phytomedicine 2018 (cinarina, colerético, reduce ALT/AST)
+
+══ 9. SALUD INTESTINAL / MICROBIOMA / EJE INTESTINO-INMUNE ══
+- Probiótico multi-cepa 50-100B CFU (Lactobacillus + Bifidobacterium): Zmora Cell 2019 (diversidad microbiota)
+- L-Glutamina 5-10g: Rao Curr Opin Clin Nutr 2012 (integridad barrera intestinal, permeabilidad)
+- Butirato (tributirina) 1000mg: Hamer Aliment Pharmacol Ther 2008 (combustible colonocitos, anti-inflamatorio intestinal)
+- Esporas de Bacillus (spore-based probiotics): McFarland World J Gastroenterol 2017 (resistente a ácido gástrico)
+- Fibra prebiótica (GOS/FOS) 5-10g: Gibson Gastroenterology 2017 (alimenta Bifidobacteria, SCFA)
+- Saccharomyces boulardii 500mg: si disbiosis post-antibiótico o diarrea (McFarland WJG 2010)
+- Zinc carnosina 75mg: Mahmood Am J Gastroenterol 2007 (reparación mucosa gástrica, H. pylori)
+
+══ 10. INMUNOMODULACIÓN / DEFENSA / FUNCIÓN INMUNE ══
+- Beta-glucanos 1,3/1,6 (levadura) 250-500mg: Auinger Eur J Nutr 2013 (activación macrófagos, NK cells)
+- Lactoferrina 250mg: Legrand Biochem Cell Biol 2012 (antimicrobiano innato, modulación hierro, antiviral)
+- Calostro bovino 3g: Saad Nutrients 2016 (IgA secretoria, factores de crecimiento, inmunidad mucosa)
+- AHCC (compuesto de hexosa correlacionada) 3g: Smith Nutr Res 2014 (NK cell activity +30-50%)
+- Astrágalo (Astragalus membranaceus) 500mg: Liu J Ethnopharmacol 2017 (telomerasa, activación T-cells)
+
+══ 11. SENOLÍTICO / ANTI-AGING AVANZADO (>50 años o alto riesgo) ══
+- Dasatinib 100mg + Quercetina 1000mg (protocolo 3 días/mes): Hickson Mayo EBioMedicine 2019 (gold standard senolítico)
+- Fisetin 20mg/kg (protocolo 2 días/mes): Kirkland Mayo 2022 (senolítico natural potente en tejido adiposo)
+- Rapamicina intermitente 1-5mg/semana (supervisión médica): ITP NIA 2021 (mTORC1, extensión vida mamíferos)
+- Spermidina 1-3mg: Eisenberg Nat Med 2022 (autofagia, -40% mortalidad CV en cohorte alimentaria)
+- Metformina (doble categoría anti-aging): Kulkarni Cell Metab 2020 (AMPK, mimético restricción calórica)
+- Epitalon (péptido) 10mg ciclo: Khavinson Peptides 2003 (activador telomerasa pineal — experimental, solo en contexto clínico supervisado)
+
+══ 12. MEDICINA REGENERATIVA / CÉLULAS MADRE / EXOSOMAS ══
+- Células madre mesenquimales (MSC) IV 1×10⁶/kg: Longeveron Phase 2b Cell Stem Cell 2026 (frailty, anti-inflamatorio sistémico, inmunomodulación)
+- MSC de cordón umbilical (hUC-MSC) IV: Signal Transduction Targeted Therapy 2024 (cirrosis hepática, autoinmunidad, regeneración tisular)
+- Exosomas derivados de MSC IV 2-5×10¹⁰ partículas: Frontiers Medicine 2025 (vesículas CD9/CD63/CD81, efecto paracrino sin riesgo de injerto)
+- PRP (Plasma rico en plaquetas) intraarticular: Filardo Am J Sports Med 2015 (factores de crecimiento PDGF/TGF-β, regeneración articular)
+- Terapia con vesículas extracelulares (sEVs) tópica/IV: PMC12049250 2025 (seguridad inmunológica hucMSC-derived, anti-inflamatorio)
+- BPC-157 (péptido gástrico) 500mcg: Sikiric Curr Pharm Des 2018 (angiogénesis, reparación tendón/ligamento/músculo — experimental)
+- Thymosin Alpha-1 1.6mg SC: Romani Expert Rev Anti Infect Ther 2017 (inmunorrestauración tímica, activación dendríticas)
+- GHK-Cu (péptido cobre) 200mg tópico/IV: Pickart Int J Mol Sci 2015 (remodelación colágeno, expresión p63 stem cells cutáneas, anti-fibrótico)
+
+══ 13. PÉPTIDOS TERAPÉUTICOS / FACTORES DE CRECIMIENTO ══
+- AOD-9604 (fragmento HGH 176-191) 300mcg: Heffernan Obesity Res 2001 (lipólisis sin efectos GH sistémicos)
+- TB-500 (Thymosin Beta-4) 2.5mg: Goldstein Expert Opin Biol Ther 2010 (reparación tisular, anti-inflamatorio, migración celular)
+- CJC-1295/Ipamorelin 300/300mcg: Teichman J Clin Endocrinol Metab 2006 (secretagogo GH, regeneración, composición corporal)
+- Selank 300mcg nasal: Kozlovskaya Eur J Pharmacol 2003 (análogo tuftsina, ansiolítico, BDNF, inmunomodulador)
+- Semax 600mcg nasal: Eremin Pharmacol Biochem Behav 2004 (neuropéptido derivado ACTH, BDNF +3x, neuroprotección)
+- KPV (tripéptido alfa-MSH) 500mcg: Brzoska Ann NY Acad Sci 2010 (anti-inflamatorio intestinal potente, modulador NF-kB mucosa)
+- Epithalon (ver senolítico): Khavinson 2003 (telomerasa pineal)
+- SS-31 (Elamipretide) 40mg SC: Siegel J Am Heart Assoc 2023 (cardiolipina mitocondrial, disfunción cardíaca — en ensayos Phase 3)
+
+══ 14. ESTILO DE VIDA / INTERVENCIONES NO-FARMACOLÓGICAS ══
+- Ejercicio Zone 2 aeróbico 150-200 min/semana: Mandsager JAMA Netw Open 2018 (VO2max = predictor #1 de longevidad, cada 1 MET = -12% mortalidad)
+- Entrenamiento de fuerza progresivo 2-3x/semana: Momma Br J Sports Med 2022 (-15% mortalidad all-cause, preservación masa muscular)
+- HIIT (High Intensity Interval Training) 1-2x/semana: Robinson Cell Metab 2017 (biogénesis mitocondrial +69% en mayores)
+- TRE (Time-Restricted Eating) 16:8 o 14:10: Wilkinson Cell Metab 2020 (autofagia, sensibilidad insulina)
+- FMD (Fasting Mimicking Diet) 5 días/trimestre: Longo USC Cell Metab 2015 (regeneración celular, IGF-1 -24%)
+- Exposición al frío 2-3 min/día (ducha fría o inmersión): Søberg Cell Rep Med 2021 (grasa parda +40%, norepinefrina +200%)
+- Higiene de sueño 7-9h consistentes: Walker Nat Rev Neurosci 2017 (clearance beta-amiloide glinfático, consolidación)
+- Meditación/breathwork 10-20 min/día: Epel UCSF Psychoneuroendocrinology 2016 (telomerasa +43%, cortisol -25%)
+- Sauna infrarroja 3-4x/semana a 80-100°C: Laukkanen JAMA Int Med 2015 (-40% mortalidad CV, HSP inducción)
+- Earthing/Grounding 30+ min/día: Oschman J Environ Public Health 2012 (reducción viscosidad sanguínea, cortisol nocturno)
+
 Cada ítem del protocolo usa EXACTAMENTE estos campos (no uses otros nombres de campo):
 {
   "number": número secuencial comenzando en 1,
-  "category": "categoría clínica (ej: Suplementación, Farmacológico, Estilo de vida)",
-  "molecule": "NOMBRE COMPLETO del medicamento, suplemento o intervención — NUNCA vacío (ej: Berberina, Metformina, NMN, Vitamina D3 + K2 MK-7, Omega-3 EPA)",
-  "dose": "dosis exacta y frecuencia de administración (ej: 500 mg 3 veces al día con alimentos)",
-  "mechanism": "mecanismo molecular de acción",
+  "category": "categoría clínica de las listadas arriba",
+  "molecule": "NOMBRE COMPLETO de la intervención — NUNCA vacío",
+  "dose": "dosis exacta y frecuencia, personalizada según edad/peso/género del paciente",
+  "mechanism": "mecanismo molecular específico vinculado al biomarcador alterado de ESTE paciente",
   "evidence": "Apellido autor, Institución, Revista, Año, magnitud del efecto",
-  "clinicalTrial": "nombre del ensayo clínico principal (ej: TAME Trial, REDUCE-IT, VITAL Trial)",
-  "targetBiomarkers": ["biomarcador 1", "biomarcador 2"],
-  "expectedResult": "resultado cuantificado esperado",
+  "clinicalTrial": "nombre del ensayo clínico principal",
+  "targetBiomarkers": ["biomarcador específico de ESTE paciente"],
+  "expectedResult": "resultado cuantificado esperado en ESTE paciente",
   "action": "acción concreta e inmediata para el paciente",
   "urgency": "immediate|high|medium|low"
 }
-CRÍTICO: el campo "molecule" debe contener siempre el nombre completo del fármaco o suplemento. Nunca puede quedar vacío ni ser null.
 
-ESTUDIOS DE REFERENCIA OBLIGATORIOS PARA EL PROTOCOLO (usa los más relevantes para este paciente):
-- NMN 500-1000mg/día: Klein WS Univ. 2021, mejora sensibilidad insulina y función muscular; Tsubota Keio Univ. 2022
-- GlyNAC: Kumar et al. Baylor 2022, J Gerontology - revertir envejecimiento mitocondrial
-- Omega-3 EPA 4g/día: Bhatt REDUCE-IT NEJM 2018 (-25% MACE); Calder Nutrients 2022
-- Vitamina D3 2000-4000 UI + K2 MK-7 180mcg: Manson VITAL NEJM 2022; Geleijnse Thromb Haemost 2021
-- Magnesio glicinato 300-400mg: Rondanelli Nutrients 2021; Zhang JASN 2022 (riesgo DM2)
-- Berberina 500mg 3x/día: meta-análisis Liang Endocr Rev 2022 (HbA1c, LDL, TG)
-- Spermidina 1-2mg/día: Eisenberg Nat Med 2022; Madeo Science 2023
-- Creatina 5g/día: funccion mitocondrial, cognitiva, muscular (Rawson J Nutr 2021)
-- Astaxantina 12mg/día: anti-inflamatorio potente, protección cardiovascular (Fassett Mar Drugs 2022)
-- Rapamicina (solo si indicado): ITP NIA 2021, extensión de vida en mamíferos
-- Metformina 500-1000mg: TAME Trial, Bramante Lancet 2023; activacion AMPK
+REGLAS DE PERSONALIZACIÓN DEL PROTOCOLO:
+- Genera entre 8 y 12 intervenciones. Mínimo 8, máximo 12.
+- DIVERSIFICA las categorías: selecciona de al menos 4 categorías distintas del pool. No concentres todo en suplementación.
+- Incluye SIEMPRE al menos 1 intervención de estilo de vida (ejercicio, sueño, alimentación, estrés).
+- Incluye al menos 1 intervención de medicina regenerativa / células madre / exosomas / péptidos si el perfil del paciente lo justifica (>45 años, inflamación crónica, deterioro sistémico, o score general <70).
+- Si el paciente ya toma suplementos o medicamentos, NO los dupliques. En su lugar, sugiere algo complementario o ajusta dosis.
+- Si el paciente tiene alergias a medicamentos, EXCLUYE esos compuestos y sus derivados.
+- Ajusta dosis según edad: <40 años dosis preventivas bajas, 40-60 dosis estándar, >60 dosis terapéuticas ajustadas a función renal/hepática.
+- Ajusta según género: testosterona/zinc/boro en hombres; hierro/tiroides/DIM/inositol en mujeres.
+- Prioriza intervenciones para los hallazgos más críticos (danger > warning > normal).
+- NO repitas la misma molécula dos veces con diferente justificación.
+- Cada "mechanism" debe mencionar el biomarcador ESPECÍFICO de este paciente con su valor actual (ej: "Reduce LDL de 145 a <100 mg/dL mediante inhibición PCSK9 hepática" no solo "Reduce LDL").
+- Si el paciente es joven (<35) sin hallazgos críticos: enfócate en prevención, optimización mitocondrial, estilo de vida y neuroprotección. Evita farmacología pesada.
+- Si el paciente es 35-55 con hallazgos moderados: balance entre suplementación, estilo de vida, y péptidos si hay deterioro funcional.
+- Si el paciente es >55 o tiene múltiples hallazgos críticos: incluye senolíticos, medicina regenerativa (MSC/exosomas si score <65 o inflamación alta), y protocolos más agresivos.
+- Para categoría "Medicina regenerativa": especifica tipo de célula madre, vía de administración, número de células, y justificación basada en el biomarcador alterado.
 
 Genera ÚNICAMENTE este JSON, sin ningún texto antes ni después, sin markdown:
 
@@ -227,7 +383,7 @@ REGLAS DE FORMATO ESTRICTAS:
 - OBLIGATORIO: "risks" debe tener exactamente 4 enfermedades derivadas de los biomarcadores de ESTE paciente. NUNCA dejar vacío.
   Formato: { "disease": "nombre enfermedad", "probability": número 0-100, "horizon": "X años", "drivers": ["biomarcador: valor actual"], "color": "#hexcolor" }
   Colores sugeridos: cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8
-- Protocol exactamente 5 intervenciones con los campos: number, category, molecule (NUNCA vacío), dose, mechanism (1 oración), evidence (autor, año, efecto), clinicalTrial, targetBiomarkers, expectedResult (1 oración), action (1 oración), urgency
+- Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa si aplica). Campos: number, category, molecule (NUNCA vacío), dose (ajustada a edad/género), mechanism (1 oración con biomarcador específico y valor), evidence (autor, año, efecto), clinicalTrial, targetBiomarkers, expectedResult (1 oración), action (1 oración), urgency
 - projectionData: exactamente 10 puntos (años 1-10) con "withoutIntervention", "withIntervention" (scores 0-100) y "yearRisk": { "biomarkers": [máximo 2 strings], "conditions": [máximo 2 strings], "urgencyNote": "1 frase breve" }
 - projectionFactors: exactamente 3 factores: { "factor": "nombre corto", "currentValue": "valor con unidad", "optimalValue": "valor óptimo", "medicalJustification": "1 oración: autor, año, efecto", "withoutProtocol": "1 oración", "withProtocol": "1 oración" }
 - Todo el texto en español mexicano. Lenguaje técnico pero conciso.
@@ -693,12 +849,24 @@ function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiA
 export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext?: PatientContextForPrompt, onProgress?: () => void): Promise<AnalyzeResult> {
   const userContent: Anthropic.MessageParam['content'] = []
 
-  // Incluir historia clínica al inicio si existe
-  if (patientContext?.clinical_history) {
-    userContent.push({
-      type: 'text',
-      text: formatClinicalHistory(patientContext),
-    })
+  // Siempre incluir contexto del paciente para personalización por edad/género/peso
+  if (patientContext) {
+    if (patientContext.clinical_history) {
+      userContent.push({
+        type: 'text',
+        text: formatClinicalHistory(patientContext),
+      })
+    } else {
+      // Sin historia clínica, pero sí datos demográficos básicos
+      const genderLabel = patientContext.gender === 'male' ? 'Masculino' : patientContext.gender === 'female' ? 'Femenino' : 'Otro'
+      const bmi = patientContext.weight && patientContext.height
+        ? (patientContext.weight / Math.pow(patientContext.height / 100, 2)).toFixed(1)
+        : null
+      userContent.push({
+        type: 'text',
+        text: `=== DATOS DEL PACIENTE ===\nNombre: ${patientContext.name} | Edad: ${patientContext.age} años | Género: ${genderLabel}${patientContext.weight ? ` | Peso: ${patientContext.weight} kg` : ''}${patientContext.height ? ` | Talla: ${patientContext.height} cm` : ''}${bmi ? ` | IMC: ${bmi}` : ''}\nIMPORTANTE: Personaliza el protocolo según la edad (${patientContext.age} años) y género (${genderLabel}) de este paciente. No hay historia clínica disponible.\n=== FIN DATOS ===`,
+      })
+    }
   }
 
   for (let i = 0; i < files.length; i++) {
@@ -778,12 +946,20 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
 
 const REANALYZE_PROMPT = `TAREA: Re-genera el análisis médico de longevidad usando los biomarcadores ya extraídos y la historia clínica completa del paciente.
 
-INSTRUCCIONES:
+INSTRUCCIONES DE PERSONALIZACIÓN:
 - Los biomarcadores (parsedData) ya están correctamente extraídos — úsalos como referencia fija
-- Enriquece el análisis incorporando el contexto clínico: estilo de vida, historial familiar, medicamentos actuales, alergias
-- Personaliza el protocolo según lo que el paciente ya hace (no repitas suplementos actuales sin justificación, evita medicamentos a los que sea alérgico)
-- Ajusta los riesgos considerando el historial familiar
+- Enriquece el análisis incorporando el contexto clínico completo: estilo de vida, historial familiar, medicamentos actuales, alergias, dieta, ejercicio, sueño, estrés
+- El protocolo debe ser ÚNICO para este paciente:
+  · NO repitas suplementos que el paciente ya toma (cítalos como fortaleza en el FODA)
+  · NUNCA recomendar medicamentos a los que el paciente sea alérgico
+  · Ajusta dosis según edad (<40 preventivas, 40-60 estándar, >60 terapéuticas con ajuste renal/hepático)
+  · Ajusta según género (necesidades hormonales diferenciadas)
+  · Si el paciente es joven y sano, enfócate en optimización y estilo de vida, no farmacología
+  · Si el paciente es >60 o tiene múltiples hallazgos, incluye intervenciones más agresivas
+  · Incluye SIEMPRE al menos 1 intervención de estilo de vida
+- Ajusta los riesgos considerando el historial familiar (si hay diabetes familiar, aumenta probabilidad metabólica, etc.)
 - La historia clínica puede explicar valores fuera de rango (ej: estrés alto → cortisol elevado, sedentarismo → glucosa límite)
+- Cada "mechanism" debe citar el biomarcador ESPECÍFICO con su valor actual
 
 Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
 
@@ -802,7 +978,7 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
   }
 }
 
-REGLAS DE FORMATO: Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol exactamente 5 intervenciones (campos concisos: mechanism/expectedResult/action = 1 oración). projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores (withoutProtocol/withProtocol = 1 oración). Todo en español mexicano, lenguaje conciso.`
+REGLAS DE FORMATO: Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa/péptido si aplica; mechanism/expectedResult/action = 1 oración con biomarcador específico y valor). projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores (withoutProtocol/withProtocol = 1 oración). Todo en español mexicano, lenguaje conciso.`
 
 export async function reanalyzeWithClinicalHistory(
   parsedData: object,
