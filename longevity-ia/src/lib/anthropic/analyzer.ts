@@ -350,7 +350,9 @@ Genera ÚNICAMENTE este JSON, sin ningún texto antes ni después, sin markdown:
     "overallScore": 0,
     "longevity_age": 0,
     "clinicalSummary": "",
-    "keyAlerts": [],
+    "keyAlerts": [
+      { "title": "Título de alerta", "description": "Detalle clínico", "level": "warning", "value": "valor actual", "target": "valor objetivo" }
+    ],
     "swot": {
       "strengths": [],
       "weaknesses": [],
@@ -366,7 +368,9 @@ Genera ÚNICAMENTE este JSON, sin ningún texto antes ni después, sin markdown:
     "projectionData": [
       { "year": 1, "withoutIntervention": 0, "withIntervention": 0, "yearRisk": { "biomarkers": [], "conditions": [], "urgencyNote": "" } }
     ],
-    "projectionFactors": []
+    "projectionFactors": [
+      { "factor": "nombre corto", "currentValue": "valor con unidad", "optimalValue": "valor óptimo", "medicalJustification": "1 oración", "withoutProtocol": "1 oración", "withProtocol": "1 oración" }
+    ]
   }
 }
 
@@ -377,7 +381,7 @@ REGLAS DE FORMATO ESTRICTAS:
 - overallScore: promedio ponderado de sistemas con datos disponibles
 - longevity_age: edad biológica estimada en años (puede ser menor o mayor a la cronológica)
 - clinicalSummary: párrafo de 2-3 oraciones con los hallazgos más importantes
-- keyAlerts: máximo 4 strings con alertas críticas
+- keyAlerts: máximo 4 objetos con alertas críticas. Formato: { "title": "título corto", "description": "explicación clínica", "level": "warning|danger", "value": "valor actual del biomarcador", "target": "valor objetivo óptimo" }
 - FODA: exactamente 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas
   Formato FODA: { "label": "Título corto (máx 5 palabras)", "detail": "1 oración con el mecanismo clave", "expectedImpact": "dato cuantificado breve (solo fortalezas/oportunidades)", "probability": "Alta/Media/Baja (solo amenazas/debilidades)" }
 - OBLIGATORIO: "risks" debe tener exactamente 4 enfermedades derivadas de los biomarcadores de ESTE paciente. NUNCA dejar vacío.
@@ -386,7 +390,7 @@ REGLAS DE FORMATO ESTRICTAS:
 - Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa si aplica). Campos: number, category, molecule (NUNCA vacío), dose (ajustada a edad/género), mechanism (1 oración con biomarcador específico y valor), evidence (autor, año, efecto), clinicalTrial, targetBiomarkers, expectedResult (1 oración), action (1 oración), urgency
 - projectionData: exactamente 10 puntos (años 1-10) con "withoutIntervention", "withIntervention" (scores 0-100) y "yearRisk": { "biomarkers": [máximo 2 strings], "conditions": [máximo 2 strings], "urgencyNote": "1 frase breve" }
 - projectionFactors: exactamente 3 factores: { "factor": "nombre corto", "currentValue": "valor con unidad", "optimalValue": "valor óptimo", "medicalJustification": "1 oración: autor, año, efecto", "withoutProtocol": "1 oración", "withProtocol": "1 oración" }
-- Todo el texto en español mexicano. Lenguaje técnico pero conciso.
+- Todo el texto en español mexicano. Lenguaje técnico y preciso.
 - Analiza ÚNICAMENTE lo que aparece en el documento. No inventes valores no presentes.`
 
 export interface AnalyzeFileParams {
@@ -685,14 +689,18 @@ function validateProtocolItem(raw: unknown, index: number): object {
 }
 
 function validateKeyAlert(raw: unknown): object | null {
+  // Handle plain strings (legacy format)
+  if (typeof raw === 'string' && raw.trim()) {
+    return { title: raw.trim(), description: '', level: 'warning', value: '', target: '' }
+  }
   if (!raw || typeof raw !== 'object') return null
   const alert = raw as Record<string, unknown>
-  const title = ensureString(alert.title)
+  const title = ensureString(alert.title || alert.label)
   if (!title) return null
   const level = ensureString(alert.level, 'warning')
   return {
     title,
-    description: ensureString(alert.description),
+    description: ensureString(alert.description || alert.detail),
     level: VALID_LEVELS.has(level) ? level : 'warning',
     value: ensureString(alert.value),
     target: ensureString(alert.target),
@@ -846,6 +854,132 @@ function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiA
   }
 }
 
+// ─── Paso 1: Extraer solo biomarcadores del archivo (sin análisis IA) ────────
+
+const EXTRACT_PROMPT = `TAREA: Extrae TODOS los valores de biomarcadores de este documento de laboratorio clínico.
+
+Lee CADA valor numérico del documento. No omitas ningún biomarcador presente. Identifica unidades y compáralas con los rangos de referencia del laboratorio emisor.
+
+Clasifica cada biomarcador encontrado con rangos óptimos de longevidad (más estrictos que los convencionales):
+- Glucosa en ayuno: óptimo 70-88 mg/dL
+- LDL: óptimo <70 mg/dL
+- HDL: óptimo >60 mg/dL
+- Triglicéridos: óptimo <100 mg/dL
+- HbA1c: óptimo <5.4%
+- Vitamina D 25-OH: óptimo 60-80 ng/mL
+- PCR: óptimo <0.5 mg/L
+- Homocisteína: óptimo <8 umol/L
+- GFR: óptimo >90 mL/min
+- Albumina: óptimo >4.5 g/dL
+- Ferritina: óptimo 50-100 ng/mL hombres, 30-80 mujeres
+- TSH: óptimo 0.5-2.0 mIU/L
+- AST/ALT: óptimo <25 U/L
+- GGT: óptimo <20 U/L
+- Insulina: óptimo <5 uIU/mL
+- Vitamina B12: óptimo 600-1200 pg/mL
+
+Genera ÚNICAMENTE este JSON, sin texto adicional:
+
+{
+  "parsedData": {
+    "hematology": { "rbc": null, "hemoglobin": null, "hematocrit": null, "mcv": null, "mch": null, "mchc": null, "rdw": null, "wbc": null, "neutrophils": null, "lymphocytes": null, "monocytes": null, "eosinophils": null, "platelets": null, "mpv": null },
+    "metabolic": { "glucose": null, "urea": null, "bun": null, "creatinine": null, "gfr": null, "uricAcid": null },
+    "lipids": { "totalCholesterol": null, "triglycerides": null, "hdl": null, "ldl": null, "vldl": null, "nonHdl": null, "atherogenicIndex": null, "ldlHdlRatio": null, "tgHdlRatio": null },
+    "liver": { "alkalinePhosphatase": null, "ast": null, "alt": null, "ggt": null, "ldh": null, "totalProtein": null, "albumin": null, "globulin": null, "amylase": null, "totalBilirubin": null },
+    "vitamins": { "vitaminD": null, "vitaminB12": null, "ferritin": null },
+    "hormones": { "tsh": null, "testosterone": null, "cortisol": null, "insulin": null, "hba1c": null },
+    "inflammation": { "crp": null, "homocysteine": null }
+  }
+}
+
+REGLAS:
+- Cada biomarcador encontrado: { "value": número, "unit": "unidad", "refMin": número, "refMax": número, "optMin": número, "optMax": número, "status": "optimal|normal|warning|danger" }
+- Si un valor NO está en el documento: null
+- NO inventes valores. Solo extrae lo que aparece en el documento.
+- Usa rangos óptimos de longevidad, no solo rangos de referencia convencionales.`
+
+export async function extractBiomarkers(files: AnalyzeFileParams[], onProgress?: () => void): Promise<object> {
+  const userContent: Anthropic.MessageParam['content'] = []
+
+  for (let i = 0; i < files.length; i++) {
+    const { fileBase64, fileType, mimeType } = files[i]
+    const label = files.length > 1 ? `Archivo ${i + 1} de ${files.length}` : 'Estudio de laboratorio'
+
+    if (fileType === 'image') {
+      if (files.length > 1) {
+        userContent.push({ type: 'text', text: `--- ${label} (imagen) ---` })
+      }
+      userContent.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+          data: fileBase64,
+        },
+      })
+    } else if (fileType === 'pdf') {
+      const buffer = Buffer.from(fileBase64, 'base64')
+      let pdfText: string
+      try {
+        const pdfData = await pdfParse(buffer)
+        pdfText = pdfData.text
+      } catch {
+        throw new Error(`No se pudo leer el archivo PDF ${i + 1}. Verifica que no esté protegido con contraseña o intenta con una imagen.`)
+      }
+      if (!pdfText || pdfText.trim().length < 10) {
+        throw new Error(`No se pudo extraer texto del archivo ${i + 1}. Intenta con una imagen del estudio.`)
+      }
+      userContent.push({ type: 'text', text: `--- ${label} (PDF) ---\n\n${pdfText}` })
+    }
+  }
+
+  userContent.push({ type: 'text', text: EXTRACT_PROMPT })
+
+  let rawText = ''
+  await client.messages
+    .stream({
+      model: MODEL,
+      max_tokens: 8000,
+      temperature: 0,
+      system: 'Eres un sistema experto en extracción de datos de laboratorio clínico. Extraes biomarcadores con precisión y los clasificas según rangos óptimos de longevidad. Respondes ÚNICAMENTE con JSON válido.',
+      messages: [{ role: 'user', content: userContent }],
+    })
+    .on('text', (text) => { rawText += text; onProgress?.() })
+    .finalMessage()
+
+  if (!rawText) throw new Error('Claude no devolvió respuesta en la extracción de biomarcadores.')
+
+  const firstBrace = rawText.indexOf('{')
+  const lastBrace = rawText.lastIndexOf('}')
+  if (firstBrace === -1 || lastBrace === -1) throw new Error('JSON de extracción inválido.')
+
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(rawText.slice(firstBrace, lastBrace + 1))
+  } catch {
+    throw new Error(`JSON de extracción inválido o truncado. Longitud: ${rawText.length} chars.`)
+  }
+
+  const rawParsed = (parsed.parsedData ?? parsed) as Record<string, unknown>
+  const validatedParsedData: Record<string, object | null> = {
+    hematology: validateParsedDataSection(rawParsed.hematology),
+    metabolic: validateParsedDataSection(rawParsed.metabolic),
+    lipids: validateParsedDataSection(rawParsed.lipids),
+    liver: validateParsedDataSection(rawParsed.liver),
+    vitamins: validateParsedDataSection(rawParsed.vitamins),
+    hormones: validateParsedDataSection(rawParsed.hormones),
+    inflammation: validateParsedDataSection(rawParsed.inflammation),
+  }
+
+  // Verify at least some data was extracted
+  const hasAnyData = Object.values(validatedParsedData).some(v => v !== null)
+  if (!hasAnyData) throw new Error('No se encontraron biomarcadores en el documento.')
+
+  return validatedParsedData
+}
+
+// ─── Función legacy: extrae Y analiza en una sola llamada (se mantiene por compatibilidad) ──
+
 export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext?: PatientContextForPrompt, onProgress?: () => void): Promise<AnalyzeResult> {
   const userContent: Anthropic.MessageParam['content'] = []
 
@@ -915,7 +1049,7 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 12000,
+      max_tokens: 64000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
@@ -969,12 +1103,12 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
     "overallScore": 0,
     "longevity_age": 0,
     "clinicalSummary": "",
-    "keyAlerts": [],
+    "keyAlerts": [{ "title": "", "description": "", "level": "warning", "value": "", "target": "" }],
     "swot": { "strengths": [], "weaknesses": [], "opportunities": [], "threats": [] },
     "risks": [{ "disease": "Nombre", "probability": 0, "horizon": "X años", "drivers": ["biomarcador: valor"], "color": "#hex" }],
     "protocol": [{ "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }],
     "projectionData": [{ "year": 1, "withoutIntervention": 0, "withIntervention": 0, "yearRisk": { "biomarkers": [], "conditions": [], "urgencyNote": "" } }],
-    "projectionFactors": []
+    "projectionFactors": [{ "factor": "", "currentValue": "", "optimalValue": "", "medicalJustification": "", "withoutProtocol": "", "withProtocol": "" }]
   }
 }
 
@@ -1006,7 +1140,7 @@ export async function reanalyzeWithClinicalHistory(
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 12000,
+      max_tokens: 64000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],

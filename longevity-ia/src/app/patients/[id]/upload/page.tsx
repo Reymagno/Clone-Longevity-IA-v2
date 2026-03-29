@@ -111,6 +111,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
         if (!event.ok) throw new Error(event.error || 'Error desconocido')
 
         if (event.step === 'uploading') goToProgress('uploading')
+        else if (event.step === 'reading') goToProgress('reading')
         else if (event.step === 'analyzing') goToProgress('analyzing')
         else if (event.step === 'saving') goToProgress('saving')
         else if (event.step === 'done') {

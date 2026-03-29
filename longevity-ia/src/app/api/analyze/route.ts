@@ -5,7 +5,7 @@ export const maxDuration = 300
 import { NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
-import { analyzeLabFiles } from '@/lib/anthropic/analyzer'
+import { extractBiomarkers, reanalyzeWithClinicalHistory } from '@/lib/anthropic/analyzer'
 
 /** Compute a combined SHA-256 hash of all file buffers for cache lookup */
 function computeFilesHash(buffers: Buffer[]): string {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       // Immediate first byte — starts the clock on Vercel's edge proxy
       enqueue(': keepalive\n\n')
 
-      // Fallback keepalive every 5s for non-Claude phases (auth, upload, DB)
+      // Fallback keepalive every 5s
       const keepalive = setInterval(() => enqueue(': keepalive\n\n'), 5_000)
 
       try {
@@ -77,10 +77,9 @@ export async function POST(request: NextRequest) {
           for (const cached of cachedResults) {
             const meta = (cached.parsed_data as Record<string, unknown>)?._meta as Record<string, unknown> | undefined
             if (meta?.fileHash === filesHash) {
-              // Found cached result with same files — clone the analysis into a new record
+              // Found cached result with same files — clone into a new record
               send({ ok: true, step: 'uploading' })
 
-              // Still upload files to storage for reference
               const fileUrls: string[] = []
               const timestamp = Date.now()
               for (let i = 0; i < files.length; i++) {
@@ -126,7 +125,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 1. Upload files (use cached buffers)
+        // ══════════════════════════════════════════════════════════════
+        // PASO 1: Subir archivos + Extraer biomarcadores
+        // ══════════════════════════════════════════════════════════════
         send({ ok: true, step: 'uploading' })
         const fileUrls: string[] = []
         const timestamp = Date.now()
@@ -149,10 +150,28 @@ export async function POST(request: NextRequest) {
           fileUrls.push(urlData.publicUrl)
         }
 
-        // 2. Create DB record
+        // Extraer biomarcadores (Llamada 1 a Claude — ligera, ~30-60s)
+        send({ ok: true, step: 'reading' })
+
+        const fileParams = files.map((file, i) => ({
+          fileBase64: fileBuffers[i].toString('base64'),
+          fileType: file.type.startsWith('image/') ? 'image' as const : 'pdf' as const,
+          mimeType: file.type,
+        }))
+
+        const parsedData = await extractBiomarkers(fileParams, () => enqueue(': keepalive\n\n'))
+
+        // Guardar parsedData inmediatamente — si el análisis IA falla, no se pierde la extracción
+        const parsedDataWithHash = { ...parsedData as object, _meta: { fileHash: filesHash } }
+
         const { data: labResult, error: dbError } = await supabase
           .from('lab_results')
-          .insert({ patient_id: patientId, result_date: resultDate, file_urls: fileUrls })
+          .insert({
+            patient_id: patientId,
+            result_date: resultDate,
+            file_urls: fileUrls,
+            parsed_data: parsedDataWithHash,
+          })
           .select()
           .single()
 
@@ -161,17 +180,12 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        // 3. Prepare files for Claude (reuse cached buffers)
-        const fileParams = files.map((file, i) => ({
-          fileBase64: fileBuffers[i].toString('base64'),
-          fileType: file.type.startsWith('image/') ? 'image' as const : 'pdf' as const,
-          mimeType: file.type,
-        }))
-
-        // 4. Call Claude — onProgress fires a keepalive on every streamed token
+        // ══════════════════════════════════════════════════════════════
+        // PASO 2: Generar análisis IA completo a partir de parsedData
+        // ══════════════════════════════════════════════════════════════
         send({ ok: true, step: 'analyzing' })
 
-        const analysisResult = await analyzeLabFiles(fileParams, {
+        const aiAnalysis = await reanalyzeWithClinicalHistory(parsedData, {
           name: ownPatient.name,
           age: ownPatient.age,
           gender: ownPatient.gender,
@@ -180,17 +194,13 @@ export async function POST(request: NextRequest) {
           clinical_history: ownPatient.clinical_history ?? null,
         }, () => enqueue(': keepalive\n\n'))
 
-        // 5. Save to DB (include file hash for cache)
+        // Guardar análisis IA
         send({ ok: true, step: 'saving' })
 
-        const parsedDataWithHash = { ...analysisResult.parsedData as object, _meta: { fileHash: filesHash } }
-
-        const { data: updatedResult, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from('lab_results')
-          .update({ parsed_data: parsedDataWithHash, ai_analysis: analysisResult.aiAnalysis })
+          .update({ ai_analysis: aiAnalysis })
           .eq('id', labResult.id)
-          .select()
-          .single()
 
         if (updateError) {
           send({ ok: false, error: `Error al guardar análisis: ${updateError.message}` })
