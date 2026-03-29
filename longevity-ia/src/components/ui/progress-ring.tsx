@@ -13,7 +13,7 @@ export function ProgressRing({
   progress,
   size = 220,
   strokeWidth = 14,
-  color = '#00e5a0',
+  color = '#2EAE7B',
   label,
   sublabel,
 }: ProgressRingProps) {
@@ -30,7 +30,7 @@ export function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#1a2d4a"
+          stroke="#1E4A38"
           strokeWidth={strokeWidth}
         />
         {/* Arco de progreso */}

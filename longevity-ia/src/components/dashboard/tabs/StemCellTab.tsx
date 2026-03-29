@@ -49,11 +49,11 @@ interface StemCellProtocol {
 
 function statusColor(status: DoseFactor['status']): string {
   switch (status) {
-    case 'optimal':     return '#00e5a0'
-    case 'normal':      return '#38bdf8'
-    case 'warning':     return '#f5a623'
-    case 'danger':      return '#ff4d6d'
-    case 'unavailable': return '#64748b'
+    case 'optimal':     return '#2EAE7B'
+    case 'normal':      return '#5BA4C9'
+    case 'warning':     return '#D4A03A'
+    case 'danger':      return '#D4536A'
+    case 'unavailable': return '#6B6660'
   }
 }
 
@@ -79,10 +79,10 @@ function multiplierBadge(m: number): string {
 }
 
 function multiplierColor(m: number): string {
-  if (m > 1.2) return '#ff4d6d'
-  if (m > 1.0) return '#f5a623'
-  if (m < 1.0) return '#38bdf8'
-  return '#00e5a0'
+  if (m > 1.2) return '#D4536A'
+  if (m > 1.0) return '#D4A03A'
+  if (m < 1.0) return '#5BA4C9'
+  return '#2EAE7B'
 }
 
 function formatMillions(n: number): string {
@@ -559,9 +559,9 @@ function FactorRow({ factor }: { factor: DoseFactor }) {
 
 function IndicationBadge({ indication }: { indication: StemCellProtocol['indication'] }) {
   const config = {
-    'preventivo':              { label: 'Preventivo / Optimización', color: '#00e5a0' },
-    'terapéutico-moderado':    { label: 'Terapéutico Moderado',       color: '#38bdf8' },
-    'terapéutico-intensivo':   { label: 'Terapéutico Intensivo',      color: '#f5a623' },
+    'preventivo':              { label: 'Preventivo / Optimización', color: '#2EAE7B' },
+    'terapéutico-moderado':    { label: 'Terapéutico Moderado',       color: '#5BA4C9' },
+    'terapéutico-intensivo':   { label: 'Terapéutico Intensivo',      color: '#D4A03A' },
   }
   const c = config[indication]
   return (
@@ -877,11 +877,11 @@ export function StemCellTab({ patient, parsedData, analysis }: StemCellTabProps)
             </div>
             <div className="rounded-lg bg-muted/30 border border-border divide-y divide-border">
               {[
-                { rango: 'Factor Total ≤ 1.05', sesiones: '1 sesión única', indicacion: 'Preventivo / Optimización', color: '#00e5a0', desc: 'Paciente en buen estado. Una sola infusión es suficiente.' },
-                { rango: '1.05 < Factor ≤ 1.30', sesiones: '2 sesiones (mes 0 y mes 3)', indicacion: 'Terapéutico Moderado', color: '#38bdf8', desc: 'Algunos sistemas comprometidos. Se necesita refuerzo a los 3 meses.' },
-                { rango: 'Factor Total > 1.30', sesiones: '3 sesiones (mes 0, 1 y 3)', indicacion: 'Terapéutico Intensivo', color: '#f5a623', desc: 'Múltiples sistemas comprometidos. Protocolo intensivo con seguimiento mensual.' },
+                { rango: 'Factor Total ≤ 1.05', sesiones: '1 sesión única', indicacion: 'Preventivo / Optimización', color: '#2EAE7B', desc: 'Paciente en buen estado. Una sola infusión es suficiente.' },
+                { rango: '1.05 < Factor ≤ 1.30', sesiones: '2 sesiones (mes 0 y mes 3)', indicacion: 'Terapéutico Moderado', color: '#5BA4C9', desc: 'Algunos sistemas comprometidos. Se necesita refuerzo a los 3 meses.' },
+                { rango: 'Factor Total > 1.30', sesiones: '3 sesiones (mes 0, 1 y 3)', indicacion: 'Terapéutico Intensivo', color: '#D4A03A', desc: 'Múltiples sistemas comprometidos. Protocolo intensivo con seguimiento mensual.' },
               ].map(({ rango, sesiones, indicacion, color, desc }) => (
-                <div key={rango} className={`p-3 flex items-start gap-3 ${protocol.totalFactor <= 1.05 && color === '#00e5a0' ? 'bg-accent/5' : protocol.totalFactor > 1.05 && protocol.totalFactor <= 1.3 && color === '#38bdf8' ? 'bg-blue-400/5' : protocol.totalFactor > 1.3 && color === '#f5a623' ? 'bg-warning/5' : ''}`}>
+                <div key={rango} className={`p-3 flex items-start gap-3 ${protocol.totalFactor <= 1.05 && color === '#2EAE7B' ? 'bg-accent/5' : protocol.totalFactor > 1.05 && protocol.totalFactor <= 1.3 && color === '#5BA4C9' ? 'bg-blue-400/5' : protocol.totalFactor > 1.3 && color === '#D4A03A' ? 'bg-warning/5' : ''}`}>
                   <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -891,9 +891,9 @@ export function StemCellTab({ patient, parsedData, analysis }: StemCellTabProps)
                     <p className="text-xs font-semibold text-foreground mt-0.5">{sesiones}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
                   </div>
-                  {((protocol.totalFactor <= 1.05 && color === '#00e5a0') ||
-                    (protocol.totalFactor > 1.05 && protocol.totalFactor <= 1.3 && color === '#38bdf8') ||
-                    (protocol.totalFactor > 1.3 && color === '#f5a623')) && (
+                  {((protocol.totalFactor <= 1.05 && color === '#2EAE7B') ||
+                    (protocol.totalFactor > 1.05 && protocol.totalFactor <= 1.3 && color === '#5BA4C9') ||
+                    (protocol.totalFactor > 1.3 && color === '#D4A03A')) && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0" style={{ color, background: color + '20' }}>
                       ← este paciente
                     </span>

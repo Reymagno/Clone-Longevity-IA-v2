@@ -70,7 +70,7 @@ const PLANS: {
     title: 'Persona / Paciente',
     subtitle: 'Monitorea tu salud personal con IA',
     icon: User,
-    color: '#00e5a0',
+    color: '#2EAE7B',
     benefits: [
       'Dashboard de salud personalizado',
       'Analisis de biomarcadores con IA',
@@ -84,7 +84,7 @@ const PLANS: {
     title: 'Medico',
     subtitle: 'Herramientas avanzadas para profesionales',
     icon: Stethoscope,
-    color: '#38bdf8',
+    color: '#5BA4C9',
     benefits: [
       'Gestion de multiples pacientes',
       'Reportes medicos PDF profesionales',
@@ -160,7 +160,7 @@ export default function LandingPage() {
             fontFamily: "'Georgia', 'Cambria', 'Times New Roman', serif",
             fontStyle: 'italic',
             fontWeight: 400,
-            background: 'linear-gradient(120deg, #94a3b8 0%, #f1f5f9 42%, #C9A84C 78%, #E8C46A 100%)',
+            background: 'linear-gradient(120deg, #A8A399 0%, #E2DFD6 42%, #D4AF37 78%, #F5E6B8 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -228,7 +228,7 @@ export default function LandingPage() {
           <h2
             className="text-3xl sm:text-4xl font-bold mb-4"
             style={{
-              background: 'linear-gradient(120deg, #f1f5f9 0%, #C9A84C 60%, #E8C46A 100%)',
+              background: 'linear-gradient(120deg, #E2DFD6 0%, #D4AF37 60%, #F5E6B8 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',

@@ -205,10 +205,10 @@ const SVG_KEYFRAMES = `
 
 function scoreColor(score: number | null): string {
   if (score === null) return '#475569'
-  if (score >= 85) return '#00e5a0'
-  if (score >= 65) return '#38bdf8'
-  if (score >= 40) return '#f5a623'
-  return '#ff4d6d'
+  if (score >= 85) return '#2EAE7B'
+  if (score >= 65) return '#5BA4C9'
+  if (score >= 40) return '#D4A03A'
+  return '#D4536A'
 }
 
 function scoreLabel(score: number | null): string {
@@ -232,7 +232,7 @@ function calcStrength(scoreA: number | null, scoreB: number | null, baseWeight: 
 function NodeLabel({ name, cx, cy, r, dimmed }: {
   name: string; cx: number; cy: number; r: number; dimmed: boolean
 }) {
-  const fill = dimmed ? '#1e3a5f' : '#64748b'
+  const fill = dimmed ? '#1E4A38' : '#6B6660'
   const words = name.split(' ')
   const line1 = words[0]
   const line2 = words.slice(1).join(' ')
@@ -429,7 +429,7 @@ export function OrganNetworkDiagram({ organScores }: Props) {
         )}
 
         {/* ── SVG Network ── */}
-        <div className="relative rounded-xl border border-border bg-[#050e1a] overflow-hidden">
+        <div className="relative rounded-xl border border-border bg-[#091A12] overflow-hidden">
 
           {/* Controles de zoom */}
           <div className="absolute top-3 right-3 flex flex-col gap-1 z-10">
@@ -530,10 +530,10 @@ export function OrganNetworkDiagram({ organScores }: Props) {
             </defs>
 
             {/* Fondo — extendido para cubrir zoom-out */}
-            <rect x={-200} y={-200} width={W + 400} height={H + 400} fill="#050e1a" />
+            <rect x={-200} y={-200} width={W + 400} height={H + 400} fill="#091A12" />
             {Array.from({ length: Math.ceil(W / 32) }).map((_, xi) =>
               Array.from({ length: Math.ceil(H / 32) }).map((_, yi) => (
-                <circle key={`d-${xi}-${yi}`} cx={xi * 32 + 4} cy={yi * 32 + 4} r={0.6} fill="#1a2d4a" />
+                <circle key={`d-${xi}-${yi}`} cx={xi * 32 + 4} cy={yi * 32 + 4} r={0.6} fill="#1E4A38" />
               ))
             )}
 
@@ -737,7 +737,7 @@ export function OrganNetworkDiagram({ organScores }: Props) {
                       <div className="w-20 h-1.5 rounded-full bg-border overflow-hidden">
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${c.strength}%`, background: 'linear-gradient(90deg, #00e5a0, #f5a623 55%, #ff4d6d)' }}
+                          style={{ width: `${c.strength}%`, background: 'linear-gradient(90deg, #2EAE7B, #D4A03A 55%, #D4536A)' }}
                         />
                       </div>
                       <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">
@@ -779,7 +779,7 @@ export function OrganNetworkDiagram({ organScores }: Props) {
         {selectedEdge && (
           <div className="rounded-xl border border-warning/30 bg-card overflow-hidden animate-fade-in">
 
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-[#f5a62308]">
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-[#D4A03A08]">
               <span className="text-sm font-bold text-foreground">{selectedEdge.fromName}</span>
               <div className="flex-1 flex items-center gap-1">
                 <div className="flex-1 h-px bg-gradient-to-r from-border/40 via-warning/50 to-border/40" />
@@ -816,7 +816,7 @@ export function OrganNetworkDiagram({ organScores }: Props) {
                 <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${selectedEdge.strength}%`, background: 'linear-gradient(90deg, #00e5a0, #f5a623 55%, #ff4d6d)' }}
+                    style={{ width: `${selectedEdge.strength}%`, background: 'linear-gradient(90deg, #2EAE7B, #D4A03A 55%, #D4536A)' }}
                   />
                 </div>
                 <span className="text-xs font-mono font-bold text-foreground shrink-0 w-10 text-right">
@@ -1055,10 +1055,10 @@ export function OrganNetworkDiagram({ organScores }: Props) {
         {/* ── Leyenda de color ── */}
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 items-center pt-1">
           {[
-            { color: '#00e5a0', label: 'Óptimo  85–100' },
-            { color: '#38bdf8', label: 'Normal  65–84' },
-            { color: '#f5a623', label: 'Atención  40–64' },
-            { color: '#ff4d6d', label: 'Crítico  0–39' },
+            { color: '#2EAE7B', label: 'Óptimo  85–100' },
+            { color: '#5BA4C9', label: 'Normal  65–84' },
+            { color: '#D4A03A', label: 'Atención  40–64' },
+            { color: '#D4536A', label: 'Crítico  0–39' },
             { color: '#475569', label: 'Sin datos' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-1.5">

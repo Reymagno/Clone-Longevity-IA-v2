@@ -73,15 +73,15 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
             <div onMouseLeave={() => setHoveredYear(null)}>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={projectionData} margin={{ top: 10, right: 20, bottom: 5, left: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1a2d4a" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1E4A38" />
                   <XAxis
                     dataKey="year"
-                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'DM Mono' }}
+                    tick={{ fill: '#6B6660', fontSize: 11, fontFamily: 'DM Mono' }}
                     tickFormatter={(v) => `Año ${v}`}
                   />
                   <YAxis
                     domain={[0, 100]}
-                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'DM Mono' }}
+                    tick={{ fill: '#6B6660', fontSize: 11, fontFamily: 'DM Mono' }}
                     tickFormatter={(v) => `${v}`}
                     label={{
                       value: 'Score de Salud',
@@ -92,7 +92,7 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
                     }}
                   />
                   <Tooltip
-                    contentStyle={{ background: '#0a1628', border: '1px solid #1a2d4a', borderRadius: 8 }}
+                    contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8 }}
                     labelFormatter={(v) => `Año ${v}`}
                     formatter={(value: number, name: string) => [
                       <span key={name} className="font-mono">{value.toFixed(1)}</span>,
@@ -102,22 +102,22 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
                   <Legend
                     formatter={(value) => value === 'withIntervention' ? 'Con Protocolo' : 'Sin Intervención'}
                   />
-                  <ReferenceLine y={65} stroke="#f5a623" strokeDasharray="4 4" strokeOpacity={0.5} />
+                  <ReferenceLine y={65} stroke="#D4A03A" strokeDasharray="4 4" strokeOpacity={0.5} />
                   <Line
                     type="monotone"
                     dataKey="withoutIntervention"
-                    stroke="#ff4d6d"
+                    stroke="#D4536A"
                     strokeWidth={2}
                     strokeDasharray="5 5"
-                    dot={(props) => renderDot(props as Record<string, unknown>, '#ff4d6d')}
+                    dot={(props) => renderDot(props as Record<string, unknown>, '#D4536A')}
                     activeDot={false}
                   />
                   <Line
                     type="monotone"
                     dataKey="withIntervention"
-                    stroke="#00e5a0"
+                    stroke="#2EAE7B"
                     strokeWidth={2.5}
-                    dot={(props) => renderDot(props as Record<string, unknown>, '#00e5a0')}
+                    dot={(props) => renderDot(props as Record<string, unknown>, '#2EAE7B')}
                     activeDot={false}
                   />
                 </LineChart>
@@ -126,8 +126,8 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
 
             {/* Panel de intersección — aparece al hacer hover */}
             {hoveredData?.yearRisk && (
-              <div className="mt-5 rounded-xl border border-warning/30 bg-[#f5a62308] animate-slide-up overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-warning/20 bg-[#f5a62312]">
+              <div className="mt-5 rounded-xl border border-warning/30 bg-[#D4A03A08] animate-slide-up overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-warning/20 bg-[#D4A03A12]">
                   <AlertTriangle size={15} className="text-warning shrink-0" />
                   <span className="text-sm font-semibold text-warning">
                     Año {hoveredData.year} — {hoveredData.yearRisk.urgencyNote}
@@ -223,7 +223,7 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
                   </div>
 
                   {/* Justificante médica */}
-                  <div className="px-4 py-3 border-b border-border/60 bg-[#38bdf808]">
+                  <div className="px-4 py-3 border-b border-border/60 bg-[#5BA4C908]">
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       <span className="text-info font-semibold">Evidencia médica: </span>
                       {factor.medicalJustification}

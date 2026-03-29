@@ -902,7 +902,7 @@ function BioRow({ label, bm, weight }: { label: string; bm: BiomarkerValue | nul
             <div
               className="absolute h-full rounded-full"
               style={{
-                background: '#00e5a015',
+                background: '#2EAE7B15',
                 left: `${Math.max(0, ((bm.optMin - bm.refMin) / (bm.refMax - bm.refMin)) * 100)}%`,
                 width: `${((bm.optMax - bm.optMin) / (bm.refMax - bm.refMin)) * 100}%`,
               }}
@@ -949,7 +949,7 @@ function OrganButton({
         <Icon size={20} className={organ.iconColor} />
         <div
           className="absolute -bottom-1.5 -right-1 rounded-full px-1 py-0.5 text-[9px] font-bold font-mono leading-none"
-          style={{ background: color, color: '#0a1628' }}
+          style={{ background: color, color: '#0F2A1E' }}
         >
           {score !== null ? score : '–'}
         </div>
@@ -1116,15 +1116,15 @@ export function OrganHealthTab({ parsedData }: OrganHealthTabProps) {
                       key={i}
                       className="rounded-xl border overflow-hidden"
                       style={{
-                        borderColor: rec.priority === 'esencial' ? '#38bdf830' : '#64748b30',
+                        borderColor: rec.priority === 'esencial' ? '#5BA4C930' : '#6B666030',
                       }}
                     >
                       {/* Header del panel */}
                       <div
                         className="flex items-center gap-2 px-3 py-2 border-b"
                         style={{
-                          background: rec.priority === 'esencial' ? '#38bdf808' : '#64748b08',
-                          borderColor: rec.priority === 'esencial' ? '#38bdf820' : '#64748b20',
+                          background: rec.priority === 'esencial' ? '#5BA4C908' : '#6B666008',
+                          borderColor: rec.priority === 'esencial' ? '#5BA4C920' : '#6B666020',
                         }}
                       >
                         <Star
@@ -1136,8 +1136,8 @@ export function OrganHealthTab({ parsedData }: OrganHealthTabProps) {
                         <span
                           className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
                           style={{
-                            background: rec.priority === 'esencial' ? '#38bdf820' : '#64748b20',
-                            color: rec.priority === 'esencial' ? '#38bdf8' : '#94a3b8',
+                            background: rec.priority === 'esencial' ? '#5BA4C920' : '#6B666020',
+                            color: rec.priority === 'esencial' ? '#5BA4C9' : '#A8A399',
                           }}
                         >
                           {rec.priority}

@@ -18,11 +18,11 @@ import type { Patient } from '@/types'
 type AnalysisStep = 'idle' | 'uploading' | 'reading' | 'analyzing' | 'saving' | 'done' | 'error'
 
 const STEPS: { step: AnalysisStep; label: string; sublabel: string; icon: ElementType; color: string; target: number }[] = [
-  { step: 'uploading', label: 'Subiendo archivo',     sublabel: 'Guardando en la nube...',         icon: Upload,     color: '#38bdf8', target: 20 },
+  { step: 'uploading', label: 'Subiendo archivo',     sublabel: 'Guardando en la nube...',         icon: Upload,     color: '#5BA4C9', target: 20 },
   { step: 'reading',   label: 'Extrayendo datos',     sublabel: 'Leyendo biomarcadores...',         icon: FileSearch, color: '#a78bfa', target: 40 },
-  { step: 'analyzing', label: 'IA analizando',        sublabel: 'Generando diagnóstico clínico...', icon: Brain,      color: '#00e5a0', target: 90 },
-  { step: 'saving',    label: 'Guardando resultados', sublabel: 'Preparando tu dashboard...',       icon: Save,       color: '#f5a623', target: 97 },
-  { step: 'done',      label: '¡Análisis listo!',     sublabel: 'Redirigiendo al dashboard...',    icon: Sparkles,   color: '#00e5a0', target: 100 },
+  { step: 'analyzing', label: 'IA analizando',        sublabel: 'Generando diagnóstico clínico...', icon: Brain,      color: '#2EAE7B', target: 90 },
+  { step: 'saving',    label: 'Guardando resultados', sublabel: 'Preparando tu dashboard...',       icon: Save,       color: '#D4A03A', target: 97 },
+  { step: 'done',      label: '¡Análisis listo!',     sublabel: 'Redirigiendo al dashboard...',    icon: Sparkles,   color: '#2EAE7B', target: 100 },
 ]
 
 function getStepInfo(step: AnalysisStep) {
@@ -154,7 +154,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   }, [files, date, params.id, router, goToProgress])
 
   const currentStepInfo = step !== 'idle' && step !== 'error' ? getStepInfo(step) : null
-  const ringColor = currentStepInfo?.color ?? '#00e5a0'
+  const ringColor = currentStepInfo?.color ?? '#2EAE7B'
 
   return (
     <div className="min-h-screen bg-background">
@@ -246,8 +246,8 @@ export default function UploadPage({ params }: { params: { id: string } }) {
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-500"
                       style={{
-                        background: isActive || isDone ? `${s.color}20` : '#1a2d4a',
-                        border: `1px solid ${isActive || isDone ? s.color + '50' : '#1a2d4a'}`,
+                        background: isActive || isDone ? `${s.color}20` : '#1E4A38',
+                        border: `1px solid ${isActive || isDone ? s.color + '50' : '#1E4A38'}`,
                       }}
                     >
                       {isDone ? (
@@ -255,7 +255,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
                       ) : (
                         <StepIcon
                           size={16}
-                          style={{ color: isActive ? s.color : '#64748b' }}
+                          style={{ color: isActive ? s.color : '#6B6660' }}
                           className={isActive ? 'animate-pulse' : ''}
                         />
                       )}

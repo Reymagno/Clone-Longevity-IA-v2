@@ -245,7 +245,7 @@ function ArcGauge({ score }: { score: number }) {
         fontSize="11" fontFamily="system-ui,sans-serif">
         / 100
       </text>
-      <text x={cx} y={cy + 13} textAnchor="middle" fill="#64748b"
+      <text x={cx} y={cy + 13} textAnchor="middle" fill="#6B6660"
         fontSize="8" fontFamily="system-ui,sans-serif" letterSpacing="1.8" fontWeight="600">
         ÍNDICE LONGEVITY
       </text>
@@ -459,36 +459,36 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
             {/* Main delta block */}
             <div className="rounded-2xl px-6 py-6 text-center w-full flex flex-col items-center gap-3"
               style={{
-                background: ageDiff > 2 ? '#00e5a00d' : ageDiff < -2 ? '#ff4d6d0d' : '#f5a6230d',
-                border: `1px solid ${ageDiff > 2 ? '#00e5a030' : ageDiff < -2 ? '#ff4d6d30' : '#f5a62330'}`,
+                background: ageDiff > 2 ? '#2EAE7B0d' : ageDiff < -2 ? '#D4536A0d' : '#D4A03A0d',
+                border: `1px solid ${ageDiff > 2 ? '#2EAE7B30' : ageDiff < -2 ? '#D4536A30' : '#D4A03A30'}`,
               }}>
 
               {/* Icon */}
               <span className="inline-flex items-center justify-center w-10 h-10 rounded-full"
                 style={{
-                  background: ageDiff > 2 ? '#00e5a015' : ageDiff < -2 ? '#ff4d6d15' : '#f5a62315',
-                  border: `1px solid ${ageDiff > 2 ? '#00e5a040' : ageDiff < -2 ? '#ff4d6d40' : '#f5a62340'}`,
+                  background: ageDiff > 2 ? '#2EAE7B15' : ageDiff < -2 ? '#D4536A15' : '#D4A03A15',
+                  border: `1px solid ${ageDiff > 2 ? '#2EAE7B40' : ageDiff < -2 ? '#D4536A40' : '#D4A03A40'}`,
                 }}>
                 {ageDiff > 2
-                  ? <TrendingUp size={18} style={{ color: '#00e5a0' }} />
+                  ? <TrendingUp size={18} style={{ color: '#2EAE7B' }} />
                   : ageDiff < -2
-                  ? <TrendingUp size={18} style={{ color: '#ff4d6d', transform: 'scaleY(-1)' }} />
-                  : <Activity size={18} style={{ color: '#f5a623' }} />
+                  ? <TrendingUp size={18} style={{ color: '#D4536A', transform: 'scaleY(-1)' }} />
+                  : <Activity size={18} style={{ color: '#D4A03A' }} />
                 }
               </span>
 
               {/* Delta number */}
               <p className="text-5xl font-black font-mono leading-none"
-                style={{ color: ageDiff > 2 ? '#00e5a0' : ageDiff < -2 ? '#ff4d6d' : '#f5a623' }}>
+                style={{ color: ageDiff > 2 ? '#2EAE7B' : ageDiff < -2 ? '#D4536A' : '#D4A03A' }}>
                 {ageDiff > 2 ? `−${ageDiff}` : ageDiff < -2 ? `+${Math.abs(ageDiff)}` : '≈ 0'}
               </p>
 
               {/* Descriptive badge */}
               <span className="text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider"
                 style={{
-                  background: ageDiff > 2 ? '#00e5a015' : ageDiff < -2 ? '#ff4d6d15' : '#f5a62315',
-                  color: ageDiff > 2 ? '#00e5a0' : ageDiff < -2 ? '#ff4d6d' : '#f5a623',
-                  border: `1px solid ${ageDiff > 2 ? '#00e5a030' : ageDiff < -2 ? '#ff4d6d30' : '#f5a62330'}`,
+                  background: ageDiff > 2 ? '#2EAE7B15' : ageDiff < -2 ? '#D4536A15' : '#D4A03A15',
+                  color: ageDiff > 2 ? '#2EAE7B' : ageDiff < -2 ? '#D4536A' : '#D4A03A',
+                  border: `1px solid ${ageDiff > 2 ? '#2EAE7B30' : ageDiff < -2 ? '#D4536A30' : '#D4A03A30'}`,
                 }}>
                 {ageDiff > 2 ? 'más joven' : ageDiff < -2 ? 'desgaste extra' : 'en equilibrio'}
               </span>
@@ -555,7 +555,7 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
                     .slice(0, 4)
                     .map((alert, i) => {
                       const isDanger = alert.level === 'danger'
-                      const col = isDanger ? '#ff4d6d' : '#f5a623'
+                      const col = isDanger ? '#D4536A' : '#D4A03A'
                       return (
                         <div key={i} className="flex items-start gap-3 rounded-lg px-3.5 py-3"
                           style={{ background: `${col}08`, border: `1px solid ${col}25`, borderLeft: `3px solid ${col}` }}>
@@ -588,13 +588,13 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {clinicalCtx.conditions && (
-                    <CtxRow icon={<Info size={11} />} color="#f5a623" label="Condiciones crónicas" value={clinicalCtx.conditions} />
+                    <CtxRow icon={<Info size={11} />} color="#D4A03A" label="Condiciones crónicas" value={clinicalCtx.conditions} />
                   )}
                   {clinicalCtx.medications && (
                     <CtxRow icon={<Pill size={11} />} color="#f97316" label="Medicamentos actuales" value={clinicalCtx.medications} alert />
                   )}
                   {clinicalCtx.allergies && (
-                    <CtxRow icon={<AlertCircle size={11} />} color="#ff4d6d" label="Alergias" value={clinicalCtx.allergies} alert />
+                    <CtxRow icon={<AlertCircle size={11} />} color="#D4536A" label="Alergias" value={clinicalCtx.allergies} alert />
                   )}
                   {clinicalCtx.lifestyle && (
                     <CtxRow icon={<Dumbbell size={11} />} color="#3b82f6" label="Estilo de vida" value={clinicalCtx.lifestyle} />
@@ -629,17 +629,17 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
           </div>
           <div className="flex items-center gap-2 text-[11px]">
             {critical > 0 && (
-              <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: '#ff4d6d18', color: '#ff4d6d', border: '1px solid #ff4d6d30' }}>
+              <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: '#D4536A18', color: '#D4536A', border: '1px solid #D4536A30' }}>
                 {critical} crítico{critical > 1 ? 's' : ''}
               </span>
             )}
             {attention > 0 && (
-              <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f5a62318', color: '#f5a623', border: '1px solid #f5a62330' }}>
+              <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: '#D4A03A18', color: '#D4A03A', border: '1px solid #D4A03A30' }}>
                 {attention} atención
               </span>
             )}
             {optimal > 0 && (
-              <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: '#00e5a018', color: '#00e5a0', border: '1px solid #00e5a030' }}>
+              <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: '#2EAE7B18', color: '#2EAE7B', border: '1px solid #2EAE7B30' }}>
                 {optimal} óptimo{optimal > 1 ? 's' : ''}
               </span>
             )}
@@ -661,7 +661,7 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
                       <Icon size={18} className={organ.iconClassName} />
                     </div>
                     <div className="absolute -bottom-1 -right-1 text-[9px] font-bold font-mono px-1 py-0.5 rounded-full leading-none"
-                      style={{ background: col, color: '#0a1628' }}>
+                      style={{ background: col, color: '#0F2A1E' }}>
                       {score !== null ? score : '–'}
                     </div>
                   </div>
@@ -698,10 +698,10 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
           </div>
           <div className="grid grid-cols-2 divide-x divide-y divide-border/60">
             {[
-              { title: 'Fortalezas',     items: swot.strengths,     color: '#00e5a0', Icon: ShieldCheck },
-              { title: 'Debilidades',    items: swot.weaknesses,    color: '#ff4d6d', Icon: AlertTriangle },
-              { title: 'Oportunidades',  items: swot.opportunities, color: '#C9A84C', Icon: Sparkles },
-              { title: 'Amenazas',       items: swot.threats,       color: '#f5a623', Icon: AlertTriangle },
+              { title: 'Fortalezas',     items: swot.strengths,     color: '#2EAE7B', Icon: ShieldCheck },
+              { title: 'Debilidades',    items: swot.weaknesses,    color: '#D4536A', Icon: AlertTriangle },
+              { title: 'Oportunidades',  items: swot.opportunities, color: '#D4AF37', Icon: Sparkles },
+              { title: 'Amenazas',       items: swot.threats,       color: '#D4A03A', Icon: AlertTriangle },
             ].map(({ title, items, color, Icon: QIcon }) => (
               <div key={title} className="p-4">
                 <div className="flex items-center gap-1.5 mb-3">
@@ -738,7 +738,7 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
           <div className="p-4 space-y-3">
             {topRisks.length > 0 ? topRisks.map((risk, i) => {
               const prob = Math.max(0, Math.min(risk.probability ?? 0, 100))
-              const levelColor = prob >= 60 ? '#ff4d6d' : prob >= 30 ? '#f5a623' : '#00e5a0'
+              const levelColor = prob >= 60 ? '#D4536A' : prob >= 30 ? '#D4A03A' : '#2EAE7B'
               const level = prob >= 60 ? 'Alto' : prob >= 30 ? 'Moderado' : 'Bajo'
               const rColor = risk.color || levelColor
               return (
@@ -796,32 +796,32 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
               <>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={analysis.projectionData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2d4a" />
-                    <XAxis dataKey="year" tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'ui-monospace' }}
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1E4A38" />
+                    <XAxis dataKey="year" tick={{ fill: '#6B6660', fontSize: 10, fontFamily: 'ui-monospace' }}
                       tickFormatter={(v) => `Año ${v}`} />
-                    <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} width={28} />
+                    <YAxis domain={[0, 100]} tick={{ fill: '#6B6660', fontSize: 10 }} width={28} />
                     <Tooltip
-                      contentStyle={{ background: '#0a1628', border: '1px solid #1a2d4a', borderRadius: 8, fontSize: 11 }}
+                      contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8, fontSize: 11 }}
                       labelFormatter={(v) => `Año ${v}`}
                       formatter={(val: number, name: string) => [
                         val.toFixed(1),
                         name === 'withIntervention' ? 'Con Protocolo' : 'Sin Intervención',
                       ]}
                     />
-                    <ReferenceLine y={65} stroke="#f5a623" strokeDasharray="4 4" strokeOpacity={0.4} />
+                    <ReferenceLine y={65} stroke="#D4A03A" strokeDasharray="4 4" strokeOpacity={0.4} />
                     <Line type="monotone" dataKey="withoutIntervention"
-                      stroke="#ff4d6d" strokeWidth={1.5} strokeDasharray="5 4" dot={false} />
+                      stroke="#D4536A" strokeWidth={1.5} strokeDasharray="5 4" dot={false} />
                     <Line type="monotone" dataKey="withIntervention"
-                      stroke="#00e5a0" strokeWidth={2.5} dot={{ r: 3, fill: '#00e5a0' }} />
+                      stroke="#2EAE7B" strokeWidth={2.5} dot={{ r: 3, fill: '#2EAE7B' }} />
                   </LineChart>
                 </ResponsiveContainer>
                 <div className="flex items-center gap-4 justify-center mt-2">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-0.5 bg-[#00e5a0] rounded" />
+                    <div className="w-5 h-0.5 bg-[#2EAE7B] rounded" />
                     <span className="text-[10px] text-muted-foreground">Con protocolo</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-0.5 bg-[#ff4d6d] rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ff4d6d 0,#ff4d6d 4px,transparent 4px,transparent 7px)' }} />
+                    <div className="w-5 h-0.5 bg-[#D4536A] rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #D4536A 0,#D4536A 4px,transparent 4px,transparent 7px)' }} />
                     <span className="text-[10px] text-muted-foreground">Sin intervención</span>
                   </div>
                 </div>

@@ -131,8 +131,8 @@ export function ClinicalHistoryTab({ patient, result }: Props) {
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
-              background: patient.clinical_history ? 'rgba(0,229,160,0.12)' : 'rgba(107,114,128,0.1)',
-              border: patient.clinical_history ? '1px solid rgba(0,229,160,0.25)' : '1px solid rgba(107,114,128,0.2)',
+              background: patient.clinical_history ? 'rgba(46,174,123,0.12)' : 'rgba(107,114,128,0.1)',
+              border: patient.clinical_history ? '1px solid rgba(46,174,123,0.25)' : '1px solid rgba(107,114,128,0.2)',
             }}
           >
             {patient.clinical_history
@@ -190,14 +190,14 @@ export function ClinicalHistoryTab({ patient, result }: Props) {
           {/* Re-analyze CTA card */}
           <div
             className="card-medical p-5 border border-accent/30"
-            style={{ background: 'linear-gradient(to right, rgba(0,229,160,0.08), rgba(0,229,160,0.03))' }}
+            style={{ background: 'linear-gradient(to right, rgba(46,174,123,0.08), rgba(46,174,123,0.03))' }}
           >
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               {/* Left: icon + copy */}
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                  style={{ background: 'rgba(0,229,160,0.12)', border: '1px solid rgba(0,229,160,0.25)' }}
+                  style={{ background: 'rgba(46,174,123,0.12)', border: '1px solid rgba(46,174,123,0.25)' }}
                 >
                   <Brain size={17} className="text-accent" />
                 </div>
@@ -288,7 +288,7 @@ function HistorySummary({ history }: { history: ClinicalHistory }) {
     {
       title: 'Datos Generales',
       icon: Activity,
-      color: '#00e5a0',
+      color: '#2EAE7B',
       items: [
         anthro?.['waist_cm'] != null
           ? { label: 'Cintura', value: `${anthro['waist_cm']} cm` }

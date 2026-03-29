@@ -97,7 +97,7 @@ export function AnalysisCards({ patient }: AnalysisCardsProps) {
         const summary = r.ai_analysis?.clinicalSummary ?? null
         const biomarkerCount = countBiomarkers(r.parsed_data)
         const hasAnalysis = !!r.ai_analysis
-        const scoreColor = score !== null ? getScoreColor(score) : '#64748b'
+        const scoreColor = score !== null ? getScoreColor(score) : '#6B6660'
 
         return (
           <Link

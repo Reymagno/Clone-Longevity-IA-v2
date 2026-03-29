@@ -35,11 +35,11 @@ export function formatDateFull(dateStr: string): string {
 
 export function getStatusColor(status: string | null): string {
   switch (status) {
-    case 'optimal': return '#00e5a0'
-    case 'normal': return '#38bdf8'
-    case 'warning': return '#f5a623'
-    case 'danger': return '#ff4d6d'
-    default: return '#64748b'
+    case 'optimal': return '#2EAE7B'
+    case 'normal': return '#5BA4C9'
+    case 'warning': return '#D4A03A'
+    case 'danger': return '#D4536A'
+    default: return '#6B6660'
   }
 }
 
@@ -56,11 +56,11 @@ export function getStatusLabel(status: string | null): string {
 // ── Colores y etiquetas por score numérico (0-100) ──────────────
 
 export function getScoreColor(score: number | null): string {
-  if (score === null) return '#64748b'
-  if (score >= 85) return '#00e5a0'
-  if (score >= 65) return '#38bdf8'
-  if (score >= 40) return '#f5a623'
-  return '#ff4d6d'
+  if (score === null) return '#6B6660'
+  if (score >= 85) return '#2EAE7B'
+  if (score >= 65) return '#5BA4C9'
+  if (score >= 40) return '#D4A03A'
+  return '#D4536A'
 }
 
 export function getScoreLabel(score: number | null): string {
@@ -75,11 +75,11 @@ export function getScoreLabel(score: number | null): string {
 
 export function getUrgencyColor(urgency: string): string {
   switch (urgency) {
-    case 'immediate': return '#ff4d6d'
-    case 'high': return '#f5a623'
-    case 'medium': return '#38bdf8'
-    case 'low': return '#00e5a0'
-    default: return '#64748b'
+    case 'immediate': return '#D4536A'
+    case 'high': return '#D4A03A'
+    case 'medium': return '#5BA4C9'
+    case 'low': return '#2EAE7B'
+    default: return '#6B6660'
   }
 }
 

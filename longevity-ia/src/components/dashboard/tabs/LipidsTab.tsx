@@ -82,11 +82,11 @@ export function LipidsTab({ lipids }: LipidsTabProps) {
               <BarChart data={chartData} margin={{ top: 10, right: 20, bottom: 5, left: 10 }}>
                 <XAxis
                   dataKey="name"
-                  tick={{ fill: '#e2e8f0', fontSize: 11, fontFamily: 'Space Grotesk' }}
+                  tick={{ fill: '#E2DFD6', fontSize: 11, fontFamily: 'Space Grotesk' }}
                 />
-                <YAxis tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'DM Mono' }} />
+                <YAxis tick={{ fill: '#6B6660', fontSize: 11, fontFamily: 'DM Mono' }} />
                 <Tooltip
-                  contentStyle={{ background: '#0a1628', border: '1px solid #1a2d4a', borderRadius: 8 }}
+                  contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8 }}
                   formatter={(value: number, _: string, props) => [
                     <span key="v" className="font-mono">{value} {props.payload.unit}</span>,
                     props.payload.name,

@@ -50,7 +50,7 @@ function BioRow({ label, bm }: {
             className="absolute top-0 w-2 h-full rounded-full -ml-1 transition-all"
             style={{
               left: `${pct}%`,
-              backgroundColor: bm.status === 'optimal' ? '#00e5a0' : bm.status === 'normal' ? '#38bdf8' : bm.status === 'warning' ? '#f5a623' : '#ff4d6d',
+              backgroundColor: bm.status === 'optimal' ? '#2EAE7B' : bm.status === 'normal' ? '#5BA4C9' : bm.status === 'warning' ? '#D4A03A' : '#D4536A',
             }}
           />
         </div>

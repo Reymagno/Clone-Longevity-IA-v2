@@ -322,16 +322,16 @@ export function CompareTab({ patient, currentResult, allResults }: CompareTabPro
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={scoreChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a2d4a" />
-              <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#64748b', fontSize: 11 }} domain={[0, 100]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1E4A38" />
+              <XAxis dataKey="date" tick={{ fill: '#6B6660', fontSize: 11 }} />
+              <YAxis tick={{ fill: '#6B6660', fontSize: 11 }} domain={[0, 100]} />
               <Tooltip
-                contentStyle={{ background: '#0a1628', border: '1px solid #1a2d4a', borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: '#e2e8f0' }}
+                contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: '#E2DFD6' }}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="overall" stroke="#00e5a0" strokeWidth={2.5} dot={{ r: 4 }} name="Score General" />
-              <Line type="monotone" dataKey="longevityAge" stroke="#38bdf8" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} name="Edad Biológica" />
+              <Line type="monotone" dataKey="overall" stroke="#2EAE7B" strokeWidth={2.5} dot={{ r: 4 }} name="Score General" />
+              <Line type="monotone" dataKey="longevityAge" stroke="#5BA4C9" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} name="Edad Biológica" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -391,16 +391,16 @@ export function CompareTab({ patient, currentResult, allResults }: CompareTabPro
                 }
                 return point
               })}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a2d4a" />
-                <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E4A38" />
+                <XAxis dataKey="date" tick={{ fill: '#6B6660', fontSize: 11 }} />
+                <YAxis tick={{ fill: '#6B6660', fontSize: 11 }} />
                 <Tooltip
-                  contentStyle={{ background: '#0a1628', border: '1px solid #1a2d4a', borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: '#e2e8f0' }}
+                  contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#E2DFD6' }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 {chartBiomarkers.slice(0, 4).map((t, i) => {
-                  const colors = ['#00e5a0', '#38bdf8', '#f5a623', '#ff4d6d']
+                  const colors = ['#2EAE7B', '#5BA4C9', '#D4A03A', '#D4536A']
                   return (
                     <Line
                       key={t.key}

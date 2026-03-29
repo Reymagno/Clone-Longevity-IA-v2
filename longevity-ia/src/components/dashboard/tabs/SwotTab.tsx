@@ -30,14 +30,14 @@ function normalizeSwotItem(item: unknown): { label: string; detail: string; evid
 }
 
 function normalizeRisk(r: unknown): { disease: string; probability: number; horizon: string; drivers: string[]; color: string } {
-  if (!r || typeof r !== 'object') return { disease: String(r), probability: 0, horizon: '', drivers: [], color: '#f5a623' }
+  if (!r || typeof r !== 'object') return { disease: String(r), probability: 0, horizon: '', drivers: [], color: '#D4A03A' }
   const obj = r as Record<string, unknown>
   return {
     disease:     String(obj.disease || obj.name || ''),
     probability: Number(obj.probability ?? 0),
     horizon:     String(obj.horizon || ''),
     drivers:     Array.isArray(obj.drivers) ? obj.drivers.map(String) : [],
-    color:       String(obj.color || '#f5a623'),
+    color:       String(obj.color || '#D4A03A'),
   }
 }
 
@@ -50,10 +50,10 @@ function ProbabilityBadge({ value }: { value: string }) {
   const isHigh = v.includes('alta') || v.includes('alto') || v.includes('high')
   const isMed  = v.includes('media') || v.includes('medio') || v.includes('medium') || v.includes('moderada')
   const cfg = isHigh
-    ? { color: '#ff4d6d', label: 'Probabilidad Alta' }
+    ? { color: '#D4536A', label: 'Probabilidad Alta' }
     : isMed
-    ? { color: '#f5a623', label: 'Probabilidad Media' }
-    : { color: '#00e5a0', label: 'Probabilidad Baja' }
+    ? { color: '#D4A03A', label: 'Probabilidad Media' }
+    : { color: '#2EAE7B', label: 'Probabilidad Baja' }
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
@@ -170,7 +170,7 @@ function RiskCard({ risk }: {
   risk: { disease: string; probability: number; horizon: string; drivers: string[]; color: string }
 }) {
   const level      = risk.probability >= 60 ? 'Alto' : risk.probability >= 30 ? 'Moderado' : 'Bajo'
-  const levelColor = risk.probability >= 60 ? '#ff4d6d' : risk.probability >= 30 ? '#f5a623' : '#00e5a0'
+  const levelColor = risk.probability >= 60 ? '#D4536A' : risk.probability >= 30 ? '#D4A03A' : '#2EAE7B'
 
   return (
     <div
@@ -274,7 +274,7 @@ export function SwotTab({ analysis }: SwotTabProps) {
       key: 'strengths',
       title: 'Fortalezas',
       subtitle: 'Lo que ya funciona bien en tu cuerpo',
-      color: '#00e5a0',
+      color: '#2EAE7B',
       icon: ShieldCheck,
       items: normalizedSwot.strengths,
     },
@@ -282,7 +282,7 @@ export function SwotTab({ analysis }: SwotTabProps) {
       key: 'weaknesses',
       title: 'Debilidades',
       subtitle: 'Áreas que necesitan atención médica',
-      color: '#f5a623',
+      color: '#D4A03A',
       icon: AlertTriangle,
       items: normalizedSwot.weaknesses,
     },
@@ -290,7 +290,7 @@ export function SwotTab({ analysis }: SwotTabProps) {
       key: 'opportunities',
       title: 'Oportunidades',
       subtitle: 'Acciones concretas que pueden mejorar tu salud',
-      color: '#38bdf8',
+      color: '#5BA4C9',
       icon: TrendingUp,
       items: normalizedSwot.opportunities,
     },
@@ -298,7 +298,7 @@ export function SwotTab({ analysis }: SwotTabProps) {
       key: 'threats',
       title: 'Amenazas',
       subtitle: 'Riesgos que podrían crecer sin intervención',
-      color: '#ff4d6d',
+      color: '#D4536A',
       icon: Zap,
       items: normalizedSwot.threats,
     },
@@ -366,17 +366,17 @@ export function SwotTab({ analysis }: SwotTabProps) {
               <XAxis
                 type="number"
                 domain={[0, 100]}
-                tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'DM Mono' }}
+                tick={{ fill: '#6B6660', fontSize: 11, fontFamily: 'DM Mono' }}
                 tickFormatter={(v) => `${v}%`}
               />
               <YAxis
                 type="category"
                 dataKey="name"
                 width={148}
-                tick={{ fill: '#e2e8f0', fontSize: 11, fontFamily: 'Space Grotesk' }}
+                tick={{ fill: '#E2DFD6', fontSize: 11, fontFamily: 'Space Grotesk' }}
               />
               <Tooltip
-                contentStyle={{ background: '#0a1628', border: '1px solid #1a2d4a', borderRadius: 10, padding: '8px 12px' }}
+                contentStyle={{ background: '#0F2A1E', border: '1px solid #1E4A38', borderRadius: 10, padding: '8px 12px' }}
                 formatter={(value: number, _name: string, props) => [
                   <span key="v" className="font-mono">{value}% — {props.payload.horizon}</span>,
                   props.payload.fullName,
