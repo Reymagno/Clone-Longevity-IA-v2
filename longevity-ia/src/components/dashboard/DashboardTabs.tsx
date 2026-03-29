@@ -19,11 +19,12 @@ import type { Patient, LabResult } from '@/types'
 import { toast } from 'sonner'
 import {
   BarChart2, Shield, Activity, FlaskConical,
-  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Dna, Upload, ChevronDown, FileText,
+  TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Upload, ChevronDown, FileText,
   GitCompareArrows, RefreshCw
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
+import { LogoIcon } from '@/components/ui/logo-icon'
 
 interface ResultSummary {
   id: string
@@ -47,7 +48,7 @@ const TABS = [
   { id: 6, label: 'Órganos', icon: HeartPulse },
   { id: 7, label: 'Comparar', icon: GitCompareArrows },
   { id: 8, label: 'Estudio', icon: ScanSearch },
-  { id: 9, label: 'Células Madre', icon: Dna },
+  { id: 9, label: 'Células Madre', icon: HeartPulse },
   { id: 10, label: 'Historia Clínica', icon: FileText },
 ]
 
@@ -124,9 +125,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 shrink-0">
-              <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
-                <Dna size={15} className="text-background" />
-              </div>
+              <LogoIcon size={32} />
               <span className="hidden sm:block font-semibold text-foreground text-sm tracking-tight">Longevity IA</span>
             </Link>
             <span className="text-border/50 hidden sm:block">|</span>

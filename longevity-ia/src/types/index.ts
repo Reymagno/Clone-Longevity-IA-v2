@@ -257,6 +257,7 @@ export type Gender = 'male' | 'female' | 'other'
 
 export interface Patient {
   id: string
+  user_id: string | null
   name: string
   code: string
   age: number

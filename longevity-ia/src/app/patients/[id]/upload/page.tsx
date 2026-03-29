@@ -8,11 +8,12 @@ import { ProgressRing } from '@/components/ui/progress-ring'
 import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
 import { toast } from 'sonner'
 import {
-  Dna, ArrowLeft, Calendar, Cpu,
+  ArrowLeft, Calendar, Cpu,
   CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles, ClipboardList
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { LogoIcon } from '@/components/ui/logo-icon'
 import type { Patient } from '@/types'
 
 type AnalysisStep = 'idle' | 'uploading' | 'reading' | 'analyzing' | 'saving' | 'done' | 'error'
@@ -165,9 +166,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
             <ArrowLeft size={18} />
           </Link>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
-              <Dna size={16} className="text-background" />
-            </div>
+            <LogoIcon size={32} />
             <span className="font-semibold text-foreground tracking-tight">
               {patient ? patient.name : 'Longevity IA'}
             </span>

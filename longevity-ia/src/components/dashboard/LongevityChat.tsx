@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { AIAnalysis, Patient } from '@/types'
-import { Dna, X, Send, Sparkles, ChevronDown, RotateCcw, CheckCircle2 } from 'lucide-react'
+import { X, Send, Sparkles, ChevronDown, RotateCcw, CheckCircle2 } from 'lucide-react'
+import { LogoIcon } from '@/components/ui/logo-icon'
 import { toast } from 'sonner'
 
 // ─────────────────────────────────────────────────────────────────
@@ -364,9 +365,7 @@ export function LongevityChat({ patient, analysis, resultId }: Props) {
           style={{ background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' }}
         >
           {/* Icono + branding */}
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-accent/15 border border-accent/25 shrink-0">
-            <Dna size={16} className="text-accent" />
-          </div>
+          <LogoIcon size={32} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-foreground leading-none">Longevity IA</p>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -478,7 +477,7 @@ export function LongevityChat({ patient, analysis, resultId }: Props) {
           </>
         ) : (
           <>
-            <Dna size={16} />
+            <LogoIcon size={20} animate={false} />
             Longevity IA
 
             {/* Indicador de respuesta no leída */}

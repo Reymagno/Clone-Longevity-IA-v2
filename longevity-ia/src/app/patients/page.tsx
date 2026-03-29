@@ -8,10 +8,11 @@ import { NewPatientModal } from '@/components/patients/NewPatientModal'
 import { AnalysisCards } from '@/components/patients/AnalysisCards'
 import { Button } from '@/components/ui/button'
 import type { Patient, PatientWithLatestResult } from '@/types'
-import { Plus, Users, Dna, Search, LogOut, Upload, Stethoscope, Bell } from 'lucide-react'
+import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { LogoIcon } from '@/components/ui/logo-icon'
 import { toast } from 'sonner'
 import { MedicoLinksPanel } from '@/components/patients/MedicoLinksPanel'
 import { InvitationsPanel } from '@/components/medico/InvitationsPanel'
@@ -161,9 +162,7 @@ export default function PatientsPage() {
         <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
-                <Dna size={16} className="text-background" />
-              </div>
+              <LogoIcon size={32} />
               <span className="font-semibold text-foreground tracking-tight">Longevity IA</span>
             </Link>
             <div className="flex items-center gap-2">
@@ -211,9 +210,7 @@ export default function PatientsPage() {
       <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-accent/20 shadow-lg">
-              <Dna size={16} className="text-background" />
-            </div>
+            <LogoIcon size={32} />
             <span className="font-semibold text-foreground tracking-tight">Longevity IA</span>
           </Link>
           <div className="flex items-center gap-2">

@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Dna, User, LogOut } from 'lucide-react'
+import { User, LogOut } from 'lucide-react'
+import { LogoIcon } from '@/components/ui/logo-icon'
 import { supabase } from '@/lib/supabase/client'
 
 export default function OnboardingPage() {
@@ -84,9 +85,7 @@ export default function OnboardingPage() {
         {/* Logo + logout */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-              <Dna size={20} className="text-background" />
-            </div>
+            <LogoIcon size={40} />
             <div>
               <h1 className="text-xl font-bold text-foreground">Longevity IA</h1>
               <p className="text-xs text-muted-foreground">Crea tu perfil para comenzar</p>

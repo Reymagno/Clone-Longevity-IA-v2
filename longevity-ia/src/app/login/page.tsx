@@ -8,8 +8,9 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Dna, LogIn } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import Link from 'next/link'
+import { LogoIcon } from '@/components/ui/logo-icon'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -53,9 +54,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm relative animate-scale-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-accent animate-float">
-            <Dna size={26} className="text-background" />
-          </div>
+          <LogoIcon size={56} className="mb-4" />
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Longevity IA</h1>
           <p className="text-sm text-muted-foreground mt-1.5">Medicina de longevidad con IA</p>
         </div>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { RegisterModal, type RoleType } from '@/components/auth/RegisterModal'
+import { LogoIcon } from '@/components/ui/logo-icon'
 
 // ─────────────────────────────────────────────────────────────────
 // Features
@@ -134,9 +135,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shadow-accent">
-            <Dna size={18} className="text-background" />
-          </div>
+          <LogoIcon size={36} />
           <span className="font-semibold text-foreground text-lg tracking-tight">Longevity IA</span>
         </div>
         <Link
