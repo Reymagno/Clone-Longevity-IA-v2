@@ -4,7 +4,7 @@ export const maxDuration = 300
 
 import { NextRequest } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
-import { reanalyzeWithClinicalHistory } from '@/lib/anthropic/analyzer'
+import { reanalyzeWithClinicalHistory, reanalyzePartial } from '@/lib/anthropic/analyzer'
 
 export async function POST(
   request: NextRequest,
@@ -31,7 +31,7 @@ export async function POST(
 
         const { data: result, error: resultError } = await supabase
           .from('lab_results')
-          .select('id, parsed_data, patient_id')
+          .select('id, parsed_data, ai_analysis, patient_id')
           .eq('id', params.id)
           .single()
 
@@ -47,9 +47,7 @@ export async function POST(
 
         if (patientError || !patient) { send({ ok: false, error: 'No autorizado' }); return }
 
-        send({ ok: true, step: 'analyzing' })
-
-        const newAiAnalysis = await reanalyzeWithClinicalHistory(result.parsed_data, {
+        const patientCtx = {
           name: patient.name as string,
           age: patient.age as number,
           gender: patient.gender as string,
@@ -57,7 +55,32 @@ export async function POST(
           height: patient.height as number | null,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           clinical_history: patient.clinical_history as any,
-        }, () => enqueue(': keepalive\n\n'))
+        }
+
+        // Si ya existe un análisis IA previo, usar re-análisis parcial (solo protocolo + proyección + resumen)
+        // Esto reduce de ~4min a ~1-1.5min al cachear FODA, scores, riesgos y alertas
+        const canUsePartial = result.ai_analysis &&
+          (result.ai_analysis as Record<string, unknown>).systemScores &&
+          (result.ai_analysis as Record<string, unknown>).swot
+
+        send({ ok: true, step: 'analyzing' })
+
+        let newAiAnalysis: object
+        if (canUsePartial) {
+          send({ ok: true, step: 'analyzing', partial: true })
+          newAiAnalysis = await reanalyzePartial(
+            result.parsed_data,
+            result.ai_analysis as object,
+            patientCtx,
+            () => enqueue(': keepalive\n\n')
+          )
+        } else {
+          newAiAnalysis = await reanalyzeWithClinicalHistory(
+            result.parsed_data,
+            patientCtx,
+            () => enqueue(': keepalive\n\n')
+          )
+        }
 
         const { data: updated, error: updateError } = await supabase
           .from('lab_results')

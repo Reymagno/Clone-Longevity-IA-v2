@@ -180,6 +180,9 @@ export async function POST(request: NextRequest) {
           return
         }
 
+        // ── Enviar resultado parcial al cliente para dashboard inmediato ──
+        send({ ok: true, step: 'extracted', resultId: labResult.id, patientId })
+
         // ══════════════════════════════════════════════════════════════
         // PASO 2: Generar análisis IA completo a partir de parsedData
         // ══════════════════════════════════════════════════════════════

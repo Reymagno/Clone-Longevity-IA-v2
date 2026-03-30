@@ -15,6 +15,7 @@ import { ClinicalHistoryTab } from './tabs/ClinicalHistoryTab'
 import { CompareTab } from './tabs/CompareTab'
 import { ExportButtons } from './ExportButtons'
 import { LongevityChat } from './LongevityChat'
+import { InstantDashboard } from './InstantDashboard'
 import type { Patient, LabResult } from '@/types'
 import { toast } from 'sonner'
 import {
@@ -166,8 +167,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               </span>
             )}
 
-            {/* Botón re-análisis */}
-            {analysis && (
+            {/* Botón re-análisis — solo pacientes */}
+            {viewerRole === 'paciente' && analysis && (
               <button
                 onClick={handleReanalyze}
                 disabled={isReanalyzing}
@@ -179,6 +180,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               </button>
             )}
 
+            {viewerRole === 'paciente' && (
             <Link
               href={`/patients/${patient.id}/upload`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-accent/50 hover:bg-muted/30 transition-all"
@@ -186,6 +188,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               <Upload size={13} />
               <span className="hidden sm:inline">Nuevo Análisis</span>
             </Link>
+            )}
 
             {analysis && parsedData && (
               <ExportButtons
@@ -203,7 +206,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
         {/* Tabs — solo si hay análisis */}
         {analysis && parsedData && (
           <div className="flex overflow-x-auto scrollbar-none -mb-px">
-            {TABS.map((tab) => {
+            {TABS.filter(tab => !(viewerRole === 'medico' && tab.id === 10)).map((tab) => {
               const Icon = tab.icon
               const showDot = tab.id === 10 && !patient.clinical_history
               return (
@@ -230,7 +233,19 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
     </div>
   )
 
-  // ── Sin análisis disponible ─────────────────────────────────────────────────
+  // ── parsedData sin análisis IA → Dashboard Instantáneo ──────────────────────
+  if (!analysis && parsedData) {
+    return (
+      <InstantDashboard
+        patient={patient}
+        result={result}
+        allResults={allResults}
+        viewerRole={viewerRole}
+      />
+    )
+  }
+
+  // ── Sin datos disponibles ─────────────────────────────────────────────────
   if (!analysis || !parsedData) {
     return (
       <div className="min-h-screen bg-background">
@@ -323,7 +338,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
             analysis={analysis}
           />
         )}
-        {activeTab === 10 && (
+        {activeTab === 10 && viewerRole === 'paciente' && (
           <ClinicalHistoryTab
             patient={patient}
             result={result}

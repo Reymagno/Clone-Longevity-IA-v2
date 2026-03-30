@@ -1158,3 +1158,109 @@ export async function reanalyzeWithClinicalHistory(
 
   return validated.aiAnalysis
 }
+
+// ══════════════════════════════════════════════════════════════
+// RE-ANÁLISIS PARCIAL (solo secciones que dependen de historia clínica)
+// Cachea: systemScores, overallScore, longevity_age, keyAlerts, swot, risks
+// Regenera: clinicalSummary, protocol, projectionData, projectionFactors
+// ══════════════════════════════════════════════════════════════
+
+const PARTIAL_REANALYZE_PROMPT = `TAREA: Regenera ÚNICAMENTE las secciones del análisis que dependen de la historia clínica del paciente.
+
+Las siguientes secciones YA ESTÁN CALCULADAS y NO debes regenerarlas (se mantendrán del análisis anterior):
+- systemScores (scores por sistema)
+- overallScore (score general)
+- longevity_age (edad biológica)
+- keyAlerts (alertas clave)
+- swot (FODA médica)
+- risks (perfil de riesgo)
+
+TÚ DEBES GENERAR SOLO ESTAS 4 SECCIONES, personalizadas con la historia clínica actualizada:
+
+INSTRUCCIONES DE PERSONALIZACIÓN:
+- El protocolo debe ser ÚNICO para este paciente
+- NO repitas suplementos que el paciente ya toma (cítalos como fortaleza)
+- NUNCA recomendar medicamentos a los que el paciente sea alérgico
+- Ajusta dosis según edad (<40 preventivas, 40-60 estándar, >60 terapéuticas)
+- Incluye SIEMPRE al menos 1 intervención de estilo de vida
+- Cada "mechanism" debe citar el biomarcador ESPECÍFICO con su valor actual
+
+Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
+
+{
+  "clinicalSummary": "Resumen ejecutivo personalizado con historia clínica",
+  "protocol": [{ "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }],
+  "projectionData": [{ "year": 1, "withoutIntervention": 0, "withIntervention": 0, "yearRisk": { "biomarkers": [], "conditions": [], "urgencyNote": "" } }],
+  "projectionFactors": [{ "factor": "", "currentValue": "", "optimalValue": "", "medicalJustification": "", "withoutProtocol": "", "withProtocol": "" }]
+}
+
+REGLAS: Protocol 8-12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas. projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores. Todo en español mexicano, lenguaje conciso.`
+
+export async function reanalyzePartial(
+  parsedData: object,
+  cachedAnalysis: object,
+  patientContext: PatientContextForPrompt,
+  onProgress?: () => void
+): Promise<object> {
+  let contextText: string
+  if (patientContext.clinical_history) {
+    contextText = formatClinicalHistory(patientContext)
+  } else {
+    const genderLabel = patientContext.gender === 'male' ? 'Masculino' : patientContext.gender === 'female' ? 'Femenino' : 'Otro'
+    const bmi = patientContext.weight && patientContext.height
+      ? (patientContext.weight / Math.pow(patientContext.height / 100, 2)).toFixed(1)
+      : null
+    contextText = `=== DATOS DEL PACIENTE ===\nNombre: ${patientContext.name} | Edad: ${patientContext.age} años | Género: ${genderLabel}${patientContext.weight ? ` | Peso: ${patientContext.weight} kg` : ''}${patientContext.height ? ` | Talla: ${patientContext.height} cm` : ''}${bmi ? ` | IMC: ${bmi}` : ''}\n=== FIN DATOS ===`
+  }
+
+  const userContent: Anthropic.MessageParam['content'] = [
+    { type: 'text', text: contextText },
+    { type: 'text', text: `BIOMARCADORES DEL PACIENTE:\n${JSON.stringify(parsedData, null, 2)}` },
+    { type: 'text', text: PARTIAL_REANALYZE_PROMPT },
+  ]
+
+  let rawText = ''
+  await client.messages
+    .stream({
+      model: MODEL,
+      max_tokens: 24000,
+      temperature: 0,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+    })
+    .on('text', (text) => {
+      rawText += text
+      onProgress?.()
+    })
+    .finalMessage()
+
+  if (!rawText) throw new Error('Claude no devolvió respuesta parcial.')
+
+  // Parse partial response
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('No se encontró JSON en respuesta parcial.')
+
+  let partial: Record<string, unknown>
+  try {
+    partial = JSON.parse(jsonMatch[0])
+  } catch {
+    throw new Error('JSON parcial inválido.')
+  }
+
+  // Merge: cached sections + new sections
+  const cached = cachedAnalysis as Record<string, unknown>
+  const merged = {
+    systemScores: cached.systemScores,
+    overallScore: cached.overallScore,
+    longevity_age: cached.longevity_age,
+    keyAlerts: cached.keyAlerts,
+    swot: cached.swot,
+    risks: cached.risks,
+    clinicalSummary: partial.clinicalSummary || cached.clinicalSummary,
+    protocol: partial.protocol || cached.protocol,
+    projectionData: partial.projectionData || cached.projectionData,
+    projectionFactors: partial.projectionFactors || cached.projectionFactors,
+  }
+
+  return merged
+}

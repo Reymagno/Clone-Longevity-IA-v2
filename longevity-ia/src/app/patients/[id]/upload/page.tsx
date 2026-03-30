@@ -113,16 +113,29 @@ export default function UploadPage({ params }: { params: { id: string } }) {
 
         if (event.step === 'uploading') goToProgress('uploading')
         else if (event.step === 'reading') goToProgress('reading')
-        else if (event.step === 'analyzing') goToProgress('analyzing')
-        else if (event.step === 'saving') goToProgress('saving')
-        else if (event.step === 'done') {
+        else if (event.step === 'extracted') {
+          // Biomarcadores extraídos — redirigir al dashboard inmediato
           resultId = event.resultId ?? null
           setProgress(100)
           setStep('done')
-          toast.success('¡Análisis completado!')
+          toast.success('¡Biomarcadores extraídos! El análisis IA continúa en segundo plano.')
           setTimeout(() => {
             router.push(`/patients/${params.id}/dashboard?resultId=${resultId}`)
-          }, 1800)
+          }, 1200)
+        }
+        else if (event.step === 'analyzing') goToProgress('analyzing')
+        else if (event.step === 'saving') goToProgress('saving')
+        else if (event.step === 'done') {
+          // Si aún no redirigimos (por si extracted no llegó)
+          if (!resultId) {
+            resultId = event.resultId ?? null
+            setProgress(100)
+            setStep('done')
+            toast.success('¡Análisis completado!')
+            setTimeout(() => {
+              router.push(`/patients/${params.id}/dashboard?resultId=${resultId}`)
+            }, 1800)
+          }
         }
       }
 
