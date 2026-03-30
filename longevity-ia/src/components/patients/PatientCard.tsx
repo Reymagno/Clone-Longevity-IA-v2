@@ -36,69 +36,9 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
   const router = useRouter()
   const [showConfirm, setShowConfirm] = useState(false)
   const [showUnlink, setShowUnlink] = useState(false)
-  const [showDeleteResult, setShowDeleteResult] = useState(false)
   const [mode, setMode] = useState<DeleteMode>('full')
   const [deleting, setDeleting] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
-  const [deletingResult, setDeletingResult] = useState(false)
-
-  async function handleDeleteResult() {
-    if (!result || deletingResult) return
-    console.log('[DELETE] Iniciando eliminación de resultado:', result.id)
-    setDeletingResult(true)
-    try {
-      // Eliminar archivos del storage
-      const fileUrls: string[] = result.file_urls ?? []
-      console.log('[DELETE] file_urls:', fileUrls)
-      if (fileUrls.length > 0) {
-        const paths = fileUrls
-          .map((url: string) => {
-            const marker = '/lab-files/'
-            const idx = url.indexOf(marker)
-            return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
-          })
-          .filter(Boolean) as string[]
-
-        console.log('[DELETE] Storage paths a eliminar:', paths)
-        if (paths.length > 0) {
-          const storageRes = await supabase.storage.from('lab-files').remove(paths)
-          console.log('[DELETE] Storage result:', storageRes)
-        }
-      }
-
-      // Eliminar registro de lab_results
-      console.log('[DELETE] Eliminando registro lab_results id:', result.id)
-      const { data, error, count, status, statusText } = await supabase
-        .from('lab_results')
-        .delete()
-        .eq('id', result.id)
-        .select()
-
-      console.log('[DELETE] Supabase response:', { data, error, count, status, statusText })
-
-      if (error) throw new Error(error.message)
-
-      // Verificar si realmente se eliminó algo
-      if (!data || data.length === 0) {
-        console.warn('[DELETE] No se eliminó ningún registro — posible problema de RLS')
-        // Intentar con el endpoint API como fallback
-        console.log('[DELETE] Intentando via API endpoint...')
-        const apiRes = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
-        const apiData = await apiRes.json()
-        console.log('[DELETE] API response:', apiRes.status, apiData)
-        if (!apiRes.ok) throw new Error(apiData.error || `API error ${apiRes.status}`)
-      }
-
-      toast.success('Análisis eliminado')
-      setShowDeleteResult(false)
-      onDeleted?.()
-    } catch (err) {
-      console.error('[DELETE] Error:', err)
-      toast.error(err instanceof Error ? err.message : 'Error al eliminar análisis')
-    } finally {
-      setDeletingResult(false)
-    }
-  }
 
   async function handleUnlink() {
     setUnlinking(true)
@@ -313,25 +253,20 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
 
         {/* Eliminar análisis — esquina inferior derecha */}
         {result && (
-          <div className="flex justify-end mt-3" style={{ position: 'relative', zIndex: 50 }}>
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: 'pointer', padding: '6px 12px', border: '1px solid #D4536A40', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6B6660', position: 'relative', zIndex: 999 }}
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                alert('TEST: El click funciona. Result ID: ' + result.id)
-              }}
-              onClick={async (e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                if (!window.confirm('¿Eliminar este análisis? Esta acción no se puede deshacer.')) return
+          <div className="flex justify-end mt-3">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!window.confirm(`¿Eliminar el análisis del ${formatDate(result.result_date)}? Esta acción no se puede deshacer.`)) return
                 try {
                   const fileUrls: string[] = result.file_urls ?? []
                   if (fileUrls.length > 0) {
                     const paths = fileUrls
-                      .map((url: string) => { const m = '/lab-files/'; const i = url.indexOf(m); return i !== -1 ? decodeURIComponent(url.slice(i + m.length)) : null })
+                      .map((url: string) => {
+                        const marker = '/lab-files/'
+                        const idx = url.indexOf(marker)
+                        return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
+                      })
                       .filter(Boolean) as string[]
                     if (paths.length > 0) await supabase.storage.from('lab-files').remove(paths)
                   }
@@ -343,10 +278,11 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
                   toast.error(err instanceof Error ? err.message : 'Error al eliminar')
                 }
               }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground border border-border/40 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-all"
             >
               <Trash2 size={13} />
               <span>Eliminar análisis</span>
-            </div>
+            </button>
           </div>
         )}
       </div>
@@ -540,47 +476,6 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
         </div>
       )}
 
-      {/* ── Modal confirmación eliminar análisis ── */}
-      {showDeleteResult && result && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => !deletingResult && setShowDeleteResult(false)}
-          />
-          <div className="relative bg-card border border-border rounded-2xl w-full max-w-sm animate-slide-up p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center">
-                <Trash2 size={18} className="text-danger" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Eliminar análisis</h3>
-                <p className="text-xs text-muted-foreground">{formatDate(result.result_date)} · {patient.name}</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              Se eliminará permanentemente este análisis, incluyendo los archivos de laboratorio y el reporte de IA. Esta acción no se puede deshacer.
-            </p>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setShowDeleteResult(false)}
-                disabled={deletingResult}
-                className="flex-1 py-2 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteResult}
-                disabled={deletingResult}
-                className="flex-1 py-2 text-sm font-medium bg-danger text-white rounded-lg hover:bg-danger/90 transition-all disabled:opacity-50"
-              >
-                {deletingResult ? 'Eliminando...' : 'Eliminar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
