@@ -46,9 +46,30 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
     if (!result || deletingResult) return
     setDeletingResult(true)
     try {
-      const res = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al eliminar')
+      // Eliminar archivos del storage
+      const fileUrls: string[] = result.file_urls ?? []
+      if (fileUrls.length > 0) {
+        const paths = fileUrls
+          .map((url: string) => {
+            const marker = '/lab-files/'
+            const idx = url.indexOf(marker)
+            return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
+          })
+          .filter(Boolean) as string[]
+
+        if (paths.length > 0) {
+          await supabase.storage.from('lab-files').remove(paths)
+        }
+      }
+
+      // Eliminar registro de lab_results
+      const { error } = await supabase
+        .from('lab_results')
+        .delete()
+        .eq('id', result.id)
+
+      if (error) throw new Error(error.message)
+
       toast.success('Análisis eliminado')
       setShowDeleteResult(false)
       onDeleted?.()

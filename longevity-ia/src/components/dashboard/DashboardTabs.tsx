@@ -159,14 +159,36 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
     if (isDeleting) return
     setIsDeleting(true)
     try {
-      const res = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al eliminar')
+      const { supabase } = await import('@/lib/supabase/client')
+
+      // Eliminar archivos del storage
+      const fileUrls: string[] = result.file_urls ?? []
+      if (fileUrls.length > 0) {
+        const paths = fileUrls
+          .map((url: string) => {
+            const marker = '/lab-files/'
+            const idx = url.indexOf(marker)
+            return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
+          })
+          .filter(Boolean) as string[]
+
+        if (paths.length > 0) {
+          await supabase.storage.from('lab-files').remove(paths)
+        }
+      }
+
+      // Eliminar registro
+      const { error } = await supabase
+        .from('lab_results')
+        .delete()
+        .eq('id', result.id)
+
+      if (error) throw new Error(error.message)
 
       toast.success('Análisis eliminado')
       setShowDeleteConfirm(false)
 
-      // Si hay otros análisis, navegar al más reciente; si no, volver a pacientes
+      // Si hay otros análisis, navegar al más reciente; si no, volver a upload
       const remaining = allResults.filter(r => r.id !== result.id)
       if (remaining.length > 0) {
         router.push(`/patients/${patient.id}/dashboard?resultId=${remaining[0].id}`)
