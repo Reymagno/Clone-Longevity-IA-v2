@@ -211,7 +211,10 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 shrink-0">
               <LogoIcon size={32} />
-              <span className="hidden sm:block font-semibold text-foreground text-sm tracking-tight">Longevity IA</span>
+              <div className="hidden sm:block">
+                <span className="font-semibold text-foreground text-sm tracking-tight block">Longevity IA</span>
+                <span className="text-[8px] text-muted-foreground/40 leading-none">Derechos reservados - Longevity Clinic SA de CV</span>
+              </div>
             </Link>
             <span className="text-border/50 hidden sm:block">|</span>
             <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-white/5" title="Mis pacientes">

@@ -236,7 +236,10 @@ export default function PatientsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <LogoIcon size={32} />
-            <span className="font-semibold text-foreground tracking-tight">Longevity IA</span>
+            <div>
+              <span className="font-semibold text-foreground tracking-tight block">Longevity IA</span>
+              <span className="text-[9px] text-muted-foreground/40 leading-none">Derechos reservados - Longevity Clinic SA de CV</span>
+            </div>
           </Link>
           <div className="flex items-center gap-2">
             {userRole === 'medico' && (

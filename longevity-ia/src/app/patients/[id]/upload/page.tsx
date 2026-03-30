@@ -180,9 +180,12 @@ export default function UploadPage({ params }: { params: { id: string } }) {
           </Link>
           <div className="flex items-center gap-2.5">
             <LogoIcon size={32} />
-            <span className="font-semibold text-foreground tracking-tight">
-              {patient ? patient.name : 'Longevity IA'}
-            </span>
+            <div>
+              <span className="font-semibold text-foreground tracking-tight block">
+                {patient ? patient.name : 'Longevity IA'}
+              </span>
+              <span className="text-[8px] text-muted-foreground/40 leading-none">Derechos reservados - Longevity Clinic SA de CV</span>
+            </div>
           </div>
 
           {/* Tabs del header — solo visibles si no está analizando */}

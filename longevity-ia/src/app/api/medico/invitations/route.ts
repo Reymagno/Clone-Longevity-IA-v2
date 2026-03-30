@@ -21,25 +21,53 @@ export async function GET(request: NextRequest) {
 
   // Enrich with patient names
   const patientIds = (data ?? []).map(d => d.patient_id)
-  let patientMap: Record<string, { name: string; code: string; age: number }> = {}
+  let patientMap: Record<string, { name: string; code: string; age: number; gender: string; weight: number | null; height: number | null; has_clinical_history: boolean; results_count: number }> = {}
 
   if (patientIds.length > 0) {
     const { data: patients } = await supabase
       .from('patients')
-      .select('id, name, code, age')
+      .select('id, name, code, age, gender, weight, height, clinical_history')
       .in('id', patientIds)
 
     if (patients) {
-      patientMap = Object.fromEntries(patients.map(p => [p.id, { name: p.name, code: p.code, age: p.age }]))
+      // Count results per patient
+      const { data: resultCounts } = await supabase
+        .from('lab_results')
+        .select('patient_id')
+        .in('patient_id', patientIds)
+
+      const countMap: Record<string, number> = {}
+      for (const r of (resultCounts ?? [])) {
+        countMap[r.patient_id] = (countMap[r.patient_id] ?? 0) + 1
+      }
+
+      patientMap = Object.fromEntries(patients.map(p => [p.id, {
+        name: p.name,
+        code: p.code,
+        age: p.age,
+        gender: p.gender,
+        weight: p.weight,
+        height: p.height,
+        has_clinical_history: !!p.clinical_history,
+        results_count: countMap[p.id] ?? 0,
+      }]))
     }
   }
 
-  const enriched = (data ?? []).map(link => ({
-    ...link,
-    patient_name: patientMap[link.patient_id]?.name ?? 'Paciente',
-    patient_code: patientMap[link.patient_id]?.code ?? '',
-    patient_age: patientMap[link.patient_id]?.age ?? null,
-  }))
+  const enriched = (data ?? []).map(link => {
+    const p = patientMap[link.patient_id]
+    return {
+      ...link,
+      patient_name: p?.name ?? 'Paciente',
+      patient_code: p?.code ?? '',
+      patient_age: p?.age ?? null,
+      patient_gender: p?.gender ?? null,
+      patient_weight: p?.weight ?? null,
+      patient_height: p?.height ?? null,
+      patient_has_clinical_history: p?.has_clinical_history ?? false,
+      patient_results_count: p?.results_count ?? 0,
+    }
+  })
 
   return NextResponse.json(enriched)
 }

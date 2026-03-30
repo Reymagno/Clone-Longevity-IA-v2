@@ -14,6 +14,11 @@ interface Invitation {
   patient_name: string
   patient_code: string
   patient_age: number | null
+  patient_gender: string | null
+  patient_weight: number | null
+  patient_height: number | null
+  patient_has_clinical_history: boolean
+  patient_results_count: number
   medico_email: string
   status: string
   invited_at: string
@@ -114,14 +119,62 @@ export function InvitationsPanel({ onClose, onAccepted }: InvitationsPanelProps)
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-foreground">{inv.patient_name}</p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground font-mono">
                         {inv.patient_code}
-                        {inv.patient_age ? ` · ${inv.patient_age} anos` : ''}
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-xs text-muted-foreground mb-3">
+                  {/* Patient details */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3 px-1">
+                    {inv.patient_age && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-foreground/70 font-medium">Edad:</span> {inv.patient_age} anos
+                      </p>
+                    )}
+                    {inv.patient_gender && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-foreground/70 font-medium">Genero:</span> {inv.patient_gender === 'male' ? 'Masculino' : inv.patient_gender === 'female' ? 'Femenino' : 'Otro'}
+                      </p>
+                    )}
+                    {inv.patient_weight && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-foreground/70 font-medium">Peso:</span> {inv.patient_weight} kg
+                      </p>
+                    )}
+                    {inv.patient_height && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-foreground/70 font-medium">Estatura:</span> {inv.patient_height} cm
+                      </p>
+                    )}
+                    {inv.patient_weight && inv.patient_height && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-foreground/70 font-medium">IMC:</span> {(inv.patient_weight / Math.pow(inv.patient_height / 100, 2)).toFixed(1)}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Status badges */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      inv.patient_results_count > 0
+                        ? 'bg-accent/10 text-accent border border-accent/20'
+                        : 'bg-muted text-muted-foreground border border-border/40'
+                    }`}>
+                      {inv.patient_results_count > 0
+                        ? `${inv.patient_results_count} analisis realizado${inv.patient_results_count > 1 ? 's' : ''}`
+                        : 'Sin analisis aun'}
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      inv.patient_has_clinical_history
+                        ? 'bg-accent/10 text-accent border border-accent/20'
+                        : 'bg-warning/10 text-warning border border-warning/20'
+                    }`}>
+                      {inv.patient_has_clinical_history ? 'Historia clinica completa' : 'Historia clinica pendiente'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground/60 mb-3">
                     <Calendar size={10} className="inline mr-1" />
                     Invitacion recibida el {formatDate(inv.invited_at)}
                   </p>

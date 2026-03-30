@@ -310,6 +310,17 @@ export default function LandingPage() {
         Longevity IA — Ciencia de longevidad al alcance de tu salud
       </p>
 
+      {/* Footer */}
+      <footer className="relative text-center py-6 border-t border-border/20">
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <LogoIcon size={16} />
+          <span className="text-xs text-muted-foreground/60 font-medium">Longevity IA</span>
+        </div>
+        <p className="text-[10px] text-muted-foreground/40">
+          Derechos reservados - Longevity Clinic SA de CV
+        </p>
+      </footer>
+
       {/* Registration Modal */}
       <RegisterModal
         role={modalRole ?? 'paciente'}

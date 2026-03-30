@@ -57,6 +57,7 @@ export default function LoginPage() {
           <LogoIcon size={56} className="mb-4" />
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Longevity IA</h1>
           <p className="text-sm text-muted-foreground mt-1.5">Medicina de longevidad con IA</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-2">Derechos reservados - Longevity Clinic SA de CV</p>
         </div>
 
         {/* Card */}

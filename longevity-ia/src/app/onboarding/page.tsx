@@ -89,6 +89,7 @@ export default function OnboardingPage() {
             <div>
               <h1 className="text-xl font-bold text-foreground">Longevity IA</h1>
               <p className="text-xs text-muted-foreground">Crea tu perfil para comenzar</p>
+              <p className="text-[9px] text-muted-foreground/40">Derechos reservados - Longevity Clinic SA de CV</p>
             </div>
           </div>
           <button
