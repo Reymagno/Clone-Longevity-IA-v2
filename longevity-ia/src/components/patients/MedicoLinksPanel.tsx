@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import {
-  X, Stethoscope, Mail, UserPlus, Check, Clock, XCircle, Trash2,
+  X, Stethoscope, UserPlus, Check, Clock, Trash2, Copy, Hash,
 } from 'lucide-react'
 
 interface MedicoLink {
   id: string
   medico_email: string
+  medico_name?: string
   status: 'pending' | 'active' | 'revoked'
   invited_at: string
   confirmed_at: string | null
@@ -19,13 +20,14 @@ interface MedicoLink {
 
 interface MedicoLinksPanelProps {
   patientId: string
+  patientCode?: string
   onClose: () => void
 }
 
-export function MedicoLinksPanel({ patientId, onClose }: MedicoLinksPanelProps) {
+export function MedicoLinksPanel({ patientId, patientCode, onClose }: MedicoLinksPanelProps) {
   const [links, setLinks] = useState<MedicoLink[]>([])
   const [loading, setLoading] = useState(true)
-  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
   const [inviting, setInviting] = useState(false)
 
   async function loadLinks() {
@@ -42,28 +44,33 @@ export function MedicoLinksPanel({ patientId, onClose }: MedicoLinksPanelProps) 
 
   useEffect(() => { loadLinks() }, [patientId])
 
+  function handleCopyCode() {
+    if (!patientCode) return
+    navigator.clipboard.writeText(patientCode)
+    toast.success('Codigo copiado')
+  }
+
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
-    const trimmed = email.trim().toLowerCase()
-    if (!trimmed.includes('@')) { toast.error('Correo invalido'); return }
+    const trimmed = code.trim().toUpperCase()
+    if (!trimmed) { toast.error('Ingresa el codigo del medico'); return }
 
     setInviting(true)
     try {
-      // Check if medico exists in auth
-      // We look up in the medicos table by email
+      // Look up medico by code
       const { data: medico } = await supabase
         .from('medicos')
-        .select('user_id')
-        .eq('email', trimmed)
+        .select('user_id, email, full_name')
+        .eq('code', trimmed)
         .maybeSingle()
 
       if (!medico) {
-        toast.error('No se encontro un medico registrado con ese correo. El medico debe crear su cuenta primero.')
+        toast.error('No se encontro un medico con ese codigo. Verifica que el codigo sea correcto.')
         return
       }
 
       // Check if link already exists
-      const existing = links.find(l => l.medico_email === trimmed)
+      const existing = links.find(l => l.medico_email === medico.email)
       if (existing) {
         toast.error('Ya existe una invitacion para este medico')
         return
@@ -72,7 +79,7 @@ export function MedicoLinksPanel({ patientId, onClose }: MedicoLinksPanelProps) 
       const { error } = await supabase.from('patient_medico_links').insert({
         patient_id: patientId,
         medico_user_id: medico.user_id,
-        medico_email: trimmed,
+        medico_email: medico.email,
         status: 'pending',
       })
 
@@ -85,8 +92,8 @@ export function MedicoLinksPanel({ patientId, onClose }: MedicoLinksPanelProps) 
         return
       }
 
-      toast.success(`Invitacion enviada a ${trimmed}`)
-      setEmail('')
+      toast.success(`Invitacion enviada al Dr. ${medico.full_name}`)
+      setCode('')
       loadLinks()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al invitar medico')
@@ -129,22 +136,44 @@ export function MedicoLinksPanel({ patientId, onClose }: MedicoLinksPanelProps) 
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Invite form */}
+          {/* Mi código de paciente */}
+          {patientCode && (
+            <div className="p-4 rounded-xl border border-gold-300/20 bg-gold-300/5">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Tu codigo de paciente</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/50">
+                  <Hash size={14} className="text-gold-200 shrink-0" />
+                  <span className="text-sm font-mono font-bold text-gold-100 tracking-wide">{patientCode}</span>
+                </div>
+                <button
+                  onClick={handleCopyCode}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg bg-muted/40 border border-border/50 text-muted-foreground hover:text-gold-200 hover:border-gold-300/30 transition-colors"
+                  title="Copiar codigo"
+                >
+                  <Copy size={14} />
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 mt-2">
+                Comparte este codigo con tu medico para que te encuentre
+              </p>
+            </div>
+          )}
+
+          {/* Invite form — by code */}
           <div>
             <p className="text-sm text-muted-foreground mb-3">
-              Invita a un medico para que pueda ver tus analisis de salud. El medico debe estar registrado en Longevity IA.
+              Conecta con tu medico usando su codigo unico. Pidele su codigo al medico.
             </p>
             <form onSubmit={handleInvite} className="flex gap-2">
               <Input
-                type="email"
-                placeholder="correo@medico.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="flex-1"
+                placeholder="MED-XXXXXX"
+                value={code}
+                onChange={e => setCode(e.target.value.toUpperCase())}
+                className="flex-1 font-mono tracking-wide"
               />
               <Button type="submit" loading={inviting} size="sm" className="shrink-0">
                 <UserPlus size={14} />
-                Invitar
+                Conectar
               </Button>
             </form>
           </div>
@@ -162,10 +191,10 @@ export function MedicoLinksPanel({ patientId, onClose }: MedicoLinksPanelProps) 
               </div>
             ) : links.length === 0 ? (
               <div className="text-center py-8">
-                <Mail size={24} className="text-muted-foreground mx-auto mb-2" />
+                <Stethoscope size={24} className="text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">Sin medicos vinculados</p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  Invita a un medico con su correo electronico
+                  Ingresa el codigo de tu medico para conectar
                 </p>
               </div>
             ) : (

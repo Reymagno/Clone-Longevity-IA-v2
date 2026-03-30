@@ -8,7 +8,7 @@ import { NewPatientModal } from '@/components/patients/NewPatientModal'
 import { AnalysisCards } from '@/components/patients/AnalysisCards'
 import { Button } from '@/components/ui/button'
 import type { Patient, PatientWithLatestResult } from '@/types'
-import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell } from 'lucide-react'
+import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, Hash } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
@@ -29,6 +29,7 @@ export default function PatientsPage() {
   const [pendingInvCount, setPendingInvCount] = useState(0)
   const [search, setSearch] = useState('')
   const [userRole, setUserRole] = useState<string>('paciente')
+  const [medicoCode, setMedicoCode] = useState<string | null>(null)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -44,10 +45,24 @@ export default function PatientsPage() {
 
       // Check role from user metadata
       const role = user.user_metadata?.role ?? 'paciente'
+      console.log('DEBUG user:', user.id, user.email)
+      console.log('DEBUG user_metadata:', JSON.stringify(user.user_metadata))
+      console.log('DEBUG role:', role)
       setUserRole(role)
 
       // For medicos: load linked patients + pending invitations
       if (role === 'medico') {
+        // Load medico code
+        const { data: medicoData, error: medicoErr } = await supabase
+          .from('medicos')
+          .select('code')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        console.log('DEBUG medico user.id:', user.id)
+        console.log('DEBUG medicoData:', medicoData)
+        console.log('DEBUG medicoErr:', medicoErr)
+        setMedicoCode(medicoData?.code ?? null)
+
         // Count pending invitations
         const { data: pendingLinks } = await supabase
           .from('patient_medico_links')
@@ -197,6 +212,7 @@ export default function PatientsPage() {
         {showMedicoPanel && (
           <MedicoLinksPanel
             patientId={singlePatient.id}
+            patientCode={singlePatient.code}
             onClose={() => setShowMedicoPanel(false)}
           />
         )}
@@ -239,6 +255,26 @@ export default function PatientsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Código del médico */}
+        {userRole === 'medico' && medicoCode && (
+          <div className="mb-6 p-4 rounded-xl border border-gold-300/20 bg-gold-300/5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gold-300/15 border border-gold-300/25 flex items-center justify-center shrink-0">
+              <Hash size={18} className="text-gold-200" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Tu codigo de medico</p>
+              <p className="text-sm font-mono font-bold text-gold-100 tracking-wide">{medicoCode}</p>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(medicoCode); toast.success('Codigo copiado') }}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-muted/40 border border-border/50 text-muted-foreground hover:text-gold-200 hover:border-gold-300/30 transition-colors"
+              title="Copiar codigo"
+            >
+              <Copy size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Banner de invitaciones pendientes para medicos */}
         {userRole === 'medico' && pendingInvCount > 0 && !showInvitations && (
           <button

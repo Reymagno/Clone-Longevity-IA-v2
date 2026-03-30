@@ -118,3 +118,8 @@ export function generatePatientCode(): string {
   const random = Math.random().toString(36).substring(2, 5).toUpperCase()
   return `LNG-${timestamp}-${random}`
 }
+
+export function generateMedicoCode(): string {
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+  return `MED-${random}`
+}

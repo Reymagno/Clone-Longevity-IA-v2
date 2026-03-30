@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Longevity Clinic — Brand Mark Variations (P2.1)</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #C9A84C;
+  --gold-glow: rgba(201,168,76,0.35);
+  --bg: #080810;
+  --card: #10101A;
+  --card-border: rgba(201,168,76,0.12);
+  --white: #FAFAFA;
+  --white60: rgba(250,250,250,0.6);
+  --white30: rgba(250,250,250,0.28);
+}
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  padding: 60px 32px 100px;
+}
+
+/* ── Header ── */
+.page-header { text-align: center; margin-bottom: 64px; }
+.page-header__eyebrow {
+  font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+}
+.page-header__title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 600; color: var(--white);
+  margin-bottom: 10px;
+}
+.page-header__sub { color: var(--white60); font-size: 0.88rem; max-width: 560px; margin: 0 auto; line-height: 1.7; }
+
+/* ── Spin toggle ── */
+.controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 52px; }
+.btn-toggle {
+  background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3);
+  color: var(--gold); font-family: 'Inter', sans-serif;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 10px 24px; border-radius: 40px; cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-toggle:hover { background: rgba(201,168,76,0.2); border-color: var(--gold); }
+.btn-toggle.is-active { background: var(--gold); color: #0A0A0A; }
+
+/* ── Grid ── */
+.marks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) { .marks-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px) { .marks-grid { grid-template-columns: 1fr; } }
+
+/* ── Card ── */
+.mark-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 32px 24px;
+  display: flex; flex-direction: column; gap: 24px;
+  transition: border-color 0.35s, transform 0.35s;
+  cursor: pointer;
+}
+.mark-card:hover { border-color: rgba(201,168,76,0.35); transform: translateY(-3px); }
+.mark-card.is-selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 12px 40px rgba(201,168,76,0.15);
+}
+.mark-card__header { display: flex; align-items: baseline; justify-content: space-between; }
+.mark-card__num { font-size: 0.62rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; }
+.mark-card__name { font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; color: var(--white60); }
+
+/* ── Preview stages ── */
+.mark-stages { display: flex; align-items: flex-end; justify-content: space-around; gap: 16px; padding: 24px 0; }
+.mark-stage { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.mark-stage svg { filter: drop-shadow(0 0 6px rgba(201,168,76,0.3)); }
+.mark-stage__label { font-size: 0.58rem; letter-spacing: 0.12em; color: var(--white30); text-transform: uppercase; }
+
+/* ── Nav context preview ── */
+.mark-nav-preview {
+  background: rgba(10,10,20,0.95);
+  border-radius: 10px;
+  padding: 12px 20px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.mark-nav-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; color: var(--white); }
+.mark-nav-text span { color: var(--gold); }
+
+/* ── Description ── */
+.mark-desc {
+  font-size: 0.78rem; line-height: 1.7; color: var(--white60);
+  border-top: 1px solid rgba(201,168,76,0.1);
+  padding-top: 16px;
+}
+.mark-desc strong { color: var(--gold); font-weight: 600; }
+
+/* ── "Current" badge ── */
+.badge-current {
+  display: inline-block;
+  background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.3);
+  color: var(--gold); font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 20px;
+}
+
+/* ── Selection footer ── */
+.selection-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(8,8,16,0.96);
+  border-top: 1px solid rgba(201,168,76,0.2);
+  padding: 14px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  backdrop-filter: blur(12px);
+}
+.selection-bar__info { font-size: 0.78rem; color: var(--white60); }
+.selection-bar__info strong { color: var(--gold); }
+.selection-bar__hint { font-size: 0.68rem; letter-spacing: 0.08em; color: var(--white30); }
+
+/* ── Spin animations ── */
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spin-glow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(201,168,76,0.3)); } 50% { filter: drop-shadow(0 0 14px rgba(201,168,76,0.5)); } }
+
+.mark-icon { display: inline-block; }
+.spinning .mark-icon {
+  animation: spin-slow 12s linear infinite, spin-glow 6s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <p class="page-header__eyebrow">P2.1 — Rediseño del Símbolo de Marca</p>
+  <h1 class="page-header__title">Variaciones del Logo Mark</h1>
+  <p class="page-header__sub">Selecciona la variación que mejor representa la identidad de Longevity Clinic. Haz clic en una tarjeta para marcarla y comunícaselo a Claude.</p>
+</div>
+
+<div class="controls">
+  <button class="btn-toggle is-active" id="spinBtn" onclick="toggleSpin()">⟳ Girar activo</button>
+  <button class="btn-toggle" onclick="clearSelection()">Limpiar selección</button>
+</div>
+
+<div class="marks-grid" id="grid">
+
+
+<!-- ══════════════════════════════════════════
+     MARK 01 — ORIGINAL LOTUS (current, reference)
+══════════════════════════════════════════ -->
+<div class="mark-card" onclick="selectMark(this, '01 — Original Lotus')">
+  <div class="mark-card__header">
+    <span class="mark-card__num">Variación 01</span>
+    <span class="mark-card__name">Original Lotus <span class="badge-current">Actual</span></span>
+  </div>
+  <div class="mark-stages">
+    <!-- 160px -->
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <g transform="rotate(0,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+        <g transform="rotate(60,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+        <g transform="rotate(120,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+        <g transform="rotate(180,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+        <g transform="rotate(240,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+        <g transform="rotate(300,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+        <circle cx="20" cy="20" r="3.5" fill="#0D0D14" stroke="#C9A84C" stroke-width="1"/>
+      </svg></span>
+      <span class="mark-stage__label">Hero / Overlay</span>
+    </div>
+    <!-- 60px -->
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <g transform="rotate(0,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+        <g transform="rotate(60,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+        <g transform="rotate(120,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+        <g transform="rotate(180,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+        <g transform="rotate(240,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+        <g transform="rotate(300,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+        <circle cx="20" cy="20" r="3.5" fill="#0D0D14" stroke="#C9A84C" stroke-width="1"/>
+      </svg></span>
+      <span class="mark-stage__label">Mediano</span>
+    </div>
+  </div>
+  <!-- Nav context -->
+  <div class="mark-nav-preview">
+    <span class="mark-icon"><svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <g transform="rotate(0,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+      <g transform="rotate(60,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+      <g transform="rotate(120,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+      <g transform="rotate(180,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+      <g transform="rotate(240,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.9"/></g>
+      <g transform="rotate(300,20,20)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.6"/></g>
+      <circle cx="20" cy="20" r="3.5" fill="#0D0D14" stroke="#C9A84C" stroke-width="1"/>
+    </svg></span>
+    <span class="mark-nav-text">Longevity<span>Clinic</span></span>
+  </div>
+  <p class="mark-desc">Referencia actual. Seis pétalos idénticos a 60° con opacidades alternas. <strong>Problema:</strong> geometría primitiva sin referencia celular — podría pertenecer a cualquier marca de spa.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MARK 02 — BIO-HEX (hexagonal cellular membrane)
+══════════════════════════════════════════ -->
+<div class="mark-card" onclick="selectMark(this, '02 — Bio-Hex')">
+  <div class="mark-card__header">
+    <span class="mark-card__num">Variación 02</span>
+    <span class="mark-card__name">Bio-Hex</span>
+  </div>
+  <div class="mark-stages">
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer hexagon -->
+        <polygon points="20,3.5 33.86,11.75 33.86,28.25 20,36.5 6.14,28.25 6.14,11.75" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linejoin="miter" opacity="0.95"/>
+        <!-- Inner hexagon -->
+        <polygon points="20,11.5 27.36,15.75 27.36,24.25 20,28.5 12.64,24.25 12.64,15.75" fill="none" stroke="#C9A84C" stroke-width="0.75" opacity="0.5"/>
+        <!-- Radial connectors: outer vertex → inner vertex -->
+        <line x1="20" y1="3.5" x2="20" y2="11.5" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="33.86" y1="11.75" x2="27.36" y2="15.75" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="33.86" y1="28.25" x2="27.36" y2="24.25" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="20" y1="36.5" x2="20" y2="28.5" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="6.14" y1="28.25" x2="12.64" y2="24.25" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="6.14" y1="11.75" x2="12.64" y2="15.75" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <!-- Nucleus -->
+        <circle cx="20" cy="20" r="3.8" fill="rgba(201,168,76,0.1)" stroke="#C9A84C" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="1.6" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Hero / Overlay</span>
+    </div>
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="20,3.5 33.86,11.75 33.86,28.25 20,36.5 6.14,28.25 6.14,11.75" fill="none" stroke="#C9A84C" stroke-width="1.4" opacity="0.95"/>
+        <polygon points="20,11.5 27.36,15.75 27.36,24.25 20,28.5 12.64,24.25 12.64,15.75" fill="none" stroke="#C9A84C" stroke-width="0.75" opacity="0.5"/>
+        <line x1="20" y1="3.5" x2="20" y2="11.5" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="33.86" y1="11.75" x2="27.36" y2="15.75" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="33.86" y1="28.25" x2="27.36" y2="24.25" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="20" y1="36.5" x2="20" y2="28.5" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="6.14" y1="28.25" x2="12.64" y2="24.25" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <line x1="6.14" y1="11.75" x2="12.64" y2="15.75" stroke="#C9A84C" stroke-width="0.6" opacity="0.32"/>
+        <circle cx="20" cy="20" r="3.8" fill="rgba(201,168,76,0.1)" stroke="#C9A84C" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="1.6" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Mediano</span>
+    </div>
+  </div>
+  <div class="mark-nav-preview">
+    <span class="mark-icon"><svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="20,3.5 33.86,11.75 33.86,28.25 20,36.5 6.14,28.25 6.14,11.75" fill="none" stroke="#C9A84C" stroke-width="1.4" opacity="0.95"/>
+      <polygon points="20,11.5 27.36,15.75 27.36,24.25 20,28.5 12.64,24.25 12.64,15.75" fill="none" stroke="#C9A84C" stroke-width="0.75" opacity="0.5"/>
+      <circle cx="20" cy="20" r="3.8" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
+      <circle cx="20" cy="20" r="1.6" fill="#C9A84C"/>
+    </svg></span>
+    <span class="mark-nav-text">Longevity<span>Clinic</span></span>
+  </div>
+  <p class="mark-desc"><strong>Membrana celular hexagonal.</strong> El hexágono es la estructura de empaquetado más eficiente de la biología — referencia directa a tejido celular. Dos hexágonos concéntricos con conectores radiales evocan una célula vista al microscopio. Máxima credibilidad científica.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MARK 03 — EVOLVED BLOOM (petals with depth + inner detail)
+══════════════════════════════════════════ -->
+<div class="mark-card" onclick="selectMark(this, '03 — Evolved Bloom')">
+  <div class="mark-card__header">
+    <span class="mark-card__num">Variación 03</span>
+    <span class="mark-card__name">Evolved Bloom</span>
+  </div>
+  <div class="mark-stages">
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer faint ring -->
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#C9A84C" stroke-width="0.4" opacity="0.14"/>
+        <!-- 6 petals — variable opacity simulating bioluminescence from top -->
+        <g transform="rotate(0,20,20)">
+          <path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="1.0"/>
+          <path d="M 19.4,17 Q 20,12 20.6,17" fill="none" stroke="rgba(8,6,2,0.45)" stroke-width="0.9" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(60,20,20)">
+          <path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.8"/>
+          <path d="M 19.4,17 Q 20,12 20.6,17" fill="none" stroke="rgba(8,6,2,0.35)" stroke-width="0.9" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(120,20,20)">
+          <path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.58"/>
+          <path d="M 19.4,17 Q 20,12 20.6,17" fill="none" stroke="rgba(8,6,2,0.25)" stroke-width="0.9" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(180,20,20)">
+          <path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.4"/>
+          <path d="M 19.4,17 Q 20,12 20.6,17" fill="none" stroke="rgba(8,6,2,0.18)" stroke-width="0.9" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(240,20,20)">
+          <path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.58"/>
+          <path d="M 19.4,17 Q 20,12 20.6,17" fill="none" stroke="rgba(8,6,2,0.25)" stroke-width="0.9" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(300,20,20)">
+          <path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.8"/>
+          <path d="M 19.4,17 Q 20,12 20.6,17" fill="none" stroke="rgba(8,6,2,0.35)" stroke-width="0.9" stroke-linecap="round"/>
+        </g>
+        <!-- Center -->
+        <circle cx="20" cy="20" r="3" fill="#090910" stroke="#C9A84C" stroke-width="1.1"/>
+        <circle cx="20" cy="20" r="1.3" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Hero / Overlay</span>
+    </div>
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#C9A84C" stroke-width="0.4" opacity="0.14"/>
+        <g transform="rotate(0,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="1.0"/></g>
+        <g transform="rotate(60,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.8"/></g>
+        <g transform="rotate(120,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.58"/></g>
+        <g transform="rotate(180,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.4"/></g>
+        <g transform="rotate(240,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.58"/></g>
+        <g transform="rotate(300,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.8"/></g>
+        <circle cx="20" cy="20" r="3" fill="#090910" stroke="#C9A84C" stroke-width="1.1"/>
+        <circle cx="20" cy="20" r="1.3" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Mediano</span>
+    </div>
+  </div>
+  <div class="mark-nav-preview">
+    <span class="mark-icon"><svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <g transform="rotate(0,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="1.0"/></g>
+      <g transform="rotate(60,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.8"/></g>
+      <g transform="rotate(120,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.58"/></g>
+      <g transform="rotate(180,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.4"/></g>
+      <g transform="rotate(240,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.58"/></g>
+      <g transform="rotate(300,20,20)"><path d="M 20,20 C 23.5,17 25,11 20,5.5 C 15,11 16.5,17 20,20 Z" fill="#C9A84C" opacity="0.8"/></g>
+      <circle cx="20" cy="20" r="2.8" fill="#090910" stroke="#C9A84C" stroke-width="1"/>
+      <circle cx="20" cy="20" r="1.2" fill="#C9A84C"/>
+    </svg></span>
+    <span class="mark-nav-text">Longevity<span>Clinic</span></span>
+  </div>
+  <p class="mark-desc"><strong>Lotus evolucionado con profundidad bioluminiscente.</strong> Pétalos más anchos con degradado de opacidad que simula luz emergiendo desde el interior — como células bioluminiscentes. El arco interior de cada pétalo sugiere las crestas mitocondriales. Evolutivo, no rupturista.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MARK 04 — ORBITAL (3 electron orbital ellipses)
+══════════════════════════════════════════ -->
+<div class="mark-card" onclick="selectMark(this, '04 — Orbital')">
+  <div class="mark-card__header">
+    <span class="mark-card__num">Variación 04</span>
+    <span class="mark-card__name">Orbital</span>
+  </div>
+  <div class="mark-stages">
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <!-- 3 electron orbital ellipses at 0°, 60°, 120° -->
+        <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.9" transform="rotate(0,20,20)"/>
+        <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.65" transform="rotate(60,20,20)"/>
+        <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.42" transform="rotate(120,20,20)"/>
+        <!-- Outer boundary ring (faint) -->
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#C9A84C" stroke-width="0.35" opacity="0.16"/>
+        <!-- Nucleus -->
+        <circle cx="20" cy="20" r="4" fill="rgba(201,168,76,0.18)" stroke="#C9A84C" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="2" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Hero / Overlay</span>
+    </div>
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.9" transform="rotate(0,20,20)"/>
+        <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.65" transform="rotate(60,20,20)"/>
+        <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.42" transform="rotate(120,20,20)"/>
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#C9A84C" stroke-width="0.35" opacity="0.16"/>
+        <circle cx="20" cy="20" r="4" fill="rgba(201,168,76,0.18)" stroke="#C9A84C" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="2" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Mediano</span>
+    </div>
+  </div>
+  <div class="mark-nav-preview">
+    <span class="mark-icon"><svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.9" transform="rotate(0,20,20)"/>
+      <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.65" transform="rotate(60,20,20)"/>
+      <ellipse cx="20" cy="20" rx="16" ry="4.5" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.42" transform="rotate(120,20,20)"/>
+      <circle cx="20" cy="20" r="3.5" fill="rgba(201,168,76,0.15)" stroke="#C9A84C" stroke-width="1"/>
+      <circle cx="20" cy="20" r="1.6" fill="#C9A84C"/>
+    </svg></span>
+    <span class="mark-nav-text">Longevity<span>Clinic</span></span>
+  </div>
+  <p class="mark-desc"><strong>Órbitas electrónicas atómicas.</strong> Tres elipses a 60° simulan las trayectorias de electrones alrededor de un núcleo. Máxima autoridad científica y tecnológica. El giro lento convierte la animación en un modelo atómico en movimiento. Ideal para posicionamiento de vanguardia.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MARK 05 — FIBONACCI BLOOM (golden angle petals)
+══════════════════════════════════════════ -->
+<div class="mark-card" onclick="selectMark(this, '05 — Fibonacci Bloom')">
+  <div class="mark-card__header">
+    <span class="mark-card__num">Variación 05</span>
+    <span class="mark-card__name">Fibonacci Bloom</span>
+  </div>
+  <div class="mark-stages">
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <!-- 6 petals at golden angle (137.508°) with varying sizes -->
+        <!-- Angles: 0°, 137.5°, 275°, 52.5°, 190°, 327.5° -->
+        <g style="transform-origin:20px 20px; transform:rotate(0deg) scale(1.0)">
+          <path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.96"/>
+        </g>
+        <g style="transform-origin:20px 20px; transform:rotate(137.5deg) scale(0.88)">
+          <path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/>
+        </g>
+        <g style="transform-origin:20px 20px; transform:rotate(275deg) scale(0.77)">
+          <path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.65"/>
+        </g>
+        <g style="transform-origin:20px 20px; transform:rotate(52.5deg) scale(0.88)">
+          <path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/>
+        </g>
+        <g style="transform-origin:20px 20px; transform:rotate(190deg) scale(0.77)">
+          <path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.65"/>
+        </g>
+        <g style="transform-origin:20px 20px; transform:rotate(327.5deg) scale(0.88)">
+          <path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/>
+        </g>
+        <circle cx="20" cy="20" r="3.2" fill="#090910" stroke="#C9A84C" stroke-width="1"/>
+        <circle cx="20" cy="20" r="1.4" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Hero / Overlay</span>
+    </div>
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <g style="transform-origin:20px 20px; transform:rotate(0deg) scale(1.0)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.96"/></g>
+        <g style="transform-origin:20px 20px; transform:rotate(137.5deg) scale(0.88)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/></g>
+        <g style="transform-origin:20px 20px; transform:rotate(275deg) scale(0.77)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.65"/></g>
+        <g style="transform-origin:20px 20px; transform:rotate(52.5deg) scale(0.88)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/></g>
+        <g style="transform-origin:20px 20px; transform:rotate(190deg) scale(0.77)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.65"/></g>
+        <g style="transform-origin:20px 20px; transform:rotate(327.5deg) scale(0.88)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/></g>
+        <circle cx="20" cy="20" r="3.2" fill="#090910" stroke="#C9A84C" stroke-width="1"/>
+        <circle cx="20" cy="20" r="1.4" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Mediano</span>
+    </div>
+  </div>
+  <div class="mark-nav-preview">
+    <span class="mark-icon"><svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <g style="transform-origin:20px 20px; transform:rotate(0deg) scale(1.0)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.96"/></g>
+      <g style="transform-origin:20px 20px; transform:rotate(137.5deg) scale(0.88)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/></g>
+      <g style="transform-origin:20px 20px; transform:rotate(275deg) scale(0.77)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.65"/></g>
+      <g style="transform-origin:20px 20px; transform:rotate(52.5deg) scale(0.88)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/></g>
+      <g style="transform-origin:20px 20px; transform:rotate(190deg) scale(0.77)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.65"/></g>
+      <g style="transform-origin:20px 20px; transform:rotate(327.5deg) scale(0.88)"><path d="M 20,20 C 24,18 26,13 20,7 C 14,13 16,18 20,20 Z" fill="#C9A84C" opacity="0.80"/></g>
+      <circle cx="20" cy="20" r="2.8" fill="#090910" stroke="#C9A84C" stroke-width="1"/>
+      <circle cx="20" cy="20" r="1.2" fill="#C9A84C"/>
+    </svg></span>
+    <span class="mark-nav-text">Longevity<span>Clinic</span></span>
+  </div>
+  <p class="mark-desc"><strong>Espiral de Fibonacci / Ángulo de Oro.</strong> Los pétalos se distribuyen a 137.5° (el ángulo áureo de la naturaleza) con tamaños decrecientes. La asimetría orgánica es deliberada — los girasoles, las galaxias y el crecimiento celular siguen exactamente este patrón matemático.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MARK 06 — FLOWER OF LIFE (7-circle biological geometry)
+══════════════════════════════════════════ -->
+<div class="mark-card" onclick="selectMark(this, '06 — Flower of Life')">
+  <div class="mark-card__header">
+    <span class="mark-card__num">Variación 06</span>
+    <span class="mark-card__name">Flower of Life</span>
+  </div>
+  <div class="mark-stages">
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer containing circle -->
+        <circle cx="20" cy="20" r="17.5" fill="none" stroke="#C9A84C" stroke-width="0.6" opacity="0.3"/>
+        <!-- 7 circles r=5, center + 6 at distance 10 (adjacent circles just touch) -->
+        <!-- Center circle -->
+        <circle cx="20" cy="20" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.85"/>
+        <!-- 6 outer circles (r=8.5, distance=8.5 from center) -->
+        <!-- Top: (20, 11.5) -->
+        <circle cx="20" cy="11.5" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.7"/>
+        <!-- Top-right: (20+7.36, 20-4.25)=(27.36, 15.75) -->
+        <circle cx="27.36" cy="15.75" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+        <!-- Bottom-right: (27.36, 24.25) -->
+        <circle cx="27.36" cy="24.25" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.42"/>
+        <!-- Bottom: (20, 28.5) -->
+        <circle cx="20" cy="28.5" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+        <!-- Bottom-left: (12.64, 24.25) -->
+        <circle cx="12.64" cy="24.25" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.42"/>
+        <!-- Top-left: (12.64, 15.75) -->
+        <circle cx="12.64" cy="15.75" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+        <!-- Center nucleus -->
+        <circle cx="20" cy="20" r="2.2" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Hero / Overlay</span>
+    </div>
+    <div class="mark-stage">
+      <span class="mark-icon"><svg viewBox="0 0 40 40" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="17.5" fill="none" stroke="#C9A84C" stroke-width="0.6" opacity="0.3"/>
+        <circle cx="20" cy="20" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.85"/>
+        <circle cx="20" cy="11.5" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.7"/>
+        <circle cx="27.36" cy="15.75" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+        <circle cx="27.36" cy="24.25" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.42"/>
+        <circle cx="20" cy="28.5" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+        <circle cx="12.64" cy="24.25" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.42"/>
+        <circle cx="12.64" cy="15.75" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+        <circle cx="20" cy="20" r="2.2" fill="#C9A84C"/>
+      </svg></span>
+      <span class="mark-stage__label">Mediano</span>
+    </div>
+  </div>
+  <div class="mark-nav-preview">
+    <span class="mark-icon"><svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.85"/>
+      <circle cx="20" cy="11.5" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.7"/>
+      <circle cx="27.36" cy="15.75" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+      <circle cx="27.36" cy="24.25" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.42"/>
+      <circle cx="20" cy="28.5" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+      <circle cx="12.64" cy="24.25" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.42"/>
+      <circle cx="12.64" cy="15.75" r="8.5" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.55"/>
+      <circle cx="20" cy="20" r="2.2" fill="#C9A84C"/>
+    </svg></span>
+    <span class="mark-nav-text">Longevity<span>Clinic</span></span>
+  </div>
+  <p class="mark-desc"><strong>Geometría celular / Flor de la Vida.</strong> Siete círculos de igual radio, cada uno tocando el centro — exactamente como las células madre mesenquimales se empaquetan en cultivo. Intersecciones naturales crean formas de "vesica piscis" asociadas a regeneración y vida. El más profundo en significado biológico.</p>
+</div>
+
+
+</div><!-- /marks-grid -->
+
+<!-- ── Selection footer ── -->
+<div class="selection-bar">
+  <div class="selection-bar__info">
+    Seleccionado: <strong id="selectedName">ninguno</strong>
+  </div>
+  <div class="selection-bar__hint">Dile a Claude: "aplica la variación X" para implementarlo en el sitio</div>
+</div>
+
+<script>
+let isSpinning = true;
+
+function toggleSpin() {
+  isSpinning = !isSpinning;
+  const btn = document.getElementById('spinBtn');
+  const icons = document.querySelectorAll('.mark-icon');
+  if (isSpinning) {
+    document.getElementById('grid').classList.add('spinning');
+    btn.classList.add('is-active');
+    btn.textContent = '⟳ Girar activo';
+  } else {
+    document.getElementById('grid').classList.remove('spinning');
+    btn.classList.remove('is-active');
+    btn.textContent = '⟳ Girar pausado';
+  }
+}
+
+function selectMark(card, name) {
+  document.querySelectorAll('.mark-card').forEach(c => c.classList.remove('is-selected'));
+  card.classList.add('is-selected');
+  document.getElementById('selectedName').textContent = name;
+}
+
+function clearSelection() {
+  document.querySelectorAll('.mark-card').forEach(c => c.classList.remove('is-selected'));
+  document.getElementById('selectedName').textContent = 'ninguno';
+}
+
+// Start spinning on load
+document.getElementById('grid').classList.add('spinning');
+</script>
+</body>
+</html>

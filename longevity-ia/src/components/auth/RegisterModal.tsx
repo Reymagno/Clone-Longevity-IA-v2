@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { X, UserPlus } from 'lucide-react'
+import { generateMedicoCode } from '@/lib/utils'
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -173,6 +174,7 @@ export function RegisterModal({ role, isOpen, onClose }: RegisterModalProps) {
       if (role === 'medico') {
         const { error: medicoError } = await supabase.from('medicos').insert({
           user_id: userId,
+          code: generateMedicoCode(),
           full_name: form.full_name,
           specialty: form.specialty,
           license_number: form.license_number,
