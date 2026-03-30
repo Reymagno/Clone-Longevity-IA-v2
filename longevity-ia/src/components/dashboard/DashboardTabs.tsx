@@ -21,7 +21,7 @@ import { toast } from 'sonner'
 import {
   BarChart2, Shield, Activity, FlaskConical,
   TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Upload, ChevronDown, FileText,
-  GitCompareArrows, RefreshCw
+  GitCompareArrows, RefreshCw, Trash2
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, hashString } from '@/lib/utils'
@@ -76,6 +76,9 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
   }, [viewerRole])
 
   const isOwnPatient = viewerRole === 'paciente' || (viewerRole === 'medico' && currentUserId === patient.user_id)
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const analysis = result.ai_analysis
   const parsedData = result.parsed_data
@@ -152,6 +155,32 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
     router.push(`/patients/${patient.id}/dashboard?${params.toString()}`)
   }
 
+  const handleDeleteResult = useCallback(async () => {
+    if (isDeleting) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar')
+
+      toast.success('Análisis eliminado')
+      setShowDeleteConfirm(false)
+
+      // Si hay otros análisis, navegar al más reciente; si no, volver a pacientes
+      const remaining = allResults.filter(r => r.id !== result.id)
+      if (remaining.length > 0) {
+        router.push(`/patients/${patient.id}/dashboard?resultId=${remaining[0].id}`)
+      } else {
+        router.push(`/patients/${patient.id}/upload`)
+      }
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar análisis')
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [isDeleting, result.id, allResults, patient.id, router])
+
   // ── Header compartido ───────────────────────────────────────────────────────
   const Header = (
     <div className="sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border/60">
@@ -198,6 +227,17 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               <span className="hidden sm:block text-xs text-muted-foreground">
                 {formatDate(result.result_date)}
               </span>
+            )}
+
+            {/* Botón eliminar análisis actual */}
+            {isOwnPatient && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium border border-border/30 rounded-lg text-muted-foreground/50 hover:text-danger hover:border-danger/30 hover:bg-danger/5 transition-all"
+                title="Eliminar este análisis"
+              >
+                <Trash2 size={13} />
+              </button>
             )}
 
             {/* Botón re-análisis — pacientes y médicos con pacientes propios */}
@@ -382,6 +422,51 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           />
         )}
       </div>
+
+      {/* Modal confirmación eliminar análisis */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+          />
+          <div className="relative bg-card border border-border rounded-2xl w-full max-w-sm animate-slide-up p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center">
+                <Trash2 size={18} className="text-danger" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Eliminar análisis</h3>
+                <p className="text-xs text-muted-foreground">{formatDate(result.result_date)}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Se eliminará permanentemente este análisis, incluyendo los archivos de laboratorio y el reporte de IA.
+              {allResults.length > 1
+                ? ' Los demás análisis del paciente no se verán afectados.'
+                : ' Este es el único análisis del paciente.'}
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 py-2 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteResult}
+                disabled={isDeleting}
+                className="flex-1 py-2 text-sm font-medium bg-danger text-white rounded-lg hover:bg-danger/90 transition-all disabled:opacity-50"
+              >
+                {isDeleting ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
