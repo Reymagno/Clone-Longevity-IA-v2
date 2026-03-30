@@ -66,11 +66,14 @@ export default function PatientsPage() {
         setPendingInvCount(pendingLinks?.length ?? 0)
         if ((pendingLinks?.length ?? 0) > 0) setShowInvitations(true)
 
-        const { data: links } = await supabase
+        const { data: links, error: linksErr } = await supabase
           .from('patient_medico_links')
           .select('patient_id')
           .eq('medico_user_id', user.id)
           .eq('status', 'active')
+
+        console.log('DEBUG links:', links)
+        console.log('DEBUG linksErr:', linksErr)
 
         if (!links || links.length === 0) {
           setPatients([])

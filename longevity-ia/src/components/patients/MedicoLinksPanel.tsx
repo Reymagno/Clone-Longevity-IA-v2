@@ -11,8 +11,10 @@ import {
 
 interface MedicoLink {
   id: string
+  medico_user_id: string
   medico_email: string
   medico_name?: string
+  medico_specialty?: string
   status: 'pending' | 'active' | 'revoked'
   invited_at: string
   confirmed_at: string | null
@@ -38,7 +40,31 @@ export function MedicoLinksPanel({ patientId, patientCode, onClose }: MedicoLink
       .neq('status', 'revoked')
       .order('invited_at', { ascending: false })
 
-    setLinks((data as MedicoLink[]) ?? [])
+    if (!data || data.length === 0) {
+      setLinks([])
+      setLoading(false)
+      return
+    }
+
+    // Enrich with medico names and specialties
+    const medicoUserIds = data.map(d => d.medico_user_id)
+    const { data: medicos } = await supabase
+      .from('medicos')
+      .select('user_id, full_name, specialty')
+      .in('user_id', medicoUserIds)
+
+    const medicoMap: Record<string, { name: string; specialty: string }> = {}
+    if (medicos) {
+      medicos.forEach(m => { medicoMap[m.user_id] = { name: m.full_name, specialty: m.specialty } })
+    }
+
+    const enriched = data.map(link => ({
+      ...link,
+      medico_name: medicoMap[link.medico_user_id]?.name,
+      medico_specialty: medicoMap[link.medico_user_id]?.specialty,
+    })) as MedicoLink[]
+
+    setLinks(enriched)
     setLoading(false)
   }
 
@@ -217,8 +243,11 @@ export function MedicoLinksPanel({ patientId, patientCode, onClose }: MedicoLink
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{link.medico_email}</p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {link.medico_name ?? link.medico_email}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">
+                        {link.medico_specialty ? `${link.medico_specialty} · ` : ''}
                         {link.status === 'active' ? 'Acceso activo' : 'Pendiente de confirmar'}
                       </p>
                     </div>
