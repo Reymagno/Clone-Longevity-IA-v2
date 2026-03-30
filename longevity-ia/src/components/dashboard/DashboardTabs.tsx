@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SummaryTab } from './tabs/SummaryTab'
 import { SwotTab } from './tabs/SwotTab'
@@ -24,7 +24,7 @@ import {
   GitCompareArrows, RefreshCw
 } from 'lucide-react'
 import Link from 'next/link'
-import { formatDate } from '@/lib/utils'
+import { formatDate, hashString } from '@/lib/utils'
 import { LogoIcon } from '@/components/ui/logo-icon'
 
 interface ResultSummary {
@@ -63,9 +63,26 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
   })
 
   const [isReanalyzing, setIsReanalyzing] = useState(false)
+  const [clinicalHistoryChanged, setClinicalHistoryChanged] = useState(false)
 
   const analysis = result.ai_analysis
   const parsedData = result.parsed_data
+
+  // Detectar si la historia clínica cambió desde el último análisis
+  useEffect(() => {
+    async function checkClinicalChange() {
+      const meta = (analysis as Record<string, unknown> | null)?._meta as { clinicalHistoryHash?: string } | undefined
+      const savedHash = meta?.clinicalHistoryHash
+      if (!savedHash) {
+        // No hay hash guardado (análisis antiguo) → permitir re-análisis
+        setClinicalHistoryChanged(true)
+        return
+      }
+      const currentHash = await hashString(JSON.stringify(patient.clinical_history ?? null))
+      setClinicalHistoryChanged(currentHash !== savedHash)
+    }
+    if (analysis) checkClinicalChange()
+  }, [analysis, patient.clinical_history])
 
   const handleReanalyze = useCallback(async () => {
     if (isReanalyzing) return
@@ -167,13 +184,17 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               </span>
             )}
 
-            {/* Botón re-análisis — solo pacientes */}
+            {/* Botón re-análisis — solo pacientes, solo si historia clínica cambió */}
             {viewerRole === 'paciente' && analysis && (
               <button
                 onClick={handleReanalyze}
-                disabled={isReanalyzing}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-accent/30 rounded-lg text-accent hover:bg-accent/10 transition-all disabled:opacity-50"
-                title="Re-analizar estudio con IA"
+                disabled={isReanalyzing || !clinicalHistoryChanged}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border rounded-lg transition-all disabled:cursor-not-allowed ${
+                  clinicalHistoryChanged
+                    ? 'border-accent/30 text-accent hover:bg-accent/10 disabled:opacity-50'
+                    : 'border-border/30 text-muted-foreground/40 opacity-40'
+                }`}
+                title={clinicalHistoryChanged ? 'Re-analizar con historia clínica actualizada' : 'La historia clínica no ha cambiado desde el último análisis'}
               >
                 <RefreshCw size={13} className={isReanalyzing ? 'animate-spin' : ''} />
                 <span className="hidden sm:inline">{isReanalyzing ? 'Re-analizando...' : 'Re-analizar'}</span>

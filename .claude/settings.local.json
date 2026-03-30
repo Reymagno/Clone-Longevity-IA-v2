@@ -12,7 +12,8 @@
       "Bash(grep -rn eslint-disable /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src --include=*.ts --include=*.tsx)",
       "Bash(grep -rn catchs*{s*} /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src --include=*.ts --include=*.tsx)",
       "Bash(grep -rn \"unused\\\\|never\\\\|void\" /c/Users/Club de Jazz/Documents/CLAUDE CODE/Clone Longevity IA v2/longevity_ia/longevity-ia/src --include=*.ts --include=*.tsx)",
-      "Bash(find 'C:\\\\Users\\\\Club de Jazz\\\\Documents\\\\CLAUDE CODE\\\\Clone Longevity IA v2\\\\longevity_ia\\\\longevity-ia' -type f -name *.sql)"
+      "Bash(find 'C:\\\\Users\\\\Club de Jazz\\\\Documents\\\\CLAUDE CODE\\\\Clone Longevity IA v2\\\\longevity_ia\\\\longevity-ia' -type f -name *.sql)",
+      "Bash(winget install:*)"
     ]
   }
 }

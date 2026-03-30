@@ -197,12 +197,18 @@ export async function POST(request: NextRequest) {
           clinical_history: ownPatient.clinical_history ?? null,
         }, () => enqueue(': keepalive\n\n'))
 
-        // Guardar análisis IA
+        // Guardar análisis IA con hash de historia clínica
         send({ ok: true, step: 'saving' })
+
+        const chHash = createHash('sha256').update(JSON.stringify(ownPatient.clinical_history ?? null)).digest('hex').slice(0, 16)
+        const aiAnalysisWithMeta = {
+          ...(aiAnalysis as Record<string, unknown>),
+          _meta: { clinicalHistoryHash: chHash },
+        }
 
         const { error: updateError } = await supabase
           .from('lab_results')
-          .update({ ai_analysis: aiAnalysis })
+          .update({ ai_analysis: aiAnalysisWithMeta })
           .eq('id', labResult.id)
 
         if (updateError) {

@@ -3,8 +3,13 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 import { NextRequest } from 'next/server'
+import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { reanalyzeWithClinicalHistory, reanalyzePartial } from '@/lib/anthropic/analyzer'
+
+function hashClinicalHistory(ch: unknown): string {
+  return createHash('sha256').update(JSON.stringify(ch ?? null)).digest('hex').slice(0, 16)
+}
 
 export async function POST(
   request: NextRequest,
@@ -82,9 +87,15 @@ export async function POST(
           )
         }
 
+        // Inyectar hash de historia clínica para detectar cambios futuros
+        const analysisWithMeta = {
+          ...(newAiAnalysis as Record<string, unknown>),
+          _meta: { clinicalHistoryHash: hashClinicalHistory(patient.clinical_history) },
+        }
+
         const { data: updated, error: updateError } = await supabase
           .from('lab_results')
-          .update({ ai_analysis: newAiAnalysis })
+          .update({ ai_analysis: analysisWithMeta })
           .eq('id', params.id)
           .select()
           .single()
