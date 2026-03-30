@@ -203,15 +203,6 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
             <span className="text-sm font-mono font-medium" style={{ color: getScoreColor(score) }}>
               {score}
             </span>
-            {isOwnPatient && result && (
-              <button
-                onClick={() => setShowDeleteResult(true)}
-                className="p-1 rounded text-muted-foreground/30 hover:text-danger hover:bg-danger/10 transition-all"
-                title="Eliminar este análisis"
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
           </div>
         ) : (
           <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
@@ -277,6 +268,20 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
               </>
             )}
           </Link>
+        )}
+
+        {/* Eliminar análisis — esquina inferior derecha */}
+        {isOwnPatient && result && (
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={() => setShowDeleteResult(true)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-muted-foreground/40 hover:text-danger hover:bg-danger/8 transition-all"
+              title="Eliminar este análisis"
+            >
+              <Trash2 size={12} />
+              <span>Eliminar análisis</span>
+            </button>
+          </div>
         )}
       </div>
 
