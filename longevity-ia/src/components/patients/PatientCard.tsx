@@ -312,10 +312,10 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
         )}
 
         {/* Eliminar análisis — esquina inferior derecha */}
-        {isOwnPatient && result && (
+        {result && (
           <div className="flex justify-end mt-2">
             <button
-              onClick={() => setShowDeleteResult(true)}
+              onClick={() => { console.log('[DELETE-BTN] Click! resultId:', result.id, 'isOwnPatient:', isOwnPatient); setShowDeleteResult(true) }}
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-muted-foreground/40 hover:text-danger hover:bg-danger/8 transition-all"
               title="Eliminar este análisis"
             >
