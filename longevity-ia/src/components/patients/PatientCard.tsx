@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { User, Calendar, AlertTriangle, Activity, Upload, BarChart2, Trash2, X, TriangleAlert, ShieldOff, Archive, ClipboardList, CheckCircle2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { PatientWithLatestResult } from '@/types'
@@ -32,11 +33,31 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
   const isOwnPatient = viewerRole === 'paciente' || (viewerRole === 'medico' && patient.user_id === currentUserId)
   const isLinkedOnly = viewerRole === 'medico' && !isOwnPatient
 
+  const router = useRouter()
   const [showConfirm, setShowConfirm] = useState(false)
   const [showUnlink, setShowUnlink] = useState(false)
+  const [showDeleteResult, setShowDeleteResult] = useState(false)
   const [mode, setMode] = useState<DeleteMode>('full')
   const [deleting, setDeleting] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
+  const [deletingResult, setDeletingResult] = useState(false)
+
+  async function handleDeleteResult() {
+    if (!result || deletingResult) return
+    setDeletingResult(true)
+    try {
+      const res = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar')
+      toast.success('Análisis eliminado')
+      setShowDeleteResult(false)
+      onDeleted?.()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar análisis')
+    } finally {
+      setDeletingResult(false)
+    }
+  }
 
   async function handleUnlink() {
     setUnlinking(true)
@@ -182,6 +203,15 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
             <span className="text-sm font-mono font-medium" style={{ color: getScoreColor(score) }}>
               {score}
             </span>
+            {isOwnPatient && result && (
+              <button
+                onClick={() => setShowDeleteResult(true)}
+                className="p-1 rounded text-muted-foreground/30 hover:text-danger hover:bg-danger/10 transition-all"
+                title="Eliminar este análisis"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
@@ -433,6 +463,48 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
                     Desvincular
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal confirmación eliminar análisis ── */}
+      {showDeleteResult && result && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !deletingResult && setShowDeleteResult(false)}
+          />
+          <div className="relative bg-card border border-border rounded-2xl w-full max-w-sm animate-slide-up p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center">
+                <Trash2 size={18} className="text-danger" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Eliminar análisis</h3>
+                <p className="text-xs text-muted-foreground">{formatDate(result.result_date)} · {patient.name}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Se eliminará permanentemente este análisis, incluyendo los archivos de laboratorio y el reporte de IA. Esta acción no se puede deshacer.
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowDeleteResult(false)}
+                disabled={deletingResult}
+                className="flex-1 py-2 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteResult}
+                disabled={deletingResult}
+                className="flex-1 py-2 text-sm font-medium bg-danger text-white rounded-lg hover:bg-danger/90 transition-all disabled:opacity-50"
+              >
+                {deletingResult ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>
