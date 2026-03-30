@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import type { AIAnalysis } from '@/types'
 import { TrendingUp, Clock, FlaskConical, HeartPulse, Activity, AlertTriangle } from 'lucide-react'
 import { getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
+import { MethodologyFooter } from '../MethodologyFooter'
 
 interface ProjectionTabProps {
   analysis: AIAnalysis
@@ -299,6 +300,8 @@ export function ProjectionTab({ analysis }: ProjectionTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      <MethodologyFooter type="projection" />
     </div>
   )
 }

@@ -12,6 +12,7 @@ import {
   ResponsiveContainer, Tooltip, ReferenceLine,
 } from 'recharts'
 import { getStatusColor, getStatusLabel, getScoreColor, getScoreLabel, getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
+import { MethodologyFooter } from '../MethodologyFooter'
 
 // ── Score helpers (compartidos con OrganHealthTab) ───────────────
 const STATUS_SCORE: Record<string, number> = {
@@ -881,6 +882,9 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
           </div>
         </div>
       </div>
+
+      <MethodologyFooter type="scores" />
+      <MethodologyFooter type="age" />
 
     </div>
   )

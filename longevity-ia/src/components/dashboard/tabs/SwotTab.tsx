@@ -2,6 +2,7 @@
 
 import type { ElementType } from 'react'
 import type { AIAnalysis } from '@/types'
+import { MethodologyFooter } from '../MethodologyFooter'
 import {
   ShieldCheck, AlertTriangle, TrendingUp, Zap,
   Sparkles, Activity,
@@ -399,6 +400,8 @@ export function SwotTab({ analysis }: SwotTabProps) {
           </div>
         </div>
       )}
+
+      <MethodologyFooter type="swot" />
     </div>
   )
 }
