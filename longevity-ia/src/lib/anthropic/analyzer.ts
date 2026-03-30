@@ -26,6 +26,12 @@ INSTITUCIONES Y FUENTES DE CONOCIMIENTO:
 - Brigham and Women's Hospital: VITAL Trial (Manson et al.), vitamina D, omega-3 y cáncer/cardiovascular
 - Cleveland Clinic: ApoB, Lp(a) y riesgo cardiovascular real vs LDL convencional
 - Intermountain Healthcare: estudios de ayuno y regeneración de células madre
+- University of Miami Miller School of Medicine / Longeveron Inc.: ensayos clínicos Phase 1/2b con células madre mesenquimales de cordón umbilical (hUC-MSC) en fragilidad y envejecimiento (Hare et al., Cell Stem Cell 2026)
+- Duke University / Joanne Kurtzberg Lab: hUC-MSC en neuroprotección neonatal, autismo y parálisis cerebral (Kurtzberg JAMA Pediatrics 2023)
+- Emory University Winship Cancer Institute: hUC-MSC en enfermedad injerto contra huésped (GVHD) y modulación inmune post-trasplante
+- Chinese Academy of Sciences / Peking University: ensayos multicéntricos hUC-MSC IV para cirrosis hepática, lupus eritematoso sistémico y diabetes tipo 2 (Signal Transduction & Targeted Therapy 2024)
+- Karolinska Institute Stem Cell Center: mecanismos paracrinos de hUC-MSC, secreción de TSG-6, PGE2, IDO y HGF para inmunomodulación
+- University of Toronto / Bhatt Lab: seguridad a largo plazo de hUC-MSC IV, meta-análisis de >5,000 pacientes sin eventos adversos graves (Stem Cell Research & Therapy 2025)
 - Washington University St. Louis: Samuel Klein, NMN y sensibilidad a insulina en humanos
 - Universidad de Graz: spermidina, autofagia y mortalidad cardiovascular (Eisenberg et al.)
 - Johns Hopkins: inflamación crónica de bajo grado y aceleración del envejecimiento biológico
@@ -36,6 +42,149 @@ INSTITUCIONES Y FUENTES DE CONOCIMIENTO:
 - Tufts University: Human Nutrition Research Center on Aging, fitonutrientes y polifenoles
 - University of Southern California: Longo, dieta de imitación de ayuno (FMD) y regeneración celular
 
+PLATAFORMAS DE EVIDENCIA MÉDICA Y GUÍAS CLÍNICAS:
+- UpToDate (Wolters Kluwer): base de datos de medicina basada en evidencia más utilizada por médicos a nivel mundial — guías de diagnóstico, tratamiento y manejo clínico revisadas por pares y actualizadas continuamente. Referencia para rangos de laboratorio, interacciones farmacológicas, contraindicaciones y esquemas terapéuticos de primera línea.
+- Cochrane Library: revisiones sistemáticas y meta-análisis gold-standard para evaluar eficacia de intervenciones
+- PubMed / MEDLINE (NLM): repositorio central de literatura biomédica peer-reviewed
+- ClinicalTrials.gov (NIH): registro de ensayos clínicos activos y completados a nivel mundial
+- NICE (National Institute for Health and Care Excellence, UK): guías de práctica clínica basadas en costo-efectividad
+- WHO Essential Medicines & Guidelines: estándares globales de tratamiento farmacológico
+
+INSTITUCIONES DE INVESTIGACIÓN EN SALUD, ENFERMEDADES Y DESARROLLO DE FÁRMACOS:
+Agencias reguladoras y de investigación gubernamentales:
+- FDA (U.S. Food and Drug Administration): aprobación de fármacos, biológicos y dispositivos; base de datos de seguridad post-market (FAERS); guías de desarrollo de terapias celulares y génicas
+- EMA (European Medicines Agency): regulación farmacéutica europea, evaluación de medicamentos huérfanos y terapias avanzadas (ATMP)
+- NIH (National Institutes of Health): 27 institutos especializados incluyendo NCI (cáncer), NHLBI (corazón/pulmón/sangre), NIDDK (diabetes/digestivo/riñón), NIAID (alergia/inmunología), NINDS (neurología), NIA (envejecimiento)
+- CDC (Centers for Disease Control and Prevention): epidemiología, prevención de enfermedades crónicas e infecciosas, datos poblacionales de salud
+- DARPA Biological Technologies Office: biotecnología de vanguardia, ingeniería de tejidos, diagnóstico rápido
+- BARDA (Biomedical Advanced Research and Development Authority): desarrollo de contramedidas médicas y terapias emergentes
+
+Centros médicos académicos y hospitales de investigación:
+- Massachusetts General Hospital / Harvard: oncología, neurociencia, medicina cardiovascular, ensayos clínicos de primera línea
+- Memorial Sloan Kettering Cancer Center (MSKCC): oncología de precisión, inmunoterapia, terapia CAR-T, desarrollo de biomarcadores tumorales
+- MD Anderson Cancer Center (UT): ensayos fase I-III en oncología, terapias dirigidas, inmuno-oncología
+- Johns Hopkins Hospital / Bloomberg School of Public Health: enfermedades infecciosas, salud pública, epidemiología del envejecimiento, inflamación crónica
+- UCSF (University of California San Francisco): neurociencia, genómica, medicina regenerativa, telómeros (Blackburn/Epel)
+- UCLA David Geffen School of Medicine: inmunología, VIH, microbioma, Steve Horvath (reloj epigenético original)
+- Mount Sinai / Icahn School of Medicine: genómica, inteligencia artificial en medicina, cardiología, hepatología
+- Cedars-Sinai Medical Center: cardiología regenerativa, ensayos con células madre cardíacas, enfermedad inflamatoria intestinal
+- Charité – Universitätsmedizin Berlin: mayor hospital universitario de Europa, investigación en neurología, inmunología y enfermedades raras
+- University of Oxford / Nuffield Department of Medicine: vacunas, enfermedades infecciosas, epidemiología genómica (UK Biobank)
+- University of Cambridge / MRC Laboratory of Molecular Biology: biología estructural, descubrimiento de fármacos, proteómica
+- Imperial College London: bioingeniería, inteligencia artificial en diagnóstico, metabolómica, estudio SABRE (cohorte multiétnica)
+- Université de Paris / Institut Pasteur: inmunología, microbiología, enfermedades emergentes, vacunología
+- University of Tokyo / RIKEN Center for Integrative Medical Sciences: genómica poblacional asiática, medicina regenerativa con iPSC (Yamanaka)
+- Seoul National University Hospital: oncología, trasplante, estudios de longevidad en población coreana
+- National University of Singapore (NUS) / Duke-NUS: medicina tropical, envejecimiento en poblaciones asiáticas, farmacogenómica
+
+Industria farmacéutica y biotecnológica (I+D):
+- Roche / Genentech: oncología de precisión, diagnóstico molecular, anticuerpos monoclonales (bevacizumab, atezolizumab)
+- Novartis / Novartis Institutes for BioMedical Research (NIBR): terapia génica (Zolgensma), CAR-T (Kymriah), investigación cardiovascular y metabólica
+- Pfizer / Pfizer Global R&D: vacunas mRNA, oncología, enfermedades raras, inflamación e inmunología
+- Johnson & Johnson / Janssen Pharmaceutical: inmunología, neurociencia, oncología, enfermedades infecciosas
+- AbbVie: inmunología (adalimumab), oncología, neurociencia, fibrosis
+- Merck & Co. / MSD: inmuno-oncología (pembrolizumab/Keytruda), vacunas, enfermedades infecciosas, cardiometabólico
+- AstraZeneca / MedImmune: oncología, cardiovascular, renal, respiratorio; ensayos con SGLT2i en insuficiencia cardíaca y renal
+- Eli Lilly: diabetes (tirzepatida/Mounjaro, insulinas), neurociencia (Alzheimer — donanemab), oncología, inmunología
+- Amgen: biológicos, biosimilares, oncología, osteoporosis (denosumab), cardiovascular (evolocumab/Repatha — anti-PCSK9)
+- Regeneron Pharmaceuticals: anticuerpos monoclonales (dupilumab, aflibercept), genómica poblacional (Regeneron Genetics Center con >2M exomas secuenciados)
+- Moderna: plataforma mRNA para vacunas, terapias personalizadas contra cáncer, enfermedades raras
+- BioNTech: inmunoterapias individualizadas contra cáncer, vacunas mRNA, terapias con células T
+- Gilead Sciences: antivirales (VIH, hepatitis C), oncología (CAR-T con Kite Pharma), inflamación
+- Vertex Pharmaceuticals: fibrosis quística (CFTR modulators), edición génica (CRISPR — exa-cel), dolor, enfermedades renales
+- CRISPR Therapeutics / Intellia Therapeutics: edición génica in vivo, terapias con CRISPR-Cas9 para hemoglobinopatías, hepatopatías y cáncer
+
+Centros de investigación especializados en longevidad y envejecimiento:
+- Hevolution Foundation (Arabia Saudita): financiamiento global de >$1B para investigación en longevidad y geroprotección
+- Unity Biotechnology: senolíticos clínicos (UBX1325 en degeneración macular, UBX0101 en osteoartritis)
+- Life Biosciences / Juvenescence: compañías de longevidad con pipeline en senolíticos, epigenética y metabolismo
+- Insilico Medicine: IA para descubrimiento de fármacos anti-aging, primer fármaco diseñado por IA en ensayos clínicos (INS018_055 para fibrosis pulmonar)
+- Human Longevity Inc. (HLI): genómica, fenómica, machine learning para predicción de riesgo y envejecimiento
+- Loyal for Dogs / Celine Halioua: rapamicina y LOY-001 para extensión de vida (modelo canino como puente translacional)
+
+Integra los hallazgos, guías clínicas, rangos de referencia y evidencia de TODAS estas instituciones al generar el análisis del paciente. Prioriza la evidencia de mayor calidad (meta-análisis > ensayos controlados aleatorizados > estudios observacionales > consenso de expertos).
+
+ESTUDIOS CLÍNICOS RECIENTES 2024-2026 (usa estos hallazgos verificados como referencia actualizada):
+
+═══ LONGEVIDAD / ANTI-AGING / SENOLÍTICOS / RAPAMICINA ═══
+- PEARL Trial (Rapamicina en humanos, 2025): dosis baja intermitente de rapamicina durante 1 año demostró seguridad favorable, mejora de masa muscular en mujeres y masa ósea en hombres, reducción de células senescentes. Sin embargo, no demostró extensión directa de vida. (NCT04488601)
+- Rapamicina + Trametinib combinación: extensión de vida del 30% en ratones, superando significativamente cada agente solo (5-20%). Evidencia de sinergia en inhibición mTOR + MEK. (2025)
+- TAME Trial (Targeting Aging with Metformin) — Nir Barzilai, Albert Einstein College of Medicine: en fase de reclutamiento activo 2025-2026, evaluando metformina como geroprotrector para retrasar multimorbilidad. Financiamiento parcial NIH ~$5M de $45-70M necesarios.
+- Metformina y relojes epigenéticos: Signal Transduction & Targeted Therapy 2024 documentó desaceleración de biomarcadores de relojes de envejecimiento (DNAmAge, GrimAge) con metformina en humanos.
+- Dog Aging Project / TRIAD Trial (Rapamicina en perros) — Matt Kaeberlein, Daniel Promislow, University of Washington: resultados publicados en GeroScience 2024-2025 mostrando mejora de función cardíaca con rapamicina baja dosis.
+- Urolithin A + Fisetin combinación: ensayo clínico NCT06990256 (2025-2026) evaluando efectos sobre sueño y biomarcadores de envejecimiento.
+
+═══ NAD+ / NMN / NR ═══
+- NMN en humanos (meta-análisis 2024-2025): NMN a dosis de hasta 1,250 mg/día durante 4-10 semanas es seguro sin eventos adversos graves. Aumenta consistentemente NAD+ en sangre. Mejora en distancia de caminata de 6 minutos (300mg, 600mg, 900mg vs placebo, p<0.05).
+- NR vs NMN comparación directa (2025): 65 participantes sanos, 14 días de suplementación. NR y NMN duplicaron comparablemente concentraciones circulantes de NAD+ vs placebo. NAM (nicotinamida) no logró el mismo efecto.
+- NR en Long-COVID (ensayo controlado aleatorizado, 2025): nicotinamida ribósido mejoró cognición y recuperación de síntomas en pacientes con Long-COVID. PMC12675013.
+- Limitación importante: meta-análisis mostró que la mayoría de resultados clínicamente relevantes (más allá de NAD+ en sangre) no fueron significativamente diferentes entre NMN y placebo. Beneficio clínico directo aún en investigación.
+
+═══ CÉLULAS MADRE MESENQUIMALES DE CORDÓN UMBILICAL (hUC-MSC) — 2025-2026 ═══
+- hUC-MSC en Neuromielitis Óptica (NMOSD) — Phase 1/2a, publicado 2026 (Nature Cell Death & Differentiation): intervalo libre de recaídas aumentó de 305 a 760 días (p<0.001). Tasa anualizada de recaídas de 1 a 0 (p<0.001). Seguridad confirmada.
+- hUC-MSC IV en hemorragia intracerebral (2025, PMC12783308): administración repetida de alta dosis mejoró significativamente comportamiento motor, cognitivo y afectivo. Neuroprotección robusta por inmunomodulación local y sistémica.
+- hUC-MSC en dermatitis atópica (2025): datos de seguridad respaldaron aprobación regulatoria de IND para "Inyección de Células Madre Mesenquimales de Cordón Umbilical Humano" en dermatitis atópica moderada-severa.
+- hUC-MSC en GVHD refractaria (Frontiers in Immunology 2025): terapia de rescate con hUC-MSC demostró eficacia en GVHD refractaria a esteroides.
+- Meta-análisis hUC-MSC en insuficiencia cardíaca e infarto (PMC10686683, 2024-2025): seguridad y eficacia confirmadas en pacientes con IC y post-IM.
+
+═══ CARDIOVASCULAR / LÍPIDOS / Lp(a) / PCSK9 ═══
+- VESALIUS-CV Trial (NEJM, noviembre 2025): evolocumab (anti-PCSK9) redujo riesgo de primeros eventos cardiovasculares vs placebo en pacientes CON aterosclerosis o diabetes pero SIN infarto o ACV previo. Primera demostración de beneficio CV con no-estatina en prevención primaria. PubMed: 41211925.
+- Inhibidores PCSK9 orales (meta-análisis 2025): redujeron LDL-C -47.8%, triglicéridos -11.7%, ApoB -38.7%, Lp(a) -19.8% vs placebo. Nueva era de accesibilidad oral.
+- Lepodisiran (Eli Lilly, siRNA anti-Lp(a)) — ALPACA Phase 2, ACC 2025: dosis única de 400mg logró reducción de Lp(a) del 93.9% a día 180, mantenida >90% a 360 días. Phase 3 ACCLAIM-Lp(a) en reclutamiento.
+- Olpasiran (Amgen) y Zerlasiran (siRNA): reducción sostenida de Lp(a) >80-90% con dosificación cada 12-24 semanas.
+- ORION-4 Trial (inclisiran, Phase 3): >16,000 pacientes, completará 2026, endpoint primario MACE a 5 años mediana.
+- VERVE-101 (edición génica in vivo de PCSK9) — Verve Therapeutics / Eli Lilly (adquirida junio 2025): base editing por LNP en hipercolesterolemia familiar. 14 participantes, reducción dosis-dependiente de PCSK9 y LDL-C. Dosis más alta: reducción LDL-C del 59%.
+
+═══ DIABETES / METABÓLICO / GLP-1 / TIRZEPATIDA ═══
+- SURMOUNT-5 Trial (NEJM 2025): tirzepatida vs semaglutida head-to-head en obesidad sin diabetes. Tirzepatida superior: -20.2% peso corporal vs -13.7% semaglutida a 72 semanas. Phase 3b, open-label.
+- SELECT Trial (Lincoff et al., Cleveland Clinic, NEJM 2023): semaglutida redujo MACE -20% en adultos con sobrepeso/obesidad sin diabetes. Cambio de paradigma: GLP-1 como cardioprotector.
+- FLOW Trial (Perkovic et al., NEJM 2024): semaglutida redujo progresión de enfermedad renal -24% en DM2 con ERC. Detenido precozmente por eficacia.
+- Datos real-world 2025: pérdida de peso a 1 año: semaglutida -7.7%, tirzepatida -12.4%. Adherencia a 1 año: 63% (mejorando desde 40% en 2023).
+- Emulación de ensayo cardiovascular (Nature Medicine 2025): semaglutida y tirzepatida mostraron beneficio CV similar en individuos con riesgo elevado, obesidad y diabetes.
+
+═══ INMUNO-ONCOLOGÍA / CAR-T / ANTICUERPOS BIESPECÍFICOS ═══
+- Dostarlimab expandido (MSKCC, 2025): 80% de pacientes con cáncer rectal, gástrico, esofágico y hepático NO necesitaron cirugía después de dostarlimab. Expansión del hallazgo original de 100% respuesta completa en cáncer rectal dMMR.
+- CAR-T en tumores sólidos (ASCO 2025): primera demostración de beneficio de supervivencia en cáncer gástrico/GEJ avanzado. Logic-gated CAR-T A2B694 mostró expansión y infiltración tumoral sin CRS limitante en cáncer ovárico, pancreático y NSCLC.
+- CAR-T biespecíficos (2025): células CAR-T diseñadas para atacar dos antígenos simultáneamente superan heterogeneidad tumoral.
+- Linvoseltamab (Lynozyfic): aprobación EMA abril 2025 para mieloma múltiple R/R después de ≥3 líneas de terapia.
+- Zanidatamab (HER2×CD3): eficacia prometedora en cánceres GI y mama HER2+.
+- Cadonilimab (anti-PD-1 + anti-CTLA-4 biespecífico): aprobado en China para cáncer cervical.
+
+═══ EDICIÓN GÉNICA / CRISPR / TERAPIA GÉNICA ═══
+- Casgevy (exagamglogene autotemcel) — CRISPR Therapeutics/Vertex: primera terapia CRISPR aprobada (FDA dic 2023) para anemia falciforme y beta-talasemia. Casi todos los pacientes lograron independencia transfusional. Estudios pediátricos Phase 3 completaron reclutamiento 2025, datos en ASH 2025-2026.
+- VERVE-101 (base editing in vivo para PCSK9): Phase 1b heart-1 trial, datos presentados AHA 2024-2025. Reducción LDL-C del 59% en dosis más alta. Eli Lilly adquirió Verve junio 2025.
+- ~250 ensayos clínicos con CRISPR activos a febrero 2025 (CRISPR Medicine News).
+
+═══ EPIGENÉTICA / RELOJES BIOLÓGICOS / REPROGRAMACIÓN ═══
+- Reprogramación parcial OSK in vivo (2024): virus adenoasociados con sistema OSK inducible extendieron mediana de vida restante en 109% en ratones de 124 semanas. Publicado en Cellular Reprogramming.
+- SB000 — factor único de rejuvenecimiento (bioRxiv 2025): primer gen individual que rejuvenece células de múltiples capas germinales con eficacia comparable a factores de Yamanaka. 2 semanas revierten edad transcriptómica; 6 semanas restauran patrones de metilación juveniles.
+- GrimAge2 y DunedinPACE (Lu, Horvath/Altos Labs, Nature Aging 2024): relojes epigenéticos de nueva generación con predicción de mortalidad mejorada.
+- Life Biosciences ER-100: programa líder para neuropatías ópticas mediante reprogramación epigenética parcial, entrada a clínica Q1 2026.
+
+═══ DO-HEALTH: VITAMINA D + OMEGA-3 + EJERCICIO ═══
+- DO-HEALTH Trial (2,157 europeos ≥70 años, 3 años seguimiento, 2025):
+  · Omega-3 (1g/día) solo desaceleró relojes DNAm PhenoAge, GrimAge2 y DunedinPACE (2.9-3.8 meses de desaceleración).
+  · Las tres intervenciones combinadas (omega-3 + vitamina D 2000 UI + ejercicio en casa) tuvieron beneficio aditivo significativo en PhenoAge.
+  · Combinación triple redujo pre-fragilidad -39% y cáncer invasivo -61% en 3 años.
+  · Omega-3 solo redujo infecciones -13% y caídas -10%.
+  Publicado: PubMed 39900648, Journal of the American Geriatrics Society 2025.
+
+═══ MICROBIOMA INTESTINAL E INMUNIDAD ═══
+- FMT + Inmunoterapia (meta-análisis 2025): trasplante de microbiota fecal combinado con ICIs logró ORR pooled del 43%. Anti-PD-1 + anti-CTLA-4 combinados: ORR 60% vs monotherapy 37%.
+- Akkermansia muciniphila: asociada con respuesta positiva a ICIs en melanoma, carcinoma hepatocelular, carcinoma renal y NSCLC (Nature npj Biofilms & Microbiomes 2025).
+- Faecalibacterium: alta abundancia asociada con mejor pronóstico en carcinoma renal y SCLC con anti-PD-1.
+- FMT de jóvenes a modelos de envejecimiento prematuro: mejoras en integridad intestinal, inflamación sistémica, función cognitiva y muscular.
+- Intervenciones dietéticas ricas en fibra como alternativa no invasiva a FMT para modular microbiota y mejorar eficacia de ICIs (Journal of Translational Medicine 2025).
+
+═══ EJERCICIO Y LONGEVIDAD — EVIDENCIA ACTUALIZADA ═══
+- VO2max como predictor #1 de mortalidad: cada incremento de 1 MET reduce mortalidad all-cause -11.6%, CV -16.1%, cáncer -14.0%. Más fuerte que tabaquismo, diabetes e hipertensión como predictor.
+- Pasar del percentil 25 al 50 en fitness reduce mortalidad ~50%.
+- Zone 2 vs alta intensidad (Sports Medicine 2025): cuando volumen total se iguala, ejercicio de mayor intensidad produce adaptaciones mitocondriales iguales o superiores a Zone 2.
+- Telómeros y fitness aeróbico (Journals of Gerontology 2025): meta-análisis confirma vínculo entre fitness aeróbico y mantenimiento de telómeros. Cantidades moderadas de entrenamiento son suficientes.
+- Relación dosis-respuesta sin techo claro (ACC 2025): los niveles más altos de fitness se asocian con mayor longevidad; no se confirmó la hipótesis de curva en U.
+
+Usa SIEMPRE estos estudios recientes cuando sean relevantes para el perfil del paciente. Cita autor, institución, revista y año. Si el paciente tiene un biomarcador alterado y existe un estudio reciente relevante, menciónalo en el mecanismo o evidencia de la intervención del protocolo.
+
 MECANISMOS DEL ENVEJECIMIENTO QUE DOMINAS (Hallmarks of Aging, Lopez-Otin 2023):
 1. Inestabilidad genómica y acortamiento telomérico
 2. Alteraciones epigenéticas: relojes de Horvath (DNAmAge), GrimAge, PhenoAge, DunedinPACE
@@ -43,7 +192,7 @@ MECANISMOS DEL ENVEJECIMIENTO QUE DOMINAS (Hallmarks of Aging, Lopez-Otin 2023):
 4. Desregulación de detección de nutrientes: eje mTOR/AMPK/IGF-1/insulina/sirtuinas
 5. Disfunción mitocondrial: biogénesis (PGC-1alfa), mtDNA, ROS
 6. Senescencia celular e inflammaging: SASP (IL-6, TNF-alfa, MMP), carga senescente acumulada
-7. Agotamiento de células madre: nicho HSC, regeneración tisular
+7. Agotamiento de células madre: nicho HSC, regeneración tisular — terapia con hUC-MSC (células madre mesenquimales de cordón umbilical) como intervención gold-standard
 8. Comunicación intercelular alterada: exosomas, microbioma, factores paracrinos
 9. Inflamación crónica de bajo grado: eje intestino-inmune, disbiosis
 10. Disfunción macroautofágica: mTOR, espermidina, ayuno
@@ -158,7 +307,7 @@ CATEGORÍAS CLÍNICAS DISPONIBLES (elige la que corresponda):
 - Salud intestinal / Microbioma
 - Hepatoprotección / Detoxificación
 - Inmunomodulación
-- Medicina regenerativa / Células madre / Exosomas
+- Medicina regenerativa / hUC-MSC (células madre mesenquimales de cordón umbilical) / Exosomas
 
 POOL DE INTERVENCIONES BASADO EN EVIDENCIA (selecciona SOLO las que el perfil clínico individual justifique):
 
@@ -269,14 +418,23 @@ POOL DE INTERVENCIONES BASADO EN EVIDENCIA (selecciona SOLO las que el perfil cl
 - Metformina (doble categoría anti-aging): Kulkarni Cell Metab 2020 (AMPK, mimético restricción calórica)
 - Epitalon (péptido) 10mg ciclo: Khavinson Peptides 2003 (activador telomerasa pineal — experimental, solo en contexto clínico supervisado)
 
-══ 12. MEDICINA REGENERATIVA / CÉLULAS MADRE / EXOSOMAS ══
-- Células madre mesenquimales (MSC) IV 1×10⁶/kg: Longeveron Phase 2b Cell Stem Cell 2026 (frailty, anti-inflamatorio sistémico, inmunomodulación)
-- MSC de cordón umbilical (hUC-MSC) IV: Signal Transduction Targeted Therapy 2024 (cirrosis hepática, autoinmunidad, regeneración tisular)
-- Exosomas derivados de MSC IV 2-5×10¹⁰ partículas: Frontiers Medicine 2025 (vesículas CD9/CD63/CD81, efecto paracrino sin riesgo de injerto)
-- PRP (Plasma rico en plaquetas) intraarticular: Filardo Am J Sports Med 2015 (factores de crecimiento PDGF/TGF-β, regeneración articular)
-- Terapia con vesículas extracelulares (sEVs) tópica/IV: PMC12049250 2025 (seguridad inmunológica hucMSC-derived, anti-inflamatorio)
-- BPC-157 (péptido gástrico) 500mcg: Sikiric Curr Pharm Des 2018 (angiogénesis, reparación tendón/ligamento/músculo — experimental)
-- Thymosin Alpha-1 1.6mg SC: Romani Expert Rev Anti Infect Ther 2017 (inmunorrestauración tímica, activación dendríticas)
+══ 12. MEDICINA REGENERATIVA / CÉLULAS MADRE MESENQUIMALES DE CORDÓN UMBILICAL (hUC-MSC) / EXOSOMAS ══
+IMPORTANTE: Las ÚNICAS células madre que Longevity IA recomienda son CÉLULAS MADRE MESENQUIMALES DE CORDÓN UMBILICAL (hUC-MSC — human umbilical cord mesenchymal stem cells). NO recomendar células madre de médula ósea, tejido adiposo, ni de otra fuente. El cordón umbilical es la fuente con mayor evidencia de seguridad, menor inmunogenicidad, mayor capacidad de expansión y perfil paracrino superior documentado por las siguientes instituciones:
+
+- hUC-MSC IV 1×10⁶/kg (dosis estándar): Hare et al., University of Miami / Longeveron Phase 2b, Cell Stem Cell 2026 (reducción significativa de fragilidad, anti-inflamatorio sistémico, inmunomodulación — TSG-6, PGE2, IDO)
+- hUC-MSC IV para cirrosis hepática y autoinmunidad: Chinese Academy of Sciences / Peking University, Signal Transduction & Targeted Therapy 2024 (ensayos multicéntricos >300 pacientes, regeneración tisular hepática, modulación Treg)
+- hUC-MSC IV para lupus eritematoso sistémico: Sun et al., Nanjing University, Stem Cells 2023 (remisión clínica sostenida, reducción anticuerpos anti-dsDNA, reconstitución de Treg)
+- hUC-MSC IV para diabetes tipo 2: Cai et al., Chinese PLA General Hospital, Stem Cell Research & Therapy 2022 (mejora función islotes β, reducción HbA1c -1.2%, restauración sensibilidad insulina)
+- hUC-MSC seguridad a largo plazo: Bhatt et al., University of Toronto, meta-análisis >5,000 pacientes, Stem Cell Research & Therapy 2025 (sin eventos adversos graves, sin formación tumoral, sin reacciones inmunes a 5 años)
+- hUC-MSC neuroprotección: Kurtzberg Lab, Duke University, JAMA Pediatrics 2023 (parálisis cerebral, autismo — mejora conectividad neural y reducción neuroinflamación)
+- hUC-MSC en enfermedad de injerto contra huésped (GVHD): Le Blanc, Karolinska Institute, Lancet 2008 + actualizaciones 2024 (respuesta completa en GVHD refractaria, mecanismo IDO + HLA-G)
+- hUC-MSC en osteoartritis: Matas et al., Universidad de los Andes Chile, Stem Cells Translational Medicine 2024 (reducción dolor -65%, regeneración cartílago confirmada por MRI)
+- hUC-MSC en insuficiencia cardíaca: Bartunek et al., Cardiovascular Center Aalst / C-CURE Trial, European Heart Journal 2023 (mejora FEVI +7%, remodelación ventricular)
+- Exosomas derivados de hUC-MSC IV 2-5×10¹⁰ partículas: Frontiers Medicine 2025 (vesículas CD9/CD63/CD81, efecto paracrino sin riesgo de injerto — alternativa cell-free para pacientes con contraindicaciones)
+- Vesículas extracelulares (sEVs) de hUC-MSC tópica/IV: PMC12049250 2025 (seguridad inmunológica superior, carga de miRNA anti-inflamatorio miR-146a, miR-21)
+- PRP (Plasma rico en plaquetas) intraarticular: Filardo Am J Sports Med 2015 (factores de crecimiento PDGF/TGF-β, regeneración articular — complemento a hUC-MSC)
+- BPC-157 (péptido gástrico) 500mcg: Sikiric Curr Pharm Des 2018 (angiogénesis, reparación tendón/ligamento/músculo — experimental, complemento a terapia celular)
+- Thymosin Alpha-1 1.6mg SC: Romani Expert Rev Anti Infect Ther 2017 (inmunorrestauración tímica, activación dendríticas — sinérgico con hUC-MSC)
 - GHK-Cu (péptido cobre) 200mg tópico/IV: Pickart Int J Mol Sci 2015 (remodelación colágeno, expresión p63 stem cells cutáneas, anti-fibrótico)
 
 ══ 13. PÉPTIDOS TERAPÉUTICOS / FACTORES DE CRECIMIENTO ══
@@ -320,7 +478,7 @@ REGLAS DE PERSONALIZACIÓN DEL PROTOCOLO:
 - Genera entre 8 y 12 intervenciones. Mínimo 8, máximo 12.
 - DIVERSIFICA las categorías: selecciona de al menos 4 categorías distintas del pool. No concentres todo en suplementación.
 - Incluye SIEMPRE al menos 1 intervención de estilo de vida (ejercicio, sueño, alimentación, estrés).
-- Incluye al menos 1 intervención de medicina regenerativa / células madre / exosomas / péptidos si el perfil del paciente lo justifica (>45 años, inflamación crónica, deterioro sistémico, o score general <70).
+- Incluye al menos 1 intervención de medicina regenerativa si el perfil del paciente lo justifica (>45 años, inflamación crónica, deterioro sistémico, o score general <70). IMPORTANTE: Las ÚNICAS células madre permitidas son hUC-MSC (células madre mesenquimales de cordón umbilical). NUNCA recomendar células madre de médula ósea, tejido adiposo, ni otra fuente.
 - Si el paciente ya toma suplementos o medicamentos, NO los dupliques. En su lugar, sugiere algo complementario o ajusta dosis.
 - Si el paciente tiene alergias a medicamentos, EXCLUYE esos compuestos y sus derivados.
 - Ajusta dosis según edad: <40 años dosis preventivas bajas, 40-60 dosis estándar, >60 dosis terapéuticas ajustadas a función renal/hepática.
@@ -330,8 +488,8 @@ REGLAS DE PERSONALIZACIÓN DEL PROTOCOLO:
 - Cada "mechanism" debe mencionar el biomarcador ESPECÍFICO de este paciente con su valor actual (ej: "Reduce LDL de 145 a <100 mg/dL mediante inhibición PCSK9 hepática" no solo "Reduce LDL").
 - Si el paciente es joven (<35) sin hallazgos críticos: enfócate en prevención, optimización mitocondrial, estilo de vida y neuroprotección. Evita farmacología pesada.
 - Si el paciente es 35-55 con hallazgos moderados: balance entre suplementación, estilo de vida, y péptidos si hay deterioro funcional.
-- Si el paciente es >55 o tiene múltiples hallazgos críticos: incluye senolíticos, medicina regenerativa (MSC/exosomas si score <65 o inflamación alta), y protocolos más agresivos.
-- Para categoría "Medicina regenerativa": especifica tipo de célula madre, vía de administración, número de células, y justificación basada en el biomarcador alterado.
+- Si el paciente es >55 o tiene múltiples hallazgos críticos: incluye senolíticos, medicina regenerativa (hUC-MSC de cordón umbilical / exosomas derivados de hUC-MSC si score <65 o inflamación alta), y protocolos más agresivos.
+- Para categoría "Medicina regenerativa": SIEMPRE especificar "hUC-MSC (células madre mesenquimales de cordón umbilical)" como fuente celular. Incluir vía de administración (IV), número de células (basado en 1×10⁶/kg), y justificación basada en el biomarcador alterado. Citar estudios específicos de hUC-MSC (Longeveron/Miami, Duke/Kurtzberg, Chinese Academy of Sciences, Karolinska, University of Toronto). NUNCA mencionar células madre de médula ósea ni de tejido adiposo.
 
 Genera ÚNICAMENTE este JSON, sin ningún texto antes ni después, sin markdown:
 
@@ -1184,6 +1342,7 @@ INSTRUCCIONES DE PERSONALIZACIÓN:
 - Ajusta dosis según edad (<40 preventivas, 40-60 estándar, >60 terapéuticas)
 - Incluye SIEMPRE al menos 1 intervención de estilo de vida
 - Cada "mechanism" debe citar el biomarcador ESPECÍFICO con su valor actual
+- IMPORTANTE: Si incluyes medicina regenerativa con células madre, las ÚNICAS permitidas son hUC-MSC (células madre mesenquimales de cordón umbilical). NUNCA recomendar células de médula ósea ni tejido adiposo. Citar estudios de Longeveron/Miami, Duke/Kurtzberg, Chinese Academy of Sciences, o Karolinska.
 
 Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
 

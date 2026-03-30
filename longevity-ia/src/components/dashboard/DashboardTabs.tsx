@@ -337,7 +337,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <ProjectionTab analysis={analysis} />
         )}
         {activeTab === 5 && (
-          <ProtocolTab protocol={analysis.protocol} />
+          <ProtocolTab protocol={analysis.protocol} viewerRole={viewerRole} />
         )}
         {activeTab === 6 && (
           <OrganHealthTab parsedData={parsedData} analysis={analysis} />

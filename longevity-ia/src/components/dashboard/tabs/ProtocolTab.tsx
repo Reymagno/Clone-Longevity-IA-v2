@@ -5,12 +5,14 @@ import { Badge } from '@/components/ui/badge'
 import type { AIAnalysis } from '@/types'
 import { getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
 import { FlaskConical, BookOpen, Target, Zap } from 'lucide-react'
+import { VerifiedReferences } from '../VerifiedReferences'
 
 interface ProtocolTabProps {
   protocol: AIAnalysis['protocol']
+  viewerRole?: string
 }
 
-export function ProtocolTab({ protocol }: ProtocolTabProps) {
+export function ProtocolTab({ protocol, viewerRole }: ProtocolTabProps) {
   if (!protocol || protocol.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground">
@@ -26,6 +28,11 @@ export function ProtocolTab({ protocol }: ProtocolTabProps) {
           {protocol.length} intervenciones basadas en evidencia científica
         </p>
       </div>
+
+      {/* Referencias verificadas — solo para médicos */}
+      {viewerRole === 'medico' && (
+        <VerifiedReferences protocol={protocol} />
+      )}
 
       {protocol.map((item, i) => {
         const urgency = item.urgency ?? 'medium'
