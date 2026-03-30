@@ -71,17 +71,21 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
   // Detectar si la historia clínica cambió desde el último análisis
   useEffect(() => {
     async function checkClinicalChange() {
-      const meta = (analysis as Record<string, unknown> | null)?._meta as { clinicalHistoryHash?: string } | undefined
+      if (!analysis) { setClinicalHistoryChanged(false); return }
+
+      const meta = (analysis as unknown as Record<string, unknown>)?._meta as { clinicalHistoryHash?: string } | undefined
       const savedHash = meta?.clinicalHistoryHash
+
       if (!savedHash) {
-        // No hay hash guardado (análisis antiguo) → permitir re-análisis
-        setClinicalHistoryChanged(true)
+        // Sin hash guardado — el análisis ya existe, no hay razón para regenerar
+        setClinicalHistoryChanged(false)
         return
       }
+
       const currentHash = await hashString(JSON.stringify(patient.clinical_history ?? null))
       setClinicalHistoryChanged(currentHash !== savedHash)
     }
-    if (analysis) checkClinicalChange()
+    checkClinicalChange()
   }, [analysis, patient.clinical_history])
 
   const handleReanalyze = useCallback(async () => {
