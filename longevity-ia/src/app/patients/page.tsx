@@ -45,22 +45,16 @@ export default function PatientsPage() {
 
       // Check role from user metadata
       const role = user.user_metadata?.role ?? 'paciente'
-      console.log('DEBUG user:', user.id, user.email)
-      console.log('DEBUG user_metadata:', JSON.stringify(user.user_metadata))
-      console.log('DEBUG role:', role)
       setUserRole(role)
 
       // For medicos: load linked patients + pending invitations
       if (role === 'medico') {
         // Load medico code
-        const { data: medicoData, error: medicoErr } = await supabase
+        const { data: medicoData } = await supabase
           .from('medicos')
           .select('code')
           .eq('user_id', user.id)
           .maybeSingle()
-        console.log('DEBUG medico user.id:', user.id)
-        console.log('DEBUG medicoData:', medicoData)
-        console.log('DEBUG medicoErr:', medicoErr)
         setMedicoCode(medicoData?.code ?? null)
 
         // Count pending invitations
