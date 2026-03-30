@@ -12,19 +12,45 @@ import { toast } from 'sonner'
 interface PatientCardProps {
   patient: PatientWithLatestResult
   onDeleted?: () => void
+  onUnlinked?: () => void
+  viewerRole?: string
 }
 
 type DeleteMode = 'full' | 'keep_history'
 
-export function PatientCard({ patient, onDeleted }: PatientCardProps) {
+export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paciente' }: PatientCardProps) {
   const result = patient.latest_result
   const analysis = result?.ai_analysis
   const score = analysis?.overallScore ?? null
   const alerts = analysis?.keyAlerts?.filter(a => a.level === 'danger' || a.level === 'warning') ?? []
 
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showUnlink, setShowUnlink] = useState(false)
   const [mode, setMode] = useState<DeleteMode>('full')
   const [deleting, setDeleting] = useState(false)
+  const [unlinking, setUnlinking] = useState(false)
+
+  async function handleUnlink() {
+    setUnlinking(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No autorizado')
+
+      const { error } = await supabase
+        .from('patient_medico_links')
+        .update({ status: 'revoked' })
+        .eq('patient_id', patient.id)
+        .eq('medico_user_id', user.id)
+
+      if (error) throw new Error(error.message)
+      toast.success(`Desvinculado de ${patient.name}`)
+      setShowUnlink(false)
+      onUnlinked?.()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al desvincular')
+      setUnlinking(false)
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true)
@@ -101,13 +127,23 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
               <p className="text-xs text-muted-foreground font-mono">{patient.code}</p>
             </div>
           </div>
-          <button
-            onClick={() => { setMode('full'); setShowConfirm(true) }}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
-            title="Eliminar paciente"
-          >
-            <Trash2 size={15} />
-          </button>
+          {viewerRole === 'medico' ? (
+            <button
+              onClick={() => setShowUnlink(true)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-warning hover:bg-warning/10 transition-colors"
+              title="Desvincular paciente"
+            >
+              <X size={15} />
+            </button>
+          ) : onDeleted ? (
+            <button
+              onClick={() => { setMode('full'); setShowConfirm(true) }}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
+              title="Eliminar paciente"
+            >
+              <Trash2 size={15} />
+            </button>
+          ) : null}
         </div>
 
         {/* Info */}
@@ -163,13 +199,15 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
 
         {/* Botones de acción */}
         <div className="flex gap-2 mt-2">
-          <Link
-            href={`/patients/${patient.id}/upload`}
-            className="flex-1 flex items-center justify-center gap-2 bg-accent text-background text-sm font-medium py-2 rounded-lg hover:bg-accent/90 transition-all"
-          >
-            <Upload size={14} />
-            {result ? 'Nuevo Análisis' : 'Analizar'}
-          </Link>
+          {viewerRole === 'paciente' && (
+            <Link
+              href={`/patients/${patient.id}/upload`}
+              className="flex-1 flex items-center justify-center gap-2 bg-accent text-background text-sm font-medium py-2 rounded-lg hover:bg-accent/90 transition-all"
+            >
+              <Upload size={14} />
+              {result ? 'Nuevo Análisis' : 'Analizar'}
+            </Link>
+          )}
           {result && (
             <Link
               href={`/patients/${patient.id}/dashboard?resultId=${result.id}`}
@@ -181,25 +219,27 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
           )}
         </div>
 
-        {/* Botón historia clínica */}
-        <Link
-          href={`/patients/${patient.id}/intake`}
-          className="mt-2 w-full flex items-center justify-center gap-2 border border-border text-muted-foreground text-sm py-2 rounded-lg hover:text-foreground hover:border-accent/50 hover:bg-muted/20 transition-all"
-        >
-          {patient.clinical_history ? (
-            <>
-              <CheckCircle2 size={13} className="text-accent" />
-              <span>Historia Clínica</span>
-              <span className="ml-auto text-xs text-accent font-medium">Completada</span>
-            </>
-          ) : (
-            <>
-              <ClipboardList size={13} />
-              <span>Completar Historia Clínica</span>
-              <span className="ml-auto text-xs text-warning font-medium">Pendiente</span>
-            </>
-          )}
-        </Link>
+        {/* Botón historia clínica — solo pacientes */}
+        {viewerRole === 'paciente' && (
+          <Link
+            href={`/patients/${patient.id}/intake`}
+            className="mt-2 w-full flex items-center justify-center gap-2 border border-border text-muted-foreground text-sm py-2 rounded-lg hover:text-foreground hover:border-accent/50 hover:bg-muted/20 transition-all"
+          >
+            {patient.clinical_history ? (
+              <>
+                <CheckCircle2 size={13} className="text-accent" />
+                <span>Historia Clínica</span>
+                <span className="ml-auto text-xs text-accent font-medium">Completada</span>
+              </>
+            ) : (
+              <>
+                <ClipboardList size={13} />
+                <span>Completar Historia Clínica</span>
+                <span className="ml-auto text-xs text-warning font-medium">Pendiente</span>
+              </>
+            )}
+          </Link>
+        )}
       </div>
 
       {/* ── Modal de confirmación ── */}
@@ -335,6 +375,58 @@ export function PatientCard({ patient, onDeleted }: PatientCardProps) {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de desvinculación (médicos) ── */}
+      {showUnlink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !unlinking && setShowUnlink(false)}
+          />
+          <div className="relative card-medical w-full max-w-sm animate-slide-up p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-warning/10 border border-warning/20 flex items-center justify-center shrink-0">
+                <X size={18} className="text-warning" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Desvincular paciente</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{patient.name} · {patient.code}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Dejaras de tener acceso a los analisis de este paciente. El paciente puede volver a invitarte en el futuro.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUnlink(false)}
+                disabled={unlinking}
+                className="flex-1 py-2.5 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleUnlink}
+                disabled={unlinking}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-warning hover:bg-warning/90 text-white transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {unlinking ? (
+                  <>
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <X size={14} />
+                    Desvincular
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

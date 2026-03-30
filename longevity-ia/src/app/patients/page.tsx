@@ -357,7 +357,13 @@ export default function PatientsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {filtered.map((patient) => (
-              <PatientCard key={patient.id} patient={patient} onDeleted={userRole === 'paciente' ? loadPatients : undefined} />
+              <PatientCard
+                key={patient.id}
+                patient={patient}
+                viewerRole={userRole}
+                onDeleted={userRole === 'paciente' ? loadPatients : undefined}
+                onUnlinked={userRole === 'medico' ? loadPatients : undefined}
+              />
             ))}
           </div>
         )}
