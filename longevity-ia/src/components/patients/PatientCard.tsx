@@ -44,10 +44,12 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
 
   async function handleDeleteResult() {
     if (!result || deletingResult) return
+    console.log('[DELETE] Iniciando eliminación de resultado:', result.id)
     setDeletingResult(true)
     try {
       // Eliminar archivos del storage
       const fileUrls: string[] = result.file_urls ?? []
+      console.log('[DELETE] file_urls:', fileUrls)
       if (fileUrls.length > 0) {
         const paths = fileUrls
           .map((url: string) => {
@@ -57,23 +59,41 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
           })
           .filter(Boolean) as string[]
 
+        console.log('[DELETE] Storage paths a eliminar:', paths)
         if (paths.length > 0) {
-          await supabase.storage.from('lab-files').remove(paths)
+          const storageRes = await supabase.storage.from('lab-files').remove(paths)
+          console.log('[DELETE] Storage result:', storageRes)
         }
       }
 
       // Eliminar registro de lab_results
-      const { error } = await supabase
+      console.log('[DELETE] Eliminando registro lab_results id:', result.id)
+      const { data, error, count, status, statusText } = await supabase
         .from('lab_results')
         .delete()
         .eq('id', result.id)
+        .select()
+
+      console.log('[DELETE] Supabase response:', { data, error, count, status, statusText })
 
       if (error) throw new Error(error.message)
+
+      // Verificar si realmente se eliminó algo
+      if (!data || data.length === 0) {
+        console.warn('[DELETE] No se eliminó ningún registro — posible problema de RLS')
+        // Intentar con el endpoint API como fallback
+        console.log('[DELETE] Intentando via API endpoint...')
+        const apiRes = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
+        const apiData = await apiRes.json()
+        console.log('[DELETE] API response:', apiRes.status, apiData)
+        if (!apiRes.ok) throw new Error(apiData.error || `API error ${apiRes.status}`)
+      }
 
       toast.success('Análisis eliminado')
       setShowDeleteResult(false)
       onDeleted?.()
     } catch (err) {
+      console.error('[DELETE] Error:', err)
       toast.error(err instanceof Error ? err.message : 'Error al eliminar análisis')
     } finally {
       setDeletingResult(false)
