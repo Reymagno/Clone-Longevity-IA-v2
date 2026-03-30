@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { User, Calendar, AlertTriangle, Activity, Upload, BarChart2, Trash2, X, TriangleAlert, ShieldOff, Archive, ClipboardList, CheckCircle2 } from 'lucide-react'
@@ -27,10 +27,10 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
 
   // Medicos have full control over their own patients, limited on linked ones
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null))
-  })
-  const isOwnPatient = viewerRole === 'paciente' || (viewerRole === 'medico' && patient.user_id === currentUserId)
+  }, [])
+  const isOwnPatient = viewerRole === 'paciente' || (viewerRole === 'medico' && currentUserId != null && patient.user_id === currentUserId)
   const isLinkedOnly = viewerRole === 'medico' && !isOwnPatient
 
   const router = useRouter()
