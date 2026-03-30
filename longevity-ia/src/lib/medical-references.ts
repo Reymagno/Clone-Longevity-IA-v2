@@ -14,6 +14,10 @@ export interface VerifiedReference {
   url: string
   source: 'pubmed' | 'semantic_scholar' | 'openalex'
   citationCount?: number
+  abstract?: string        // Resumen del paper (gratis en las 3 APIs)
+  tldr?: string            // Resumen de 1 línea (Semantic Scholar)
+  isOpenAccess?: boolean   // Si el paper completo es gratuito
+  pdfUrl?: string | null   // Link directo al PDF open-access
 }
 
 export interface ProtocolReferences {
@@ -25,6 +29,31 @@ export interface ProtocolReferences {
 
 const PUBMED_SEARCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
 const PUBMED_SUMMARY = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi'
+const PUBMED_FETCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
+
+/** Extract abstract text from PubMed XML efetch response */
+function extractAbstractsFromXml(xml: string): Map<string, string> {
+  const abstracts = new Map<string, string>()
+  // Match each PubmedArticle block
+  const articleRegex = /<PubmedArticle>[\s\S]*?<\/PubmedArticle>/g
+  let match
+  while ((match = articleRegex.exec(xml)) !== null) {
+    const block = match[0]
+    const pmidMatch = block.match(/<PMID[^>]*>(\d+)<\/PMID>/)
+    const abstractMatch = block.match(/<Abstract>([\s\S]*?)<\/Abstract>/)
+    if (pmidMatch && abstractMatch) {
+      // Strip XML tags and normalize whitespace
+      const text = abstractMatch[1]
+        .replace(/<AbstractText[^>]*>/g, '')
+        .replace(/<\/AbstractText>/g, ' ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      abstracts.set(pmidMatch[1], text)
+    }
+  }
+  return abstracts
+}
 
 async function searchPubMed(query: string, maxResults = 3): Promise<VerifiedReference[]> {
   try {
@@ -37,12 +66,20 @@ async function searchPubMed(query: string, maxResults = 3): Promise<VerifiedRefe
     const ids: string[] = searchData?.esearchresult?.idlist ?? []
     if (ids.length === 0) return []
 
-    // Fetch summaries
-    const summaryUrl = `${PUBMED_SUMMARY}?db=pubmed&retmode=json&id=${ids.join(',')}`
-    const summaryRes = await fetch(summaryUrl, { signal: AbortSignal.timeout(8000) })
-    if (!summaryRes.ok) return []
+    // Fetch summaries + abstracts in parallel
+    const [summaryRes, abstractRes] = await Promise.all([
+      fetch(`${PUBMED_SUMMARY}?db=pubmed&retmode=json&id=${ids.join(',')}`, { signal: AbortSignal.timeout(8000) }),
+      fetch(`${PUBMED_FETCH}?db=pubmed&rettype=xml&id=${ids.join(',')}`, { signal: AbortSignal.timeout(10000) }),
+    ])
 
+    if (!summaryRes.ok) return []
     const summaryData = await summaryRes.json()
+
+    // Parse abstracts from XML (best-effort)
+    const abstractMap = abstractRes.ok
+      ? extractAbstractsFromXml(await abstractRes.text())
+      : new Map<string, string>()
+
     const results: VerifiedReference[] = []
 
     for (const id of ids) {
@@ -66,6 +103,7 @@ async function searchPubMed(query: string, maxResults = 3): Promise<VerifiedRefe
         pmid: id,
         url: doi ? `https://doi.org/${doi}` : `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
         source: 'pubmed',
+        abstract: abstractMap.get(id) || undefined,
       })
     }
 
@@ -81,7 +119,7 @@ const SEMANTIC_SEARCH = 'https://api.semanticscholar.org/graph/v1/paper/search'
 
 async function searchSemanticScholar(query: string, maxResults = 2): Promise<VerifiedReference[]> {
   try {
-    const url = `${SEMANTIC_SEARCH}?query=${encodeURIComponent(query)}&limit=${maxResults}&fields=title,authors,journal,year,externalIds,citationCount,url`
+    const url = `${SEMANTIC_SEARCH}?query=${encodeURIComponent(query)}&limit=${maxResults}&fields=title,authors,journal,year,externalIds,citationCount,url,abstract,tldr,isOpenAccess,openAccessPdf`
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
       headers: { 'Accept': 'application/json' },
@@ -99,6 +137,10 @@ async function searchSemanticScholar(query: string, maxResults = 2): Promise<Ver
       externalIds?: { DOI?: string; PubMed?: string }
       citationCount?: number
       url?: string
+      abstract?: string
+      tldr?: { text: string }
+      isOpenAccess?: boolean
+      openAccessPdf?: { url: string }
     }) => {
       const authorNames = (p.authors ?? []).slice(0, 3).map((a) => a.name).join(', ')
       const authorStr = (p.authors ?? []).length > 3 ? `${authorNames}, et al.` : authorNames
@@ -114,6 +156,10 @@ async function searchSemanticScholar(query: string, maxResults = 2): Promise<Ver
         url: doi ? `https://doi.org/${doi}` : p.url ?? '',
         source: 'semantic_scholar' as const,
         citationCount: p.citationCount,
+        abstract: p.abstract || undefined,
+        tldr: p.tldr?.text || undefined,
+        isOpenAccess: p.isOpenAccess,
+        pdfUrl: p.openAccessPdf?.url ?? null,
       }
     })
   } catch {
@@ -127,7 +173,7 @@ const OPENALEX_SEARCH = 'https://api.openalex.org/works'
 
 async function searchOpenAlex(query: string, maxResults = 2): Promise<VerifiedReference[]> {
   try {
-    const url = `${OPENALEX_SEARCH}?search=${encodeURIComponent(query)}&per_page=${maxResults}&select=title,authorships,primary_location,publication_year,doi,ids,cited_by_count`
+    const url = `${OPENALEX_SEARCH}?search=${encodeURIComponent(query)}&per_page=${maxResults}&select=title,authorships,primary_location,publication_year,doi,ids,cited_by_count,abstract_inverted_index,open_access,best_oa_location`
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
       headers: { 'Accept': 'application/json', 'User-Agent': 'LongevityIA/1.0 (mailto:support@longevityia.com)' },
@@ -145,10 +191,25 @@ async function searchOpenAlex(query: string, maxResults = 2): Promise<VerifiedRe
       doi?: string
       ids?: { pmid?: string }
       cited_by_count?: number
+      abstract_inverted_index?: Record<string, number[]>
+      open_access?: { is_oa: boolean; oa_url?: string }
+      best_oa_location?: { pdf_url?: string }
     }) => {
       const authorNames = (w.authorships ?? []).slice(0, 3).map((a) => a.author.display_name).join(', ')
       const authorStr = (w.authorships ?? []).length > 3 ? `${authorNames}, et al.` : authorNames
       const doi = w.doi?.replace('https://doi.org/', '') ?? null
+
+      // OpenAlex stores abstracts as inverted index — reconstruct to plain text
+      let abstract: string | undefined
+      if (w.abstract_inverted_index) {
+        const entries: [string, number[]][] = Object.entries(w.abstract_inverted_index)
+        const words: [number, string][] = []
+        for (const [word, positions] of entries) {
+          for (const pos of positions) words.push([pos, word])
+        }
+        words.sort((a, b) => a[0] - b[0])
+        abstract = words.map(([, word]) => word).join(' ')
+      }
 
       return {
         title: w.title ?? '',
@@ -160,6 +221,9 @@ async function searchOpenAlex(query: string, maxResults = 2): Promise<VerifiedRe
         url: w.doi ?? '',
         source: 'openalex' as const,
         citationCount: w.cited_by_count,
+        abstract,
+        isOpenAccess: w.open_access?.is_oa,
+        pdfUrl: w.best_oa_location?.pdf_url ?? w.open_access?.oa_url ?? null,
       }
     })
   } catch {
@@ -170,14 +234,22 @@ async function searchOpenAlex(query: string, maxResults = 2): Promise<VerifiedRe
 // ── Búsqueda combinada y deduplicación ──────────────────────────
 
 function deduplicateRefs(refs: VerifiedReference[]): VerifiedReference[] {
-  const seen = new Set<string>()
-  return refs.filter((r) => {
-    // Deduplicate by DOI or by title similarity
+  const seen = new Map<string, VerifiedReference>()
+  for (const r of refs) {
     const key = r.doi ?? r.title.toLowerCase().slice(0, 60)
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+    const existing = seen.get(key)
+    if (existing) {
+      // Merge: keep the richest version (prefer one with abstract, more citations, etc.)
+      if (!existing.abstract && r.abstract) existing.abstract = r.abstract
+      if (!existing.tldr && r.tldr) existing.tldr = r.tldr
+      if (!existing.pdfUrl && r.pdfUrl) existing.pdfUrl = r.pdfUrl
+      if (r.isOpenAccess) existing.isOpenAccess = true
+      if ((r.citationCount ?? 0) > (existing.citationCount ?? 0)) existing.citationCount = r.citationCount
+    } else {
+      seen.set(key, { ...r })
+    }
+  }
+  return Array.from(seen.values())
 }
 
 function buildQuery(molecule: string, evidence: string): string {

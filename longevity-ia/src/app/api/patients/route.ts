@@ -32,19 +32,22 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  // Un solo perfil por usuario
-  const { data: existing } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  // Pacientes: un solo perfil por usuario. Médicos: pueden crear múltiples pacientes.
+  const role = user.user_metadata?.role
+  if (role !== 'medico') {
+    const { data: existing } = await supabase
+      .from('patients')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .single()
 
-  if (existing) {
-    return NextResponse.json(
-      { error: 'Ya tienes un perfil creado. Solo se permite uno por cuenta.' },
-      { status: 409 }
-    )
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Ya tienes un perfil creado. Solo se permite uno por cuenta.' },
+        { status: 409 }
+      )
+    }
   }
 
   const body = await request.json()

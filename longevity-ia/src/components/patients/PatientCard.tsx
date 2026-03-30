@@ -24,6 +24,14 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
   const score = analysis?.overallScore ?? null
   const alerts = analysis?.keyAlerts?.filter(a => a.level === 'danger' || a.level === 'warning') ?? []
 
+  // Medicos have full control over their own patients, limited on linked ones
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  useState(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null))
+  })
+  const isOwnPatient = viewerRole === 'paciente' || (viewerRole === 'medico' && patient.user_id === currentUserId)
+  const isLinkedOnly = viewerRole === 'medico' && !isOwnPatient
+
   const [showConfirm, setShowConfirm] = useState(false)
   const [showUnlink, setShowUnlink] = useState(false)
   const [mode, setMode] = useState<DeleteMode>('full')
@@ -127,7 +135,7 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
               <p className="text-xs text-muted-foreground font-mono">{patient.code}</p>
             </div>
           </div>
-          {viewerRole === 'medico' ? (
+          {isLinkedOnly ? (
             <button
               onClick={() => setShowUnlink(true)}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-warning hover:bg-warning/10 transition-colors"
@@ -199,7 +207,7 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
 
         {/* Botones de acción */}
         <div className="flex gap-2 mt-2">
-          {viewerRole === 'paciente' && (
+          {isOwnPatient && (
             <Link
               href={`/patients/${patient.id}/upload`}
               className="flex-1 flex items-center justify-center gap-2 bg-accent text-background text-sm font-medium py-2 rounded-lg hover:bg-accent/90 transition-all"
@@ -219,8 +227,8 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
           )}
         </div>
 
-        {/* Botón historia clínica — solo pacientes */}
-        {viewerRole === 'paciente' && (
+        {/* Botón historia clínica — pacientes y médicos con pacientes propios */}
+        {isOwnPatient && (
           <Link
             href={`/patients/${patient.id}/intake`}
             className="mt-2 w-full flex items-center justify-center gap-2 border border-border text-muted-foreground text-sm py-2 rounded-lg hover:text-foreground hover:border-accent/50 hover:bg-muted/20 transition-all"

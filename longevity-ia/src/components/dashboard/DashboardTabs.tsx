@@ -64,6 +64,18 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
 
   const [isReanalyzing, setIsReanalyzing] = useState(false)
   const [clinicalHistoryChanged, setClinicalHistoryChanged] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Detect if medico owns this patient (full access) vs linked (limited)
+  useEffect(() => {
+    if (viewerRole === 'medico') {
+      import('@/lib/supabase/client').then(({ supabase }) => {
+        supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null))
+      })
+    }
+  }, [viewerRole])
+
+  const isOwnPatient = viewerRole === 'paciente' || (viewerRole === 'medico' && currentUserId === patient.user_id)
 
   const analysis = result.ai_analysis
   const parsedData = result.parsed_data
@@ -188,8 +200,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               </span>
             )}
 
-            {/* Botón re-análisis — solo pacientes, solo si historia clínica cambió */}
-            {viewerRole === 'paciente' && analysis && (
+            {/* Botón re-análisis — pacientes y médicos con pacientes propios */}
+            {isOwnPatient && analysis && (
               <button
                 onClick={handleReanalyze}
                 disabled={isReanalyzing || !clinicalHistoryChanged}
@@ -205,7 +217,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               </button>
             )}
 
-            {viewerRole === 'paciente' && (
+            {isOwnPatient && (
             <Link
               href={`/patients/${patient.id}/upload`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-accent/50 hover:bg-muted/30 transition-all"
@@ -231,7 +243,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
         {/* Tabs — solo si hay análisis */}
         {analysis && parsedData && (
           <div className="flex overflow-x-auto scrollbar-none -mb-px">
-            {TABS.filter(tab => !(viewerRole === 'medico' && tab.id === 10)).map((tab) => {
+            {TABS.filter(tab => !(viewerRole === 'medico' && !isOwnPatient && tab.id === 10)).map((tab) => {
               const Icon = tab.icon
               const showDot = tab.id === 10 && !patient.clinical_history
               return (
@@ -304,8 +316,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
     <div className="min-h-screen bg-background">
       {Header}
 
-      {/* Chat flotante — solo para pacientes */}
-      {viewerRole === 'paciente' && (
+      {/* Chat flotante — pacientes y médicos */}
+      {(viewerRole === 'paciente' || viewerRole === 'medico') && (
         <LongevityChat patient={patient} analysis={analysis} resultId={result.id} />
       )}
 
@@ -363,7 +375,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
             analysis={analysis}
           />
         )}
-        {activeTab === 10 && viewerRole === 'paciente' && (
+        {activeTab === 10 && isOwnPatient && (
           <ClinicalHistoryTab
             patient={patient}
             result={result}

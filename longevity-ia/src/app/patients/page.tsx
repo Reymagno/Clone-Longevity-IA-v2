@@ -66,27 +66,42 @@ export default function PatientsPage() {
         setPendingInvCount(pendingLinks?.length ?? 0)
         if ((pendingLinks?.length ?? 0) > 0) setShowInvitations(true)
 
+        // Load linked patients (from invitations)
         const { data: links } = await supabase
           .from('patient_medico_links')
           .select('patient_id')
           .eq('medico_user_id', user.id)
           .eq('status', 'active')
 
-        if (!links || links.length === 0) {
-          setPatients([])
-          setLoading(false)
-          return
-        }
+        const linkedIds = (links ?? []).map(l => l.patient_id)
 
-        const patientIds = links.map(l => l.patient_id)
-        const { data } = await supabase
+        // Load own patients (created by the medico)
+        const { data: ownPatients } = await supabase
           .from('patients')
           .select('*')
-          .in('id', patientIds)
-          .order('name')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        // Load linked patients
+        let linkedPatients: typeof ownPatients = []
+        if (linkedIds.length > 0) {
+          const { data } = await supabase
+            .from('patients')
+            .select('*')
+            .in('id', linkedIds)
+            .order('name')
+          linkedPatients = data ?? []
+        }
+
+        // Merge and deduplicate (own + linked)
+        const allPatientsMap = new Map<string, (typeof ownPatients extends (infer T)[] | null ? T : never)>()
+        for (const p of (ownPatients ?? [])) allPatientsMap.set(p.id, p)
+        for (const p of (linkedPatients ?? [])) if (!allPatientsMap.has(p.id)) allPatientsMap.set(p.id, p)
+
+        const allPatients = Array.from(allPatientsMap.values())
 
         const withResults = await Promise.all(
-          (data || []).map(async (patient) => {
+          allPatients.map(async (patient) => {
             const { data: results } = await supabase
               .from('lab_results')
               .select('*')
@@ -235,7 +250,7 @@ export default function PatientsPage() {
                 )}
               </Button>
             )}
-            {userRole === 'paciente' && (
+            {(userRole === 'paciente' || userRole === 'medico') && (
               <Button onClick={() => setShowModal(true)}>
                 <Plus size={16} />
                 Nuevo Paciente
@@ -293,11 +308,10 @@ export default function PatientsPage() {
             <Users size={22} className="text-accent" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                {userRole === 'medico' ? 'Mis Pacientes Vinculados' : userRole === 'clinica' ? 'Panel de Clinica' : 'Pacientes'}
+                {userRole === 'clinica' ? 'Panel de Clinica' : 'Pacientes'}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {patients.length} paciente{patients.length !== 1 ? 's' : ''}
-                {userRole === 'medico' ? ' compartido' : ' registrado'}{patients.length !== 1 ? 's' : ''}
+                {patients.length} paciente{patients.length !== 1 ? 's' : ''} registrado{patients.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -338,16 +352,14 @@ export default function PatientsPage() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Users size={48} className="text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              {search ? 'Sin resultados' : userRole === 'medico' ? 'Sin pacientes vinculados' : 'Sin pacientes aun'}
+              {search ? 'Sin resultados' : 'Sin pacientes aun'}
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
               {search
                 ? 'No se encontraron pacientes con ese criterio de busqueda'
-                : userRole === 'medico'
-                ? 'Cuando un paciente te invite, aparecera aqui'
                 : 'Crea tu primer paciente para comenzar el analisis'}
             </p>
-            {!search && userRole === 'paciente' && (
+            {!search && (userRole === 'paciente' || userRole === 'medico') && (
               <Button onClick={() => setShowModal(true)}>
                 <Plus size={16} />
                 Crear primer paciente
@@ -361,7 +373,7 @@ export default function PatientsPage() {
                 key={patient.id}
                 patient={patient}
                 viewerRole={userRole}
-                onDeleted={userRole === 'paciente' ? loadPatients : undefined}
+                onDeleted={loadPatients}
                 onUnlinked={userRole === 'medico' ? loadPatients : undefined}
               />
             ))}
@@ -369,7 +381,7 @@ export default function PatientsPage() {
         )}
       </div>
 
-      {userRole === 'paciente' && (
+      {(userRole === 'paciente' || userRole === 'medico') && (
         <NewPatientModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}

@@ -140,6 +140,9 @@ export function VerifiedReferences({ protocol }: VerifiedReferencesProps) {
 }
 
 function ReferenceCard({ ref_ }: { ref_: VerifiedReference }) {
+  const [showAbstract, setShowAbstract] = useState(false)
+  const hasAbstract = !!(ref_.abstract || ref_.tldr)
+
   return (
     <div className="p-3 rounded-lg bg-muted border border-border/60 hover:border-accent/30 transition-all">
       <div className="flex items-start justify-between gap-2">
@@ -181,7 +184,51 @@ function ReferenceCard({ ref_ }: { ref_: VerifiedReference }) {
                 PMID: {ref_.pmid}
               </a>
             )}
+            {ref_.isOpenAccess && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">
+                Open Access
+              </span>
+            )}
+            {ref_.pdfUrl && (
+              <a
+                href={ref_.pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent font-medium hover:bg-accent/25 transition-colors"
+              >
+                PDF gratis
+              </a>
+            )}
           </div>
+
+          {/* Botón para mostrar abstract */}
+          {hasAbstract && (
+            <button
+              onClick={() => setShowAbstract(!showAbstract)}
+              className="mt-2 text-[11px] text-accent/70 hover:text-accent transition-colors flex items-center gap-1"
+            >
+              <BookMarked size={10} />
+              {showAbstract ? 'Ocultar resumen' : 'Ver resumen del estudio'}
+            </button>
+          )}
+
+          {/* Abstract / TLDR */}
+          {showAbstract && (
+            <div className="mt-2 space-y-2 animate-fade-in">
+              {ref_.tldr && (
+                <div className="p-2 rounded bg-accent/5 border border-accent/10">
+                  <p className="text-[10px] font-semibold text-accent mb-0.5">Resumen IA (TLDR)</p>
+                  <p className="text-[11px] text-foreground/80 leading-relaxed">{ref_.tldr}</p>
+                </div>
+              )}
+              {ref_.abstract && (
+                <div className="p-2 rounded bg-card border border-border/40">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">Abstract</p>
+                  <p className="text-[11px] text-foreground/70 leading-relaxed max-h-40 overflow-y-auto">{ref_.abstract}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span
