@@ -313,27 +313,28 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
 
         {/* Eliminar análisis — esquina inferior derecha */}
         {result && (
-          <div className="flex justify-end mt-3">
-            <button
-              type="button"
-              onClick={async (e) => {
-                e.preventDefault()
+          <div className="flex justify-end mt-3" style={{ position: 'relative', zIndex: 50 }}>
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: 'pointer', padding: '6px 12px', border: '1px solid #D4536A40', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6B6660', position: 'relative', zIndex: 999 }}
+              onMouseDown={(e) => {
                 e.stopPropagation()
-                if (!window.confirm(`¿Eliminar el análisis del ${formatDate(result.result_date)}? Esta acción no se puede deshacer.`)) return
+                e.preventDefault()
+                alert('TEST: El click funciona. Result ID: ' + result.id)
+              }}
+              onClick={async (e) => {
+                e.stopPropagation()
+                e.preventDefault()
+                if (!window.confirm('¿Eliminar este análisis? Esta acción no se puede deshacer.')) return
                 try {
-                  // Eliminar archivos del storage
                   const fileUrls: string[] = result.file_urls ?? []
                   if (fileUrls.length > 0) {
                     const paths = fileUrls
-                      .map((url: string) => {
-                        const marker = '/lab-files/'
-                        const idx = url.indexOf(marker)
-                        return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
-                      })
+                      .map((url: string) => { const m = '/lab-files/'; const i = url.indexOf(m); return i !== -1 ? decodeURIComponent(url.slice(i + m.length)) : null })
                       .filter(Boolean) as string[]
                     if (paths.length > 0) await supabase.storage.from('lab-files').remove(paths)
                   }
-                  // Eliminar registro
                   const { error } = await supabase.from('lab_results').delete().eq('id', result.id)
                   if (error) throw new Error(error.message)
                   toast.success('Análisis eliminado')
@@ -342,11 +343,10 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
                   toast.error(err instanceof Error ? err.message : 'Error al eliminar')
                 }
               }}
-              className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground border border-border/40 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-all cursor-pointer"
             >
               <Trash2 size={13} />
               <span>Eliminar análisis</span>
-            </button>
+            </div>
           </div>
         )}
       </div>
