@@ -313,13 +313,14 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
 
         {/* Eliminar análisis — esquina inferior derecha */}
         {result && (
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end mt-3">
             <button
-              onClick={() => { console.log('[DELETE-BTN] Click! resultId:', result.id, 'isOwnPatient:', isOwnPatient); setShowDeleteResult(true) }}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-muted-foreground/40 hover:text-danger hover:bg-danger/8 transition-all"
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('[DELETE-BTN] Click! resultId:', result.id); setShowDeleteResult(true) }}
+              className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground border border-border/40 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-all cursor-pointer"
               title="Eliminar este análisis"
             >
-              <Trash2 size={12} />
+              <Trash2 size={13} />
               <span>Eliminar análisis</span>
             </button>
           </div>
