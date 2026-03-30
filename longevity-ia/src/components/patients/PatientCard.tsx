@@ -316,9 +316,33 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
           <div className="flex justify-end mt-3">
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('[DELETE-BTN] Click! resultId:', result.id); setShowDeleteResult(true) }}
+              onClick={async (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (!window.confirm(`¿Eliminar el análisis del ${formatDate(result.result_date)}? Esta acción no se puede deshacer.`)) return
+                try {
+                  // Eliminar archivos del storage
+                  const fileUrls: string[] = result.file_urls ?? []
+                  if (fileUrls.length > 0) {
+                    const paths = fileUrls
+                      .map((url: string) => {
+                        const marker = '/lab-files/'
+                        const idx = url.indexOf(marker)
+                        return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
+                      })
+                      .filter(Boolean) as string[]
+                    if (paths.length > 0) await supabase.storage.from('lab-files').remove(paths)
+                  }
+                  // Eliminar registro
+                  const { error } = await supabase.from('lab_results').delete().eq('id', result.id)
+                  if (error) throw new Error(error.message)
+                  toast.success('Análisis eliminado')
+                  onDeleted?.()
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Error al eliminar')
+                }
+              }}
               className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground border border-border/40 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-all cursor-pointer"
-              title="Eliminar este análisis"
             >
               <Trash2 size={13} />
               <span>Eliminar análisis</span>
