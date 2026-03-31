@@ -64,57 +64,61 @@ export function TrendsTab({ patient, allResults }: TrendsTabProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'biomarkers' | 'systems' | 'velocity'>('overview')
 
   useEffect(() => {
-    loadTrends()
-  }, [patient.id])
+    let cancelled = false
 
-  async function loadTrends() {
-    setLoading(true)
-    try {
-      // Fetch all results with parsed_data and ai_analysis
-      const { data: results } = await supabase
-        .from('lab_results')
-        .select('id, result_date, parsed_data, ai_analysis')
-        .eq('patient_id', patient.id)
-        .not('parsed_data', 'is', null)
-        .order('result_date', { ascending: true })
+    async function loadTrends() {
+      setLoading(true)
+      try {
+        const { data: results } = await supabase
+          .from('lab_results')
+          .select('id, result_date, parsed_data, ai_analysis')
+          .eq('patient_id', patient.id)
+          .not('parsed_data', 'is', null)
+          .order('result_date', { ascending: true })
 
-      if (!results || results.length < 2) {
-        setTrends(null)
-        setLoading(false)
-        return
-      }
+        if (cancelled) return
 
-      const snapshots: AnalysisSnapshot[] = results.map(r => ({
-        id: r.id,
-        result_date: r.result_date,
-        parsed_data: r.parsed_data as Record<string, unknown> | null,
-        ai_analysis: r.ai_analysis as { overallScore?: number; systemScores?: Record<string, number> } | null,
-      }))
+        if (!results || results.length < 2) {
+          setTrends(null)
+          setLoading(false)
+          return
+        }
 
-      const computed = computeTrends(snapshots)
-      setTrends(computed)
+        const snapshots: AnalysisSnapshot[] = results.map(r => ({
+          id: r.id,
+          result_date: r.result_date,
+          parsed_data: r.parsed_data as Record<string, unknown> | null,
+          ai_analysis: r.ai_analysis as { overallScore?: number; systemScores?: Record<string, number> } | null,
+        }))
 
-      // Extract system score history from all analyses
-      const systemHistory: Record<string, { date: string; score: number }[]> = {}
-      const systemKeys = ['cardiovascular', 'metabolic', 'hepatic', 'renal', 'immune', 'hematologic', 'inflammatory', 'vitamins']
+        const computed = computeTrends(snapshots)
+        if (cancelled) return
+        setTrends(computed)
 
-      for (const r of results) {
-        const ai = r.ai_analysis as { systemScores?: Record<string, number> } | null
-        if (!ai?.systemScores) continue
-        for (const key of systemKeys) {
-          if (ai.systemScores[key] != null) {
-            if (!systemHistory[key]) systemHistory[key] = []
-            systemHistory[key].push({ date: r.result_date, score: ai.systemScores[key] })
+        const systemHistory: Record<string, { date: string; score: number }[]> = {}
+        const systemKeys = ['cardiovascular', 'metabolic', 'hepatic', 'renal', 'immune', 'hematologic', 'inflammatory', 'vitamins']
+
+        for (const r of results) {
+          const ai = r.ai_analysis as { systemScores?: Record<string, number> } | null
+          if (!ai?.systemScores) continue
+          for (const key of systemKeys) {
+            if (ai.systemScores[key] !== undefined && ai.systemScores[key] !== null) {
+              if (!systemHistory[key]) systemHistory[key] = []
+              systemHistory[key].push({ date: r.result_date, score: ai.systemScores[key] })
+            }
           }
         }
+        if (!cancelled) setSystemScoreHistory(systemHistory)
+      } catch {
+        // Error cargando tendencias — no crítico
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setSystemScoreHistory(systemHistory)
-    } catch (e) {
-      console.error('Error loading trends:', e)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    loadTrends()
+    return () => { cancelled = true }
+  }, [patient.id])
 
   // Velocity alerts - biomarkers heading toward danger
   const velocityAlerts = useMemo(() => {

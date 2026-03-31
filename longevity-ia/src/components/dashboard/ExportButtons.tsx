@@ -16,15 +16,16 @@ interface ExportButtonsProps {
   resultDate: string
 }
 
-// CSS de tema claro — texto negro, fondos blancos
+// CSS de tema claro — texto negro, fondos con contraste, cards con sombra
 const LIGHT_CSS = `
   #dashboard-export {
-    background-color: #ffffff !important;
+    background-color: #f1f5f9 !important;
     color: #000000 !important;
   }
-  #dashboard-export .bg-background  { background-color: #ffffff !important; }
+  #dashboard-export .bg-background  { background-color: #f1f5f9 !important; }
   #dashboard-export .bg-card        { background-color: #ffffff !important; }
-  #dashboard-export .bg-muted       { background-color: #f1f5f9 !important; }
+  #dashboard-export .bg-muted       { background-color: #e8ecf1 !important; }
+  #dashboard-export [class*="bg-muted/"]  { background-color: #e8ecf1 !important; }
 
   #dashboard-export .text-foreground       { color: #000000 !important; }
   #dashboard-export .text-card-foreground  { color: #000000 !important; }
@@ -34,37 +35,62 @@ const LIGHT_CSS = `
   #dashboard-export .text-warning  { color: #92400e !important; }
   #dashboard-export .text-danger   { color: #991b1b !important; }
 
-  #dashboard-export .border, #dashboard-export .border-border { border-color: #cbd5e1 !important; }
+  #dashboard-export .border,
+  #dashboard-export .border-border,
+  #dashboard-export [class*="border-border/"] { border-color: #b0bec5 !important; }
 
-  #dashboard-export .card-medical {
+  /* Cards con sombra y borde sólido */
+  #dashboard-export .card-medical,
+  #dashboard-export [class*="rounded-xl"],
+  #dashboard-export [class*="rounded-2xl"] {
     background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    border: 1px solid #b0bec5 !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10) !important;
   }
 
-  #dashboard-export .badge-optimal { background: rgba(4,120,87,0.15) !important; color: #047857 !important; border-color: rgba(4,120,87,0.4) !important; }
-  #dashboard-export .badge-normal  { background: rgba(3,105,161,0.15) !important; color: #0369a1 !important; border-color: rgba(3,105,161,0.4) !important; }
-  #dashboard-export .badge-warning { background: rgba(146,64,14,0.15) !important; color: #92400e !important; border-color: rgba(146,64,14,0.4) !important; }
-  #dashboard-export .badge-danger  { background: rgba(153,27,27,0.15) !important; color: #991b1b !important; border-color: rgba(153,27,27,0.4) !important; }
+  /* Badges con fondo sólido visible */
+  #dashboard-export .badge-optimal { background: #d1fae5 !important; color: #047857 !important; border-color: #6ee7b7 !important; }
+  #dashboard-export .badge-normal  { background: #dbeafe !important; color: #0369a1 !important; border-color: #93c5fd !important; }
+  #dashboard-export .badge-warning { background: #fef3c7 !important; color: #92400e !important; border-color: #fcd34d !important; }
+  #dashboard-export .badge-danger  { background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important; }
 
+  /* Fondos con opacidad parcial → sólidos */
+  #dashboard-export [class*="bg-accent/"]  { background-color: #d1fae5 !important; }
+  #dashboard-export [class*="bg-info/"]    { background-color: #dbeafe !important; }
+  #dashboard-export [class*="bg-warning/"] { background-color: #fef3c7 !important; }
+  #dashboard-export [class*="bg-danger/"]  { background-color: #fee2e2 !important; }
+  #dashboard-export [class*="bg-emerald"]  { background-color: #d1fae5 !important; }
+  #dashboard-export [class*="bg-red-500/"] { background-color: #fee2e2 !important; }
+  #dashboard-export [class*="bg-yellow-500/"] { background-color: #fef3c7 !important; }
+  #dashboard-export [class*="bg-blue-500/"]   { background-color: #dbeafe !important; }
+
+  /* Gráficas recharts */
   #dashboard-export .recharts-text tspan,
   #dashboard-export .recharts-cartesian-axis-tick-value tspan,
   #dashboard-export .recharts-label tspan { fill: #000000 !important; }
-  #dashboard-export .recharts-default-tooltip { background: #ffffff !important; border: 1px solid #cbd5e1 !important; }
+  #dashboard-export .recharts-default-tooltip { background: #ffffff !important; border: 1px solid #b0bec5 !important; }
+  #dashboard-export .recharts-cartesian-grid line { stroke: #cbd5e1 !important; }
 
-  #dashboard-export * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  /* Shimmer y animaciones desactivadas para captura */
+  #dashboard-export .shimmer { background: #e2e8f0 !important; animation: none !important; }
+  #dashboard-export * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    animation: none !important;
+    transition: none !important;
+  }
 `
 
 // Mapa completo de fondos oscuros → claros (rgb format que devuelve getComputedStyle)
 const BG_MAP: Record<string, string> = {
-  'rgb(5, 14, 26)':   '#ffffff',
-  'rgb(10, 22, 40)':  '#ffffff',
-  'rgb(13, 31, 60)':  '#f1f5f9',
-  'rgb(15, 23, 42)':  '#f1f5f9',
-  'rgb(17, 24, 39)':  '#ffffff',
-  'rgb(23, 37, 59)':  '#f1f5f9',
-  'rgb(26, 45, 74)':  '#e2e8f0',
-  'rgb(30, 58, 95)':  '#f1f5f9',
+  'rgb(5, 14, 26)':   '#f1f5f9',   // body background → gris claro
+  'rgb(10, 22, 40)':  '#ffffff',   // card background → blanco
+  'rgb(13, 31, 60)':  '#e8ecf1',   // muted → gris medio
+  'rgb(15, 23, 42)':  '#e8ecf1',   // muted alt
+  'rgb(17, 24, 39)':  '#f1f5f9',   // background alt
+  'rgb(23, 37, 59)':  '#e2e8f0',   // elevated muted
+  'rgb(26, 45, 74)':  '#dde3ea',   // border-like
+  'rgb(30, 58, 95)':  '#e8ecf1',   // section bg
 }
 
 // Mapa completo de textos claros → negro
@@ -121,35 +147,78 @@ function patchAllComputedStyles(root: HTMLElement) {
 
     // — backgroundColor —
     const bg = computed.backgroundColor
-    // Ignorar transparente (rgba(0,0,0,0)) para no blanquear capas intencionales
-    if (bg && bg !== 'rgba(0, 0, 0, 0)' && BG_MAP[bg]) {
+    if (bg && bg !== 'rgba(0, 0, 0, 0)') {
       const orig = s.backgroundColor
-      s.backgroundColor = BG_MAP[bg]
-      restored.push(() => { s.backgroundColor = orig })
+      if (BG_MAP[bg]) {
+        // Fondo oscuro sólido → claro sólido
+        s.backgroundColor = BG_MAP[bg]
+        restored.push(() => { s.backgroundColor = orig })
+      } else {
+        // Fondos rgba con baja opacidad → aumentar opacidad para fondo blanco
+        const rgbaMatch = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/)
+        if (rgbaMatch) {
+          const [, r, g, b, a] = rgbaMatch
+          const alpha = parseFloat(a ?? '1')
+          if (alpha > 0 && alpha < 0.3) {
+            // Baja opacidad: mezclar con blanco para color sólido visible
+            const ri = Math.round(255 + (parseInt(r) - 255) * Math.max(alpha * 3, 0.25))
+            const gi = Math.round(255 + (parseInt(g) - 255) * Math.max(alpha * 3, 0.25))
+            const bi = Math.round(255 + (parseInt(b) - 255) * Math.max(alpha * 3, 0.25))
+            s.backgroundColor = `rgb(${ri},${gi},${bi})`
+            restored.push(() => { s.backgroundColor = orig })
+          }
+        }
+      }
     }
 
     // — borderColor —
     const border = computed.borderTopColor
-    if (border && BG_MAP[border]) {
+    if (border) {
       const orig = s.borderColor
-      s.borderColor = BG_MAP[border]
-      restored.push(() => { s.borderColor = orig })
+      if (BG_MAP[border]) {
+        s.borderColor = BG_MAP[border]
+        restored.push(() => { s.borderColor = orig })
+      } else {
+        // Bordes con baja opacidad → hacerlos más visibles
+        const rgbaMatch = border.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/)
+        if (rgbaMatch) {
+          const [, r, g, b, a] = rgbaMatch
+          const alpha = parseFloat(a ?? '1')
+          if (alpha > 0 && alpha < 0.4) {
+            const ri = Math.round(200 + (parseInt(r) - 200) * Math.max(alpha * 3, 0.35))
+            const gi = Math.round(200 + (parseInt(g) - 200) * Math.max(alpha * 3, 0.35))
+            const bi = Math.round(200 + (parseInt(b) - 200) * Math.max(alpha * 3, 0.35))
+            s.borderColor = `rgb(${ri},${gi},${bi})`
+            restored.push(() => { s.borderColor = orig })
+          }
+        }
+      }
     }
 
     // — background shorthand (gradientes y colores hex en inline styles) —
     const bgShorthand = s.background
     if (bgShorthand) {
       const patched = bgShorthand
-        .replace(/#050e1a/gi, '#f8fafc').replace(/#0a1628/gi, '#ffffff').replace(/#1a2d4a/gi, '#e2e8f0')
-        .replace(/rgba?\(5,\s*14,\s*26[^)]*\)/g, '#f8fafc')
+        .replace(/#050e1a/gi, '#f1f5f9').replace(/#0a1628/gi, '#ffffff').replace(/#1a2d4a/gi, '#e2e8f0')
+        .replace(/rgba?\(5,\s*14,\s*26[^)]*\)/g, '#f1f5f9')
         .replace(/rgba?\(10,\s*22,\s*40[^)]*\)/g, '#ffffff')
-        .replace(/rgba?\(0,\s*229,\s*160,\s*([\d.]+)\)/g, (_m, a) => `rgba(4,120,87,${a})`)
-        .replace(/rgba?\(56,\s*189,\s*248,\s*([\d.]+)\)/g, (_m, a) => `rgba(3,105,161,${a})`)
-        .replace(/rgba?\(245,\s*166,\s*35,\s*([\d.]+)\)/g, (_m, a) => `rgba(180,83,9,${a})`)
-        .replace(/rgba?\(255,\s*77,\s*109,\s*([\d.]+)\)/g, (_m, a) => `rgba(185,28,28,${a})`)
+        // Colores semánticos: triplicar opacidad (mín 0.25) para visibilidad en fondo claro
+        .replace(/rgba?\(0,\s*229,\s*160,\s*([\d.]+)\)/g, (_m, a) => `rgba(4,120,87,${Math.min(1, Math.max(0.25, parseFloat(a) * 3))})`)
+        .replace(/rgba?\(56,\s*189,\s*248,\s*([\d.]+)\)/g, (_m, a) => `rgba(3,105,161,${Math.min(1, Math.max(0.25, parseFloat(a) * 3))})`)
+        .replace(/rgba?\(245,\s*166,\s*35,\s*([\d.]+)\)/g, (_m, a) => `rgba(180,83,9,${Math.min(1, Math.max(0.25, parseFloat(a) * 3))})`)
+        .replace(/rgba?\(255,\s*77,\s*109,\s*([\d.]+)\)/g, (_m, a) => `rgba(185,28,28,${Math.min(1, Math.max(0.25, parseFloat(a) * 3))})`)
       if (patched !== bgShorthand) {
         s.background = patched
         restored.push(() => { s.background = bgShorthand })
+      }
+    }
+
+    // — boxShadow: agregar sombra a cards/contenedores para separación visual —
+    if (el.matches('[class*="rounded-xl"], [class*="rounded-2xl"], [class*="card-medical"], [class*="rounded-lg"]')) {
+      const origShadow = s.boxShadow
+      if (!origShadow || origShadow === 'none') {
+        s.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'
+        restored.push(() => { s.boxShadow = origShadow })
       }
     }
 
@@ -231,7 +300,6 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       toast.success('Reporte médico completo generado')
     } catch (err) {
       toast.error('Error al generar el reporte')
-      console.error(err)
     } finally {
       setGeneratingReport(false)
     }
@@ -349,7 +417,6 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       toast.success('PDF exportado correctamente')
     } catch (err) {
       toast.error('Error al exportar PDF')
-      console.error(err)
     } finally {
       setExporting(false)
     }
@@ -370,7 +437,6 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       toast.success('Imagen exportada correctamente')
     } catch (err) {
       toast.error('Error al exportar imagen')
-      console.error(err)
     } finally {
       setExporting(false)
     }

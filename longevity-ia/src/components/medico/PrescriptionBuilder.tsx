@@ -87,16 +87,17 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
 
   // Load medico data
   useEffect(() => {
+    let cancelled = false
     async function load() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user || cancelled) return
         const { data } = await supabase
           .from('medicos')
           .select('full_name, specialty, license_number, email')
           .eq('user_id', user.id)
           .maybeSingle()
-        if (data) {
+        if (data && !cancelled) {
           setMedico({
             fullName: data.full_name,
             specialty: data.specialty,
@@ -104,10 +105,14 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
             email: data.email,
           })
         }
-      } catch { /* ignore */ }
-      finally { setLoadingMedico(false) }
+      } catch {
+        // Error cargando datos del médico
+      } finally {
+        if (!cancelled) setLoadingMedico(false)
+      }
     }
     load()
+    return () => { cancelled = true }
   }, [])
 
   // Computed counts
@@ -154,9 +159,8 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
 
     setGenerating(true)
     try {
-      const prescriptionItems: PrescriptionItem[] = items
-        .filter(i => i.status === 'approved' || i.status === 'modified')
-        .map(i => ({
+      const approvedItems = items.filter(i => i.status === 'approved' || i.status === 'modified')
+      const prescriptionItems: PrescriptionItem[] = approvedItems.map(i => ({
           molecule: i.original.molecule,
           dose: i.status === 'modified' ? i.modifiedDose : i.original.dose,
           category: i.original.category,
@@ -182,9 +186,8 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
       })
 
       toast.success('Prescripcion PDF generada')
-    } catch (e) {
-      console.error('Error generating prescription:', e)
-      toast.error('Error al generar la prescripcion')
+    } catch {
+      toast.error('Error al generar la prescripción')
     } finally {
       setGenerating(false)
     }

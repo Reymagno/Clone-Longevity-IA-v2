@@ -51,18 +51,24 @@ export function AlertsPanel({ onClose, onAlertRead }: AlertsPanelProps) {
   const [acting, setActing] = useState<string | null>(null)
   const [dismissingAll, setDismissingAll] = useState(false)
 
-  useEffect(() => { loadAlerts() }, [])
-
-  async function loadAlerts() {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/medico/alerts')
-      if (res.ok) {
-        const data = await res.json()
-        setAlerts(data)
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/medico/alerts')
+        if (res.ok && !cancelled) {
+          setAlerts(await res.json())
+        }
+      } catch {
+        // Error de red al cargar alertas — no crítico
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-    } catch { /* ignore */ } finally { setLoading(false) }
-  }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   async function markAsRead(alertIds: string[]) {
     setActing(alertIds[0])
@@ -76,8 +82,9 @@ export function AlertsPanel({ onClose, onAlertRead }: AlertsPanelProps) {
         setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, read: true } : a))
         onAlertRead?.()
       }
-    } catch { toast.error('Error al marcar como leida') }
-    finally { setActing(null) }
+    } catch {
+      toast.error('Error al marcar como leída')
+    } finally { setActing(null) }
   }
 
   async function dismissAlert(alertIds: string[]) {
@@ -92,8 +99,9 @@ export function AlertsPanel({ onClose, onAlertRead }: AlertsPanelProps) {
         setAlerts(prev => prev.filter(a => !alertIds.includes(a.id)))
         onAlertRead?.()
       }
-    } catch { toast.error('Error al descartar') }
-    finally { setActing(null) }
+    } catch {
+      toast.error('Error al descartar alerta')
+    } finally { setActing(null) }
   }
 
   async function dismissAll() {
@@ -109,8 +117,9 @@ export function AlertsPanel({ onClose, onAlertRead }: AlertsPanelProps) {
         onAlertRead?.()
         toast.success('Todas las alertas descartadas')
       }
-    } catch { toast.error('Error al descartar') }
-    finally { setDismissingAll(false) }
+    } catch {
+      toast.error('Error al descartar alertas')
+    } finally { setDismissingAll(false) }
   }
 
   async function markAllAsRead() {

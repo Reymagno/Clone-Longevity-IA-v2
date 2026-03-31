@@ -110,16 +110,18 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
   const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([])
   const [diagSearch, setDiagSearch] = useState('')
 
-  if (viewerRole !== 'medico') return null
-
   async function loadNotes() {
+    if (viewerRole !== 'medico') return
     try {
       const res = await fetch(`/api/medico/notes?patientId=${patientId}`)
       if (res.ok) setNotes(await res.json())
-    } catch { /* ignore */ } finally { setLoading(false) }
+    } catch { /* silencio intencional — panel no crítico */ } finally { setLoading(false) }
   }
 
-  useEffect(() => { loadNotes() }, [patientId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadNotes() }, [patientId, viewerRole])
+
+  if (viewerRole !== 'medico') return null
 
   async function saveNote(body: Record<string, unknown>) {
     setSaving(true)

@@ -125,14 +125,17 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
-            if (!event.ok) throw new Error(event.error || 'Error')
+            if (!event.ok) {
+              toast.error(event.error || 'Error en re-análisis')
+              return
+            }
             if (event.step === 'done') {
               toast.success('Re-análisis completado')
               router.refresh()
               window.location.reload()
             }
-          } catch (e) {
-            if (e instanceof Error && e.message !== 'Error') throw e
+          } catch {
+            // Línea SSE no parseable — ignorar keepalives
           }
         }
         if (done) break

@@ -175,8 +175,8 @@ export default function PatientsPage() {
       )
 
       setPatients(withResults)
-    } catch (err) {
-      console.error('Error cargando pacientes:', err)
+    } catch {
+      toast.error('Error al cargar pacientes')
     } finally {
       setLoading(false)
     }
