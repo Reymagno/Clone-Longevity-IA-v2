@@ -1,7 +1,7 @@
 # LONGEVITY IA — Manual Ejecutivo
 
 **Plataforma de Inteligencia Artificial para Medicina de Longevidad**
-Version 3.1 | Marzo 2026
+Version 3.2 | Marzo 2026
 
 ---
 
@@ -43,8 +43,10 @@ Longevity IA es una plataforma SaaS de analisis medico impulsada por inteligenci
 - Verificacion de interacciones farmacologicas (10 pares criticos) y contraindicaciones por condicion
 - Integracion preparada para 13 metricas de wearables (HR, HRV, VO2max, pasos, sueno, CGM, SpO2)
 - 8 calculadoras clinicas auto-computadas (HOMA-IR, FIB-4, CKD-EPI, Framingham, ASCVD Risk)
-- Notas clinicas SOAP para medicos con historial auditable
-- Sistema de alertas inteligentes con priorizacion para medicos
+- Panel clinico del medico: notas SOAP, comentarios por biomarcador, aprobacion/rechazo de protocolo, diagnosticos CIE-10
+- Prescripcion digital: conversion del protocolo IA en receta medica PDF con membrete, cedula, firma, clasificacion OTC/Rx/Procedimiento
+- Alertas inteligentes con panel lateral, resumen semanal, priorizacion automatica por urgencia
+- Tendencias longitudinales: comparacion entre analisis con graficas de biomarcadores y scores por sistema en linea de tiempo
 - Referencias verificadas via PubMed, Semantic Scholar y OpenAlex con abstracts y DOIs
 - Protocolo personalizado con evidencia cientifica de instituciones de nivel mundial
 - Dashboard instantaneo (segundos) + analisis profundo IA (minutos)
@@ -232,9 +234,11 @@ El dashboard tiene 12 pestanas (la pestana "Tendencias" es exclusiva para medico
 |---------|:-:|:-:|
 | Ver dashboard completo (12 pestanas) | Si | Si |
 | Tendencias longitudinales (tab exclusivo) | Si | Si |
+| Panel clinico (SOAP + biomarcadores + protocolo + CIE-10) | Si | Si |
+| Prescripcion digital PDF | Si | Si |
+| Alertas inteligentes | Si | Si |
 | Chatbot Longevity IA | Si | Si |
 | Referencias verificadas (PubMed, Semantic Scholar, OpenAlex) | Si | Si |
-| Notas clinicas SOAP | Si | Si |
 | Calculadoras clinicas | Si | Si |
 | Exportar PDF | Si | Si |
 | Subir nuevo estudio | Si | No |
@@ -242,15 +246,41 @@ El dashboard tiene 12 pestanas (la pestana "Tendencias" es exclusiva para medico
 | Historia Clinica | Si | No |
 | Eliminar paciente | Si | No (solo desvincular) |
 
-#### 4.2.6 Notas Clinicas SOAP
-1. En el dashboard del paciente (tab Resumen), aparece el panel "Notas Clinicas"
-2. Hacer clic en "Nueva nota" para abrir el formulario SOAP:
+#### 4.2.6 Panel Clinico del Medico
+
+En el dashboard del paciente (tab Resumen, al fondo), aparece el "Panel Clinico del Medico" con 4 sub-tabs. Todas las notas se guardan en `clinical_notes` (tabla del medico, NO modifica el analisis del paciente). Cada nota tiene timestamp auditable.
+
+**Tab 1: Notas SOAP**
+1. Hacer clic en "Nueva nota SOAP"
+2. Llenar formulario de 4 campos:
    - **S (Subjetivo):** Lo que el paciente reporta (sintomas, quejas)
    - **O (Objetivo):** Hallazgos del examen fisico, signos vitales, labs
-   - **A (Assessment):** Evaluacion clinica, diagnosticos
+   - **A (Evaluacion):** Diagnosticos, interpretacion clinica, severidad
    - **P (Plan):** Plan de tratamiento, ajustes al protocolo, proximos pasos
-3. Las notas se guardan con timestamp y son visibles solo para el medico que las creo
-4. Historial de notas expandible con barra de scroll
+3. Historial expandible con campos coloreados por tipo
+
+**Tab 2: Comentarios por Biomarcador**
+1. Hacer clic en "Comentar biomarcador"
+2. Se muestra un grid visual con TODOS los biomarcadores del analisis actual
+3. Cada biomarcador muestra valor, unidad y color por status (danger=rojo, warning=amarillo, optimal=verde)
+4. El medico selecciona un biomarcador y escribe comentario clinico
+5. Ejemplo: "Este LDL requiere estatina por historia familiar de enfermedad coronaria prematura"
+
+**Tab 3: Revision de Protocolo**
+1. Hacer clic en "Revisar protocolo"
+2. Se listan todas las intervenciones del protocolo de IA
+3. Cada molecula tiene 3 botones: Aprobar (verde), Rechazar (rojo), Modificar (amarillo)
+4. Al rechazar: campo para escribir la razon
+5. Al modificar: campos para nueva dosis + razon
+6. Conteo en tiempo real: "3 aprobadas, 1 rechazada, 2 modificadas"
+7. IMPORTANTE: el analisis original NO se modifica — la revision queda como nota auditable
+
+**Tab 4: Diagnosticos CIE-10**
+1. Hacer clic en "Agregar diagnosticos"
+2. 27 codigos CIE-10 precargados relevantes para longevidad (E11, E78, I10, K76, N18, R73, etc.)
+3. Buscador por codigo o nombre
+4. Seleccion multiple con badges
+5. Los diagnosticos se guardan como nota con array de codigos
 
 #### 4.2.7 Referencias Verificadas
 1. En el tab "Protocolo", aparece el boton "Buscar referencias cientificas"
@@ -300,13 +330,58 @@ Dashboard visual que compara biomarcadores entre multiples analisis del mismo pa
 **Datos analizados:** 24 biomarcadores con rangos optimos de longevidad, delta absoluto, delta porcentual, velocidad de cambio mensual, proyeccion a rango optimo o critico.
 
 #### 4.2.10 Alertas Inteligentes
-- Notificacion cuando un paciente sube nuevo analisis
-- Alerta si algun biomarcador entra en rango DANGER
-- Alerta si biomarcador empeora >20% vs analisis anterior
-- Marcado como leida/descartada
-- API: GET /api/medico/alerts, PATCH para marcar como leidas
 
-#### 4.2.10 Desvincular Paciente
+Panel lateral deslizable accesible desde el boton "Alertas" en la pantalla de pacientes. Badge rojo pulsante muestra conteo de alertas no leidas.
+
+**Generacion automatica de alertas (triggers):**
+Las alertas se generan automaticamente al completar un analisis nuevo o re-analisis:
+
+| Tipo de alerta | Nivel | Trigger |
+|---|---|---|
+| Nuevo analisis | info | Paciente sube estudio de laboratorio |
+| Biomarcador critico | danger/critical | Biomarcador con status "danger" (critical si >=3 biomarcadores) |
+| Biomarcador empeorado | warning/danger | Biomarcador empeora >20% vs analisis anterior (danger si >=3) |
+| Score critico | critical | Score General <40/100 |
+
+**Panel de alertas:**
+- Resumen semanal: badges con "X requieren atencion", "Y en observacion", "Z estables"
+- Priorizacion por paciente: pacientes ordenados por urgencia (critical > danger > warning > info), cada uno es link directo a su dashboard
+- Filtros: Todas / Sin leer / Criticas
+- Acciones masivas: Marcar todo como leido, Descartar todo
+- Cada alerta muestra: icono por tipo, nivel de severidad, titulo, detalle, nombre del paciente, fecha
+- Acciones por alerta: Marcar como leida / Descartar / Ver dashboard del paciente
+
+**Impacto:** El medico no revisa 50 dashboards uno por uno — ve primero los pacientes que necesitan atencion inmediata.
+
+#### 4.2.11 Prescripcion Digital
+
+Boton "Generar Prescripcion" en el tab Protocolo del dashboard (solo medicos). Abre un modal fullscreen para convertir el protocolo de IA en una receta medica legal.
+
+**Funcionalidad:**
+1. Cada intervencion del protocolo IA se puede: Aprobar / Rechazar / Modificar dosis
+2. Clasificacion por tipo: **OTC** (paciente compra solo) / **Rx** (requiere receta medica) / **Procedimiento** (clinica)
+3. Toggle "Requiere supervision medica" por intervencion (auto-activado para Rx y procedimientos)
+4. Agregar intervenciones propias del medico (no solo las de IA): molecula, dosis, clasificacion, instrucciones
+5. Campo de notas y observaciones generales
+6. Boton "Aprobar todas" para accion masiva
+
+**PDF generado (jsPDF, formato A4):**
+
+| Seccion | Contenido |
+|---|---|
+| Membrete | Nombre del medico, especialidad, cedula profesional, email |
+| Titulo | "PRESCRIPCION MEDICA" con fecha |
+| Datos del paciente | Nombre, edad, genero, peso, estatura |
+| Medicamentos Rx | Intervenciones con receta, badge "SUPERVISION MEDICA" si aplica |
+| Suplementos OTC | Intervenciones de venta libre |
+| Procedimientos | Intervenciones clinicas (hUC-MSC, exosomas, etc.) |
+| Notas | Observaciones del medico |
+| Firma | Linea de firma + nombre + especialidad + cedula profesional |
+| Pie de pagina | "Prescripcion generada por Longevity IA — Longevity Clinic SA de CV" |
+
+**Separacion de responsabilidad:** El analisis de IA (lab_results.ai_analysis) es INMUTABLE. La prescripcion es una capa adicional del medico que no modifica el analisis original. El PDF es el documento legal con la firma del medico.
+
+#### 4.2.12 Desvincular Paciente
 - En la tarjeta del paciente vinculado, hacer clic en la "X"
 - Confirmar desvinculacion
 - Se revoca el acceso; el paciente puede re-invitar en el futuro
@@ -410,8 +485,10 @@ src/
 │   │   ├── ExportButtons.tsx     # Exportacion PDF/imagen
 │   │   └── tabs/                 # 12 componentes de pestana
 │   ├── medico/
-│   │   ├── InvitationsPanel.tsx  # Panel de invitaciones
-│   │   └── ClinicalNotesPanel.tsx # Notas clinicas SOAP
+│   │   ├── InvitationsPanel.tsx    # Panel de invitaciones
+│   │   ├── AlertsPanel.tsx         # Panel lateral de alertas inteligentes
+│   │   ├── ClinicalNotesPanel.tsx  # Panel clinico (SOAP + biomarcadores + protocolo + CIE-10)
+│   │   └── PrescriptionBuilder.tsx # Constructor de prescripcion digital
 │   ├── patients/
 │   │   ├── PatientCard.tsx       # Tarjeta de paciente (multi-rol)
 │   │   ├── AnalysisCards.tsx     # Tarjetas de analisis por fecha
@@ -431,7 +508,9 @@ src/
 │   ├── clinical-calculators.ts   # 8 calculadoras clinicas
 │   ├── medical-references.ts     # PubMed + Semantic Scholar + OpenAlex
 │   ├── biomarker-ranges.ts       # Catalogo de 133 biomarcadores
-│   ├── pdf-report.ts             # Generador de PDF programatico
+│   ├── pdf-report.ts             # Generador de PDF reporte medico
+│   ├── prescription-pdf.ts       # Generador de PDF prescripcion digital
+│   ├── generate-alerts.ts        # Generacion automatica de alertas para medicos
 │   ├── supabase/
 │   │   ├── client.ts             # Cliente browser (singleton lazy)
 │   │   ├── server.ts             # Cliente servidor (request/component)
@@ -508,19 +587,22 @@ src/
 | invited_at | TIMESTAMPTZ | Fecha de invitacion |
 | confirmed_at | TIMESTAMPTZ | Fecha de confirmacion |
 
-**clinical_notes** (v3.0)
+**clinical_notes** (v3.2)
 | Columna | Tipo | Descripcion |
 |---------|------|-------------|
 | id | UUID PK | Identificador unico |
 | patient_id | UUID FK -> patients | Paciente |
 | medico_user_id | UUID FK -> auth.users | Medico autor |
 | result_id | UUID FK -> lab_results | Analisis asociado (opcional) |
-| note_type | TEXT | soap / follow_up / comment / protocol_adjustment |
+| note_type | TEXT | soap / comment / protocol_adjustment / diagnosis |
 | subjective | TEXT | S: lo que el paciente reporta |
 | objective | TEXT | O: hallazgos objetivos |
 | assessment | TEXT | A: evaluacion clinica |
 | plan | TEXT | P: plan de tratamiento |
-| diagnoses | TEXT[] | Codigos CIE-10 |
+| content | TEXT | Nota libre / comentario de biomarcador |
+| biomarker_key | TEXT | Biomarcador especifico (ej: "lipids.ldl") |
+| protocol_adjustments | JSONB | [{molecule, action: approve/reject/modify, newDose, reason}] |
+| diagnoses | TEXT[] | Codigos CIE-10 (ej: ["E11", "E78.0", "I10"]) |
 
 **medico_alerts** (v3.0)
 | Columna | Tipo | Descripcion |
