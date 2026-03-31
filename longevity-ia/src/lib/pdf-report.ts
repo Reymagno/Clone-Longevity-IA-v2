@@ -447,9 +447,9 @@ export async function generateMedicalReport(
   t('Pág. 1', PW - MG, PH - 4, 'right')
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 2 — RESUMEN EJECUTIVO
+  // RESUMEN EJECUTIVO
   // ═══════════════════════════════════════════════════════════════
-  pdf.addPage(); pageNum++; drawHeader()
+  nextPage()  // La portada siempre ocupa una página completa
 
   section('RESUMEN EJECUTIVO', '— Síntesis clínica general')
 
@@ -517,9 +517,9 @@ export async function generateMedicalReport(
 
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 3 — FODA MÉDICA
+  // FODA MÉDICA
   // ═══════════════════════════════════════════════════════════════
-  nextPage()
+  skip(4)
   section('ANÁLISIS FODA MÉDICO', '— Fortalezas, Oportunidades, Debilidades y Amenazas')
 
   const swot = analysis.swot
@@ -585,10 +585,10 @@ export async function generateMedicalReport(
   })
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 4 — LÍPIDOS
+  // LÍPIDOS
   // ═══════════════════════════════════════════════════════════════
   if (parsedData.lipids) {
-    nextPage()
+    skip(4)
     section('PERFIL LIPÍDICO', '— Riesgo cardiovascular y metabolismo de grasas')
     bmHead()
     const lipRows: [string, BiomarkerValue | null | undefined][] = [
@@ -606,10 +606,10 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 5 — HEMATOLOGÍA
+  // HEMATOLOGÍA
   // ═══════════════════════════════════════════════════════════════
   if (parsedData.hematology) {
-    nextPage()
+    skip(4)
     section('HEMATOLOGÍA', '— Análisis de células sanguíneas y función hematológica')
     bmHead()
     const hRows: [string, BiomarkerValue | null | undefined][] = [
@@ -632,10 +632,10 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 6 — PANEL METABÓLICO
+  // PANEL METABÓLICO
   // ═══════════════════════════════════════════════════════════════
   if (parsedData.metabolic) {
-    nextPage()
+    skip(4)
     section('PANEL METABÓLICO', '— Función renal y metabolismo glucídico')
     bmHead()
     const mRows: [string, BiomarkerValue | null | undefined][] = [
@@ -670,9 +670,9 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 7 — HORMONAS, VITAMINAS E INFLAMACIÓN
+  // HORMONAS, VITAMINAS E INFLAMACIÓN
   // ═══════════════════════════════════════════════════════════════
-  nextPage()
+  skip(4)
 
   if (parsedData.hormones) {
     section('PANEL HORMONAL', '— Regulación endocrina y metabolismo')
@@ -711,9 +711,9 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 8 — PROYECCIÓN Y RIESGOS
+  // PROYECCIÓN Y RIESGOS
   // ═══════════════════════════════════════════════════════════════
-  nextPage()
+  skip(4)
   section('RIESGOS DE ENFERMEDAD', '— Probabilidad a largo plazo sin intervención')
 
   box(MG, y, CW, 7, C.dark)
@@ -814,9 +814,9 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 9 — PROTOCOLO MÉDICO
+  // PROTOCOLO MÉDICO
   // ═══════════════════════════════════════════════════════════════
-  nextPage()
+  skip(4)
   section('PROTOCOLO MÉDICO PERSONALIZADO', `— ${(analysis.protocol ?? []).length} intervenciones recomendadas`)
 
   const urgencyOrder = { immediate: 0, high: 1, medium: 2, low: 3 }
@@ -893,9 +893,9 @@ export async function generateMedicalReport(
   })
 
   // ═══════════════════════════════════════════════════════════════
-  // PÁGINA 10 — PROTOCOLO CÉLULAS MADRE Y EXOSOMAS
+  // PROTOCOLO CÉLULAS MADRE Y EXOSOMAS
   // ═══════════════════════════════════════════════════════════════
-  nextPage()
+  skip(4)
   section('PROTOCOLO DE CÉLULAS MADRE Y EXOSOMAS', '— Medicina regenerativa personalizada')
 
   const stem = computeStemCell(patient, parsedData, analysis)

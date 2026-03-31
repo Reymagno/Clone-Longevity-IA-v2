@@ -16,89 +16,90 @@ interface ExportButtonsProps {
   resultDate: string
 }
 
-// CSS de tema claro — fallback para lo que no se parchea con getComputedStyle
+// CSS de tema claro — texto negro, fondos blancos
 const LIGHT_CSS = `
   #dashboard-export {
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
   }
-  #dashboard-export .bg-background  { background-color: #f8fafc !important; }
+  #dashboard-export .bg-background  { background-color: #ffffff !important; }
   #dashboard-export .bg-card        { background-color: #ffffff !important; }
   #dashboard-export .bg-muted       { background-color: #f1f5f9 !important; }
 
-  #dashboard-export .text-foreground       { color: #0f172a !important; }
-  #dashboard-export .text-card-foreground  { color: #0f172a !important; }
-  #dashboard-export .text-muted-foreground { color: #475569 !important; }
+  #dashboard-export .text-foreground       { color: #000000 !important; }
+  #dashboard-export .text-card-foreground  { color: #000000 !important; }
+  #dashboard-export .text-muted-foreground { color: #1e293b !important; }
   #dashboard-export .text-accent   { color: #047857 !important; }
   #dashboard-export .text-info     { color: #0369a1 !important; }
-  #dashboard-export .text-warning  { color: #b45309 !important; }
-  #dashboard-export .text-danger   { color: #b91c1c !important; }
+  #dashboard-export .text-warning  { color: #92400e !important; }
+  #dashboard-export .text-danger   { color: #991b1b !important; }
 
-  #dashboard-export .border, #dashboard-export .border-border { border-color: #e2e8f0 !important; }
+  #dashboard-export .border, #dashboard-export .border-border { border-color: #cbd5e1 !important; }
 
   #dashboard-export .card-medical {
     background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
   }
 
-  /* FIX: opacidad subida de 0.10 a 0.18 para que se vean sobre fondo blanco */
-  #dashboard-export .badge-optimal { background: rgba(4,120,87,0.18) !important; color: #047857 !important; border-color: rgba(4,120,87,0.35) !important; }
-  #dashboard-export .badge-normal  { background: rgba(3,105,161,0.18) !important; color: #0369a1 !important; border-color: rgba(3,105,161,0.35) !important; }
-  #dashboard-export .badge-warning { background: rgba(180,83,9,0.18) !important; color: #b45309 !important; border-color: rgba(180,83,9,0.35) !important; }
-  #dashboard-export .badge-danger  { background: rgba(185,28,28,0.18) !important; color: #b91c1c !important; border-color: rgba(185,28,28,0.35) !important; }
+  #dashboard-export .badge-optimal { background: rgba(4,120,87,0.15) !important; color: #047857 !important; border-color: rgba(4,120,87,0.4) !important; }
+  #dashboard-export .badge-normal  { background: rgba(3,105,161,0.15) !important; color: #0369a1 !important; border-color: rgba(3,105,161,0.4) !important; }
+  #dashboard-export .badge-warning { background: rgba(146,64,14,0.15) !important; color: #92400e !important; border-color: rgba(146,64,14,0.4) !important; }
+  #dashboard-export .badge-danger  { background: rgba(153,27,27,0.15) !important; color: #991b1b !important; border-color: rgba(153,27,27,0.4) !important; }
 
   #dashboard-export .recharts-text tspan,
   #dashboard-export .recharts-cartesian-axis-tick-value tspan,
-  #dashboard-export .recharts-label tspan { fill: #334155 !important; }
-  #dashboard-export .recharts-default-tooltip { background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+  #dashboard-export .recharts-label tspan { fill: #000000 !important; }
+  #dashboard-export .recharts-default-tooltip { background: #ffffff !important; border: 1px solid #cbd5e1 !important; }
+
+  #dashboard-export * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 `
 
 // Mapa completo de fondos oscuros → claros (rgb format que devuelve getComputedStyle)
 const BG_MAP: Record<string, string> = {
-  'rgb(5, 14, 26)':   '#f8fafc',
+  'rgb(5, 14, 26)':   '#ffffff',
   'rgb(10, 22, 40)':  '#ffffff',
   'rgb(13, 31, 60)':  '#f1f5f9',
   'rgb(15, 23, 42)':  '#f1f5f9',
-  'rgb(17, 24, 39)':  '#f8fafc',
+  'rgb(17, 24, 39)':  '#ffffff',
   'rgb(23, 37, 59)':  '#f1f5f9',
   'rgb(26, 45, 74)':  '#e2e8f0',
   'rgb(30, 58, 95)':  '#f1f5f9',
 }
 
-// Mapa completo de textos claros → oscuros
+// Mapa completo de textos claros → negro
 const TEXT_MAP: Record<string, string> = {
-  'rgb(226, 232, 240)': '#0f172a',
-  'rgb(241, 245, 249)': '#0f172a',
-  'rgb(248, 250, 252)': '#0f172a',
-  'rgb(203, 213, 225)': '#334155',
-  'rgb(148, 163, 184)': '#475569',
-  'rgb(100, 116, 139)': '#475569',
+  'rgb(226, 232, 240)': '#000000',
+  'rgb(241, 245, 249)': '#000000',
+  'rgb(248, 250, 252)': '#000000',
+  'rgb(203, 213, 225)': '#1e293b',
+  'rgb(148, 163, 184)': '#1e293b',
+  'rgb(100, 116, 139)': '#1e293b',
   'rgb(0, 229, 160)':   '#047857',
   'rgb(56, 189, 248)':  '#0369a1',
-  'rgb(245, 166, 35)':  '#b45309',
-  'rgb(255, 77, 109)':  '#b91c1c',
+  'rgb(245, 166, 35)':  '#92400e',
+  'rgb(255, 77, 109)':  '#991b1b',
 }
 
 // Mapa para fills/strokes SVG (hex format de atributos y inline styles)
 const SVG_FILL_MAP: Record<string, string> = {
-  '#e2e8f0': '#334155',
-  '#cbd5e1': '#475569',
-  '#94a3b8': '#64748b',
-  '#64748b': '#475569',
+  '#e2e8f0': '#1e293b',
+  '#cbd5e1': '#1e293b',
+  '#94a3b8': '#1e293b',
+  '#64748b': '#1e293b',
   '#00e5a0': '#047857',
   '#38bdf8': '#0369a1',
-  '#f5a623': '#b45309',
-  '#ff4d6d': '#b91c1c',
+  '#f5a623': '#92400e',
+  '#ff4d6d': '#991b1b',
   // rgb format para inline styles de Recharts
-  'rgb(226, 232, 240)': '#334155',
-  'rgb(203, 213, 225)': '#475569',
-  'rgb(148, 163, 184)': '#64748b',
-  'rgb(100, 116, 139)': '#475569',
+  'rgb(226, 232, 240)': '#1e293b',
+  'rgb(203, 213, 225)': '#1e293b',
+  'rgb(148, 163, 184)': '#1e293b',
+  'rgb(100, 116, 139)': '#1e293b',
   'rgb(0, 229, 160)':   '#047857',
   'rgb(56, 189, 248)':  '#0369a1',
-  'rgb(245, 166, 35)':  '#b45309',
-  'rgb(255, 77, 109)':  '#b91c1c',
+  'rgb(245, 166, 35)':  '#92400e',
+  'rgb(255, 77, 109)':  '#991b1b',
 }
 
 // FIX PRINCIPAL: usa getComputedStyle en TODOS los elementos para garantizar
@@ -240,29 +241,108 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
     setExporting(true)
     try {
       const { default: jsPDF } = await import('jspdf')
+      const { default: html2canvas } = await import('html2canvas')
 
       const element = document.getElementById('dashboard-export')
       if (!element) { toast.error('No se encontró el contenido para exportar'); return }
 
-      const canvas = await captureLight(element)
-
-      const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = 210
+      const pageH = 297
+      const margin = 6
+      const usableW = pageW - margin * 2
+      const usableH = pageH - margin * 2
 
-      const imgWidth = 210
-      const pageHeight = 297
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      let heightLeft = imgHeight
-      let position = 0
+      // Obtener los hijos directos del contenedor como bloques
+      const children = Array.from(element.children) as HTMLElement[]
+      if (children.length === 0) {
+        // Fallback: capturar todo como una sola imagen
+        const canvas = await captureLight(element)
+        const imgData = canvas.toDataURL('image/png')
+        const imgH = (canvas.height * pageW) / canvas.width
+        pdf.addImage(imgData, 'PNG', 0, 0, pageW, imgH)
+        pdf.save(`Longevity-IA_${patientName.replace(/\s+/g, '_')}.pdf`)
+        return
+      }
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
+      // Inyectar CSS de tema claro
+      const styleEl = document.createElement('style')
+      styleEl.id = '__longevity-export-pdf-style__'
+      styleEl.innerHTML = LIGHT_CSS
+      document.head.appendChild(styleEl)
+      const restoreAll = patchAllComputedStyles(element)
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+      let currentY = margin
+      let isFirstPage = true
+
+      try {
+        for (const child of children) {
+          // Capturar cada bloque hijo como imagen
+          const canvas = await html2canvas(child, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
+          })
+
+          const imgData = canvas.toDataURL('image/png')
+          const blockH = (canvas.height * usableW) / canvas.width
+
+          // Si el bloque cabe en la página actual
+          if (currentY + blockH <= pageH - margin) {
+            pdf.addImage(imgData, 'PNG', margin, currentY, usableW, blockH)
+            currentY += blockH + 2
+          } else if (blockH <= usableH) {
+            // El bloque cabe en una página completa pero no en el espacio restante → nueva página
+            if (!isFirstPage || currentY > margin + 10) {
+              pdf.addPage()
+            }
+            currentY = margin
+            pdf.addImage(imgData, 'PNG', margin, currentY, usableW, blockH)
+            currentY += blockH + 2
+          } else {
+            // El bloque es más grande que una página → dividirlo con cortes limpios
+            if (currentY > margin + 10) {
+              pdf.addPage()
+              currentY = margin
+            }
+
+            const totalImgH = canvas.height
+            const pxPerMm = canvas.width / usableW
+            let srcY = 0
+
+            while (srcY < totalImgH) {
+              const remainMm = pageH - margin - currentY
+              const sliceHpx = Math.min(remainMm * pxPerMm, totalImgH - srcY)
+              const sliceHmm = sliceHpx / pxPerMm
+
+              // Crear canvas recortado para esta porción
+              const sliceCanvas = document.createElement('canvas')
+              sliceCanvas.width = canvas.width
+              sliceCanvas.height = Math.ceil(sliceHpx)
+              const ctx = sliceCanvas.getContext('2d')
+              if (ctx) {
+                ctx.drawImage(canvas, 0, srcY, canvas.width, sliceHpx, 0, 0, canvas.width, sliceHpx)
+                const sliceData = sliceCanvas.toDataURL('image/png')
+                pdf.addImage(sliceData, 'PNG', margin, currentY, usableW, sliceHmm)
+              }
+
+              srcY += sliceHpx
+              currentY += sliceHmm
+
+              if (srcY < totalImgH) {
+                pdf.addPage()
+                currentY = margin
+              }
+            }
+            currentY += 2
+          }
+          isFirstPage = false
+        }
+      } finally {
+        styleEl.remove()
+        restoreAll()
       }
 
       pdf.save(`Longevity-IA_${patientName.replace(/\s+/g, '_')}.pdf`)
