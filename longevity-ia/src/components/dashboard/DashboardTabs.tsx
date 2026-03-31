@@ -47,14 +47,14 @@ const TABS = [
   { id: 2, label: 'Lípidos', icon: Activity },
   { id: 3, label: 'Metabólico', icon: FlaskConical },
   { id: 4, label: 'Proyección', icon: TrendingUp },
-  { id: 5, label: 'Protocolo', icon: ClipboardList },
-  { id: 6, label: 'Órganos', icon: HeartPulse },
-  { id: 7, label: 'Comparar', icon: GitCompareArrows },
-  { id: 8, label: 'Estudio', icon: ScanSearch },
-  { id: 9, label: 'Células Madre', icon: HeartPulse },
-  { id: 10, label: 'Historia Clínica', icon: FileText },
-  { id: 11, label: 'Tendencias', icon: LineChart },
-  { id: 12, label: 'Péptidos', icon: Dna },
+  { id: 5, label: 'Órganos', icon: HeartPulse },
+  { id: 6, label: 'Protocolo', icon: ClipboardList },
+  { id: 7, label: 'Células Madre', icon: HeartPulse },
+  { id: 8, label: 'Péptidos', icon: Dna },
+  { id: 9, label: 'Historia Clínica', icon: FileText },
+  { id: 10, label: 'Comparar', icon: GitCompareArrows },
+  { id: 11, label: 'Estudio', icon: ScanSearch },
+  { id: 12, label: 'Tendencias', icon: LineChart },
 ]
 
 export function DashboardTabs({ patient, result, allResults = [], viewerRole = 'paciente' }: DashboardTabsProps) {
@@ -317,13 +317,13 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <div className="flex overflow-x-auto scrollbar-none -mb-px">
             {TABS.filter(tab => {
               // Hide Historia Clínica for linked medico patients
-              if (viewerRole === 'medico' && !isOwnPatient && tab.id === 10) return false
+              if (viewerRole === 'medico' && !isOwnPatient && tab.id === 9) return false
               // Tendencias only for medicos
-              if (tab.id === 11 && viewerRole !== 'medico') return false
+              if (tab.id === 12 && viewerRole !== 'medico') return false
               return true
             }).map((tab) => {
               const Icon = tab.icon
-              const showDot = tab.id === 10 && !patient.clinical_history
+              const showDot = tab.id === 9 && !patient.clinical_history
               return (
                 <button
                   key={tab.id}
@@ -429,49 +429,49 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <ProjectionTab analysis={analysis} />
         )}
         {activeTab === 5 && (
-          <ProtocolTab protocol={analysis.protocol} viewerRole={viewerRole} patient={patient} />
-        )}
-        {activeTab === 6 && (
           <OrganHealthTab parsedData={parsedData} analysis={analysis} />
         )}
+        {activeTab === 6 && (
+          <ProtocolTab protocol={analysis.protocol} viewerRole={viewerRole} patient={patient} />
+        )}
         {activeTab === 7 && (
-          <CompareTab
-            patient={patient}
-            currentResult={result}
-            allResults={allResults}
-          />
-        )}
-        {activeTab === 8 && (
-          <FilesTab
-            fileUrls={result.file_urls}
-            patientName={patient.name}
-            resultDate={result.result_date}
-          />
-        )}
-        {activeTab === 9 && (
           <StemCellTab
             patient={patient}
             parsedData={parsedData}
             analysis={analysis}
           />
         )}
-        {activeTab === 10 && isOwnPatient && (
+        {activeTab === 8 && parsedData && (
+          <PeptidesTab
+            patient={patient}
+            parsedData={parsedData}
+            analysis={analysis}
+          />
+        )}
+        {activeTab === 9 && isOwnPatient && (
           <ClinicalHistoryTab
             patient={patient}
             result={result}
           />
         )}
-        {activeTab === 11 && viewerRole === 'medico' && (
-          <TrendsTab
+        {activeTab === 10 && (
+          <CompareTab
             patient={patient}
+            currentResult={result}
             allResults={allResults}
           />
         )}
-        {activeTab === 12 && parsedData && (
-          <PeptidesTab
+        {activeTab === 11 && (
+          <FilesTab
+            fileUrls={result.file_urls}
+            patientName={patient.name}
+            resultDate={result.result_date}
+          />
+        )}
+        {activeTab === 12 && viewerRole === 'medico' && (
+          <TrendsTab
             patient={patient}
-            parsedData={parsedData}
-            analysis={analysis}
+            allResults={allResults}
           />
         )}
       </div>
