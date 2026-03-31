@@ -1,7 +1,24 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bot, Send, SkipForward, CheckCircle2, ChevronRight } from 'lucide-react'
+import { Send, SkipForward, CheckCircle2, ChevronRight } from 'lucide-react'
+
+/** Variación 06 — Flower of Life (geometría celular biológica) */
+function FlowerOfLifeIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 40 40" width={size} height={size} xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="17.5" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.3" />
+      <circle cx="20" cy="20" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.85" />
+      <circle cx="20" cy="11.5" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.7" />
+      <circle cx="27.36" cy="15.75" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.55" />
+      <circle cx="27.36" cy="24.25" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.42" />
+      <circle cx="20" cy="28.5" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.55" />
+      <circle cx="12.64" cy="24.25" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.42" />
+      <circle cx="12.64" cy="15.75" r="8.5" fill="none" stroke="currentColor" strokeWidth="0.9" opacity="0.55" />
+      <circle cx="20" cy="20" r="2.2" fill="currentColor" />
+    </svg>
+  )
+}
 import type { ClinicalHistory } from '@/types'
 
 // ─── Secciones ────────────────────────────────────────────────────────────────
@@ -533,7 +550,7 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
           <div key={msg.id} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.from === 'bot' && (
               <div className="w-7 h-7 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                <Bot size={14} className="text-accent" />
+                <FlowerOfLifeIcon size={16} />
               </div>
             )}
             <div className={`max-w-[82%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -549,7 +566,7 @@ export function PatientIntakeChat({ patientId, patientName, onComplete }: Patien
         {isTyping && (
           <div className="flex justify-start">
             <div className="w-7 h-7 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-              <Bot size={14} className="text-accent" />
+              <FlowerOfLifeIcon size={16} />
             </div>
             <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex gap-1 items-center">
