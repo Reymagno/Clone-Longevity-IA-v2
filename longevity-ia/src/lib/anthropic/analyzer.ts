@@ -51,6 +51,24 @@ ESTUDIOS CLAVE 2024-2026 (cita cuando sean relevantes):
 - DO-HEALTH 2025: omega-3+VitD+ejercicio combinados: -39% pre-fragilidad, -61% cáncer invasivo en 3 años.
 - VO2max: 1 MET = -11.6% mortalidad all-cause. Predictor #1, superior a tabaquismo/diabetes/HTA.
 
+BIOMARCADORES URINARIOS Y SU EVIDENCIA CIENTÍFICA:
+- Microalbuminuria/ACR: predictor independiente de mortalidad CV (Gerstein, JAMA 2001: ACR >30 mg/g = +2x riesgo CV). Gold standard KDIGO 2024 para estadificar ERC.
+- Calciuria 24h: >250 mg/24h mujer, >300 mg/24h hombre = hipercalciuria → osteoporosis + litiasis (Worcester, Kidney Int 2008).
+- Oxaluria 24h: >40 mg/24h = hiperoxaluria → causa #1 litiasis por oxalato de calcio (Curhan, NEJM 2001).
+- Citraturia 24h: <320 mg/24h = hipocitraturia → factor de riesgo litiasis (Zuckerman, Rev Urology 2009).
+- Cortisol libre urinario 24h: >100 µg/24h = hipercortisolismo, integra producción diaria real (Nieman, JCEM 2008).
+- Metales pesados urinarios: cadmio >2 µg/L = nefrotoxicidad crónica (Järup, Scand J Work Environ Health 1998). Mercurio >20 µg/L = neurotoxicidad (Clarkson, NEJM 2003). Plomo >25 µg/L (NHANES III). Arsénico >50 µg/L.
+- Proteinuria 24h: >150 mg/24h = daño glomerular; >3.5 g/24h = síndrome nefrótico (KDIGO 2024).
+- Catecolaminas/metanefrinas urinarias: estándar diagnóstico para feocromocitoma (Lenders, JCEM 2014).
+- Porfirinas urinarias: diagnóstico de porfirias (Puy, Lancet 2010).
+- 5-HIAA: >15 mg/24h = tumor carcinoide (Feldman, NEJM 1986).
+- pH urinario: <5.5 = riesgo litiasis ácido úrico; >7.0 = riesgo litiasis fosfato/infección (Parks, Kidney Int 2004).
+
+Cuando hay biomarcadores urinarios disponibles, úsalos para:
+1. Ajustar el score RENAL: ACR/microalbuminuria detecta daño 5-10 años antes que creatinina sérica
+2. Ajustar FODA: hipercalciuria como amenaza de osteoporosis, metales pesados como toxicidad
+3. Personalizar protocolo: quelantes si metales pesados elevados, citrato si hipocitraturia, nefroprotección si ACR elevado
+
 HALLMARKS OF AGING (Lopez-Otin 2023) que evalúas:
 1. Inestabilidad genómica / acortamiento telomérico
 2. Alteraciones epigenéticas (DNAmAge, GrimAge, PhenoAge, DunedinPACE)
@@ -92,6 +110,7 @@ HEPÁTICO:
 RENAL:
 - Creatinina: 0.30 | GFR/TFG: 0.40 (si disponible, desplaza creatinina a 0.15)
 - BUN/Urea: 0.15 | Ácido úrico: 0.15
+- Si hay datos urinarios: ACR 0.25 (desplaza creatinina a 0.10, BUN a 0.10) | Microalbúmina 0.15 | Proteinuria 24h 0.15
 
 INMUNE:
 - Leucocitos: 0.25 | Neutrófilos: 0.20 | Linfocitos: 0.25
@@ -216,6 +235,13 @@ GFR: >90 | Albumina: >4.5 g/dL | Ferritina: 50-100 H / 30-80 M | TSH: 0.5-2.0 | 
 AST/ALT: <25 U/L | GGT: <20 U/L | Testosterona: 600-900 H / 50-80 M | B12: 600-1200 | RDW: <13%
 Plaquetas: 175-300 | Creatinina: 0.7-1.2 H / 0.5-0.9 M
 
+RANGOS ÓPTIMOS URINARIOS (si hay datos de orina en el documento):
+pH: 5.5-7.0 | Densidad: 1.005-1.030 | Microalbúmina: <20 mg/L | ACR: <30 mg/g
+Calciuria 24h: <250 mg M / <300 mg H | Oxaluria: <40 mg/24h | Citraturia: >320 mg/24h
+Cortisol libre 24h: 10-100 µg/24h | Proteinuria 24h: <150 mg/24h
+Cadmio: <2 µg/L | Mercurio: <20 µg/L | Plomo: <25 µg/L | Arsénico: <50 µg/L
+Eritrocitos orina: <3/campo | Leucocitos orina: <5/campo
+
 Calcula systemScores, overallScore, longevity_age, FODA, risks y proyección usando la LÓGICA PROPIETARIA LONGEVITY IA definida en el system prompt.
 
 PROTOCOLO — 8-12 intervenciones de ≥4 categorías distintas:
@@ -280,7 +306,8 @@ Genera ÚNICAMENTE este JSON:
     "liver": { "alkalinePhosphatase": null, "ast": null, "alt": null, "ggt": null, "ldh": null, "totalProtein": null, "albumin": null, "globulin": null, "amylase": null, "totalBilirubin": null },
     "vitamins": { "vitaminD": null, "vitaminB12": null, "ferritin": null },
     "hormones": { "tsh": null, "testosterone": null, "cortisol": null, "insulin": null, "hba1c": null },
-    "inflammation": { "crp": null, "homocysteine": null }
+    "inflammation": { "crp": null, "homocysteine": null },
+    "urinalysis": { "ph": null, "specificGravity": null, "protein": null, "glucose": null, "ketones": null, "blood": null, "leukocyteEsterase": null, "nitrites": null, "bilirubin": null, "urobilinogen": null, "microalbumin": null, "acr": null, "creatinineUrine": null, "rbc": null, "wbc": null, "casts": null, "crystals": null, "bacteria": null, "uricAcid24h": null, "calcium24h": null, "oxalate24h": null, "citrate24h": null, "protein24h": null, "cortisol24h": null, "mercury": null, "lead": null, "cadmium": null, "arsenic": null, "catecholamines": null, "metanephrines": null, "porphyrins": null, "hydroxyindoleaceticAcid": null }
   },
   "aiAnalysis": {
     "systemScores": { "cardiovascular": 0, "metabolic": 0, "hepatic": 0, "renal": 0, "immune": 0, "hematologic": 0, "inflammatory": 0, "vitamins": 0 },
@@ -1011,6 +1038,7 @@ function validateAndParseAiResponse(rawText: string, patientAge?: number, patien
       vitamins: validateParsedDataSection(pd.vitamins),
       hormones: validateParsedDataSection(pd.hormones),
       inflammation: validateParsedDataSection(pd.inflammation),
+      urinalysis: validateParsedDataSection(pd.urinalysis),
     }
   }
 
@@ -1108,6 +1136,17 @@ Clasifica cada biomarcador encontrado con rangos óptimos de longevidad (más es
 - Insulina: óptimo <5 uIU/mL
 - Vitamina B12: óptimo 600-1200 pg/mL
 
+Si el documento incluye ANÁLISIS DE ORINA, extrae también con rangos óptimos:
+- pH urinario: óptimo 5.5-7.0
+- Microalbúmina: óptimo <20 mg/L
+- ACR (albúmina/creatinina): óptimo <30 mg/g
+- Proteinuria 24h: óptimo <150 mg/24h
+- Calciuria 24h: óptimo <250 mg/24h (mujeres), <300 mg/24h (hombres)
+- Oxaluria 24h: óptimo <40 mg/24h
+- Citraturia 24h: óptimo >320 mg/24h
+- Cortisol libre urinario 24h: óptimo 10-100 µg/24h
+- Metales pesados: Cadmio <2 µg/L, Mercurio <20 µg/L, Plomo <25 µg/L, Arsénico <50 µg/L
+
 Genera ÚNICAMENTE este JSON, sin texto adicional:
 
 {
@@ -1118,7 +1157,8 @@ Genera ÚNICAMENTE este JSON, sin texto adicional:
     "liver": { "alkalinePhosphatase": null, "ast": null, "alt": null, "ggt": null, "ldh": null, "totalProtein": null, "albumin": null, "globulin": null, "amylase": null, "totalBilirubin": null },
     "vitamins": { "vitaminD": null, "vitaminB12": null, "ferritin": null },
     "hormones": { "tsh": null, "testosterone": null, "cortisol": null, "insulin": null, "hba1c": null },
-    "inflammation": { "crp": null, "homocysteine": null }
+    "inflammation": { "crp": null, "homocysteine": null },
+    "urinalysis": { "ph": null, "specificGravity": null, "protein": null, "glucose": null, "ketones": null, "blood": null, "leukocyteEsterase": null, "nitrites": null, "bilirubin": null, "urobilinogen": null, "microalbumin": null, "acr": null, "creatinineUrine": null, "rbc": null, "wbc": null, "casts": null, "crystals": null, "bacteria": null, "uricAcid24h": null, "calcium24h": null, "oxalate24h": null, "citrate24h": null, "protein24h": null, "cortisol24h": null, "mercury": null, "lead": null, "cadmium": null, "arsenic": null, "catecholamines": null, "metanephrines": null, "porphyrins": null, "hydroxyindoleaceticAcid": null }
   }
 }
 

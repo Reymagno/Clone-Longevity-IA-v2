@@ -82,6 +82,47 @@ export interface Inflammation {
   homocysteine: BiomarkerValue | null
 }
 
+export interface Urinalysis {
+  // Examen general de orina
+  ph: BiomarkerValue | null
+  specificGravity: BiomarkerValue | null
+  protein: BiomarkerValue | null
+  glucose: BiomarkerValue | null
+  ketones: BiomarkerValue | null
+  blood: BiomarkerValue | null
+  leukocyteEsterase: BiomarkerValue | null
+  nitrites: BiomarkerValue | null
+  bilirubin: BiomarkerValue | null
+  urobilinogen: BiomarkerValue | null
+  // Daño renal temprano
+  microalbumin: BiomarkerValue | null
+  acr: BiomarkerValue | null              // Relación albúmina/creatinina
+  creatinineUrine: BiomarkerValue | null   // Creatinina urinaria
+  // Sedimento
+  rbc: BiomarkerValue | null               // Eritrocitos por campo
+  wbc: BiomarkerValue | null               // Leucocitos por campo
+  casts: BiomarkerValue | null             // Cilindros
+  crystals: BiomarkerValue | null          // Cristales
+  bacteria: BiomarkerValue | null
+  // Orina 24h / recolección
+  uricAcid24h: BiomarkerValue | null       // Ácido úrico urinario 24h
+  calcium24h: BiomarkerValue | null        // Calciuria 24h
+  oxalate24h: BiomarkerValue | null        // Oxaluria 24h
+  citrate24h: BiomarkerValue | null        // Citraturia 24h
+  protein24h: BiomarkerValue | null        // Proteinuria 24h
+  cortisol24h: BiomarkerValue | null       // Cortisol libre urinario 24h
+  // Toxicología
+  mercury: BiomarkerValue | null           // Mercurio urinario
+  lead: BiomarkerValue | null              // Plomo urinario
+  cadmium: BiomarkerValue | null           // Cadmio urinario
+  arsenic: BiomarkerValue | null           // Arsénico urinario
+  // Marcadores especiales
+  catecholamines: BiomarkerValue | null    // Catecolaminas urinarias
+  metanephrines: BiomarkerValue | null     // Metanefrinas urinarias
+  porphyrins: BiomarkerValue | null        // Porfirinas urinarias
+  hydroxyindoleaceticAcid: BiomarkerValue | null  // 5-HIAA
+}
+
 export interface ParsedData {
   hematology: Hematology | null
   metabolic: Metabolic | null
@@ -90,6 +131,7 @@ export interface ParsedData {
   vitamins: Vitamins | null
   hormones: Hormones | null
   inflammation: Inflammation | null
+  urinalysis: Urinalysis | null
 }
 
 // ============================================================
