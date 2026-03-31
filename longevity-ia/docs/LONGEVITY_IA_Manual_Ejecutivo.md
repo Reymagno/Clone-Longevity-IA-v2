@@ -1,7 +1,7 @@
 # LONGEVITY IA — Manual Ejecutivo
 
 **Plataforma de Inteligencia Artificial para Medicina de Longevidad**
-Version 3.2 | Marzo 2026
+Versión 3.3 | Marzo 2026
 
 ---
 
@@ -53,9 +53,13 @@ Longevity IA es una plataforma SaaS de analisis medico impulsada por inteligenci
 - Sistema multi-rol: paciente, medico y clinica
 - Vinculacion segura paciente-medico por codigo unico
 - Chatbot conversacional que extrae historia clinica automaticamente
-- Catalogo de 133 biomarcadores con rangos por genero y edad
-- Deduplicacion automatica de protocolo (codigo + prompt)
-- Metodologia transparente con pie de pagina en cada seccion del dashboard
+- Catálogo de 164 biomarcadores: 133 sanguíneos + 31 urinarios con rangos por género y edad
+- Protocolo de péptidos terapéuticos: BPC-157, Tesamorelina, TB-500, GHK-Cu, Tirzepatida, Semaglutida con motor determinista y evidencia 2022-2026
+- Análisis de orina integrado: microalbuminuria/ACR (daño renal temprano), metales pesados, cortisol 24h, litiasis
+- 9+ referencias científicas expandibles por molécula del protocolo (36+ estudios verificados)
+- Evidencia científica expandible en cada intervención del protocolo
+- Deduplicación automática de protocolo (código + prompt)
+- Metodología transparente con pie de página en cada sección del dashboard
 
 ---
 
@@ -159,22 +163,23 @@ El mercado global de software de analisis clinicos esta valuado en USD 3.2B (202
 8. Cuando la IA termina, aparece boton "Ver Analisis IA Completo"
 
 #### 4.1.4 Dashboard de Salud
-El dashboard tiene 12 pestanas (la pestana "Tendencias" es exclusiva para medicos):
+El dashboard tiene 13 pestañas (Tendencias es exclusiva para médicos):
 
-| Pestana | Contenido |
-|---------|-----------|
-| Resumen | Score de longevidad, edad biologica, resumen ejecutivo, alertas clave, salud de organos |
-| FODA Medica | Fortalezas, Debilidades, Oportunidades, Amenazas con evidencia cientifica |
-| Lipidos | Perfil lipidico completo con graficos (CT, LDL, HDL, TG, VLDL, ratios) |
-| Metabolico | Glucosa, insulina, HOMA-IR, funcion renal, acido urico |
-| Proyeccion | Grafico de proyeccion a 10 anos con/sin protocolo, factores de riesgo |
-| Protocolo | 8-12 intervenciones personalizadas con molecula, dosis, mecanismo, evidencia |
-| Organos | Scores por sistema organico con diagrama de red |
-| Comparar | Comparativa temporal entre multiples analisis |
-| Estudio | Archivo original del laboratorio |
-| Celulas Madre | Calculo personalizado de dosis MSC y exosomas |
-| Historia Clinica | Visualizacion de datos clinicos recopilados |
-| Tendencias | Comparacion longitudinal entre analisis: biomarcadores, scores por sistema, velocidad de cambio (solo medicos) |
+| # | Pestaña | Contenido |
+|---|---------|-----------|
+| 0 | Resumen | Score de longevidad, edad biológica, resumen ejecutivo, alertas clave, salud de órganos, panel clínico del médico |
+| 1 | FODA Médica | Fortalezas, Debilidades, Oportunidades, Amenazas — selección determinista + narrativa personalizada por Claude |
+| 2 | Lípidos | Perfil lipídico completo con gráficos (CT, LDL, HDL, TG, VLDL, ratios) |
+| 3 | Metabólico | Glucosa, insulina, HOMA-IR, función renal, ácido úrico |
+| 4 | Proyección | Gráfico de proyección a 10 años con/sin protocolo, factores de riesgo (Gompertz) |
+| 5 | Órganos | Scores por sistema orgánico con diagrama de red |
+| 6 | Protocolo | 8-12 intervenciones personalizadas con molécula, dosis, mecanismo, evidencia expandible (9 refs/molécula), prescripción digital |
+| 7 | Células Madre | Cálculo personalizado de dosis MSC y exosomas con 8 factores clínicos |
+| 8 | Péptidos | Protocolo de 6 péptidos terapéuticos con motor determinista, dosis, evidencia 2022-2026 y contraindicaciones |
+| 9 | Historia Clínica | Visualización de datos clínicos recopilados (solo paciente propio) |
+| 10 | Comparar | Comparativa temporal entre múltiples análisis |
+| 11 | Estudio | Archivo original del laboratorio |
+| 12 | Tendencias | Comparación longitudinal: biomarcadores, scores por sistema, velocidad de cambio (solo médicos) |
 
 #### 4.1.5 Chat con Longevity IA
 - Disponible como boton flotante en el dashboard
@@ -329,7 +334,37 @@ Dashboard visual que compara biomarcadores entre multiples analisis del mismo pa
 
 **Datos analizados:** 24 biomarcadores con rangos optimos de longevidad, delta absoluto, delta porcentual, velocidad de cambio mensual, proyeccion a rango optimo o critico.
 
-#### 4.2.10 Alertas Inteligentes
+#### 4.2.10 Protocolo de Péptidos Terapéuticos
+
+Pestaña "Péptidos" en el dashboard. Motor determinista que evalúa biomarcadores, historial clínico, edad e IMC del paciente para generar un protocolo personalizado de 6 péptidos.
+
+**Péptidos evaluados:**
+
+| Péptido | Dosis estándar | Vía | Categoría | Evidencia principal |
+|---|---|---|---|---|
+| BPC-157 | 250-500 mcg 2x/día | SC / oral | Reparación tisular, gastroprotección | Sikiric, Biomedicines 2024 (Univ. Zagreb) |
+| Tesamorelina | 2 mg/día | SC abdomen | Composición corporal, NASH | Stanley, NEJM 2025 (Harvard/MGH) |
+| TB-500 | 2.5-5 mg 2x/sem | SC | Regeneración cardíaca, antiinflamatorio | Smart, Nature 2011 (UCL) |
+| GHK-Cu | 1-2 mg/día | SC / tópica | Anti-aging, neuroprotección | Pickart, BioMed Res Int 2015 |
+| Tirzepatida | 2.5→15 mg/sem | SC | Metabólico, peso, NASH | SURMOUNT-5, NEJM 2025 (Eli Lilly) |
+| Semaglutida | 0.25→2.4 mg/sem | SC / oral | Cardioprotección, nefroprotección | SELECT NEJM 2023; FLOW NEJM 2024 |
+
+**Lógica de selección:**
+- Cada péptido tiene triggers por biomarcador (ej: PCR >1.0 activa BPC-157, glucosa >100 activa Tirzepatida)
+- Triggers clínicos por historial (ej: "hígado graso" activa Tesamorelina con relevancia 95%)
+- Triggers por edad e IMC (ej: Tirzepatida si IMC ≥27)
+- Score de relevancia 0-100 determina prioridad y urgencia (alta/media/baja)
+- Solo se recomiendan péptidos con relevancia ≥50% o al menos 1 trigger con relevancia ≥70%
+
+**Cada tarjeta de péptido muestra:**
+- Score de relevancia, urgencia, badge de supervisión médica
+- Dosis, vía, frecuencia, duración
+- Mecanismo de acción detallado
+- Justificación clínica personalizada (basada en biomarcadores del paciente)
+- Contraindicaciones
+- 4 estudios científicos expandibles con autor, revista, año, institución y hallazgo
+
+#### 4.2.11 Alertas Inteligentes
 
 Panel lateral deslizable accesible desde el boton "Alertas" en la pantalla de pacientes. Badge rojo pulsante muestra conteo de alertas no leidas.
 
@@ -353,7 +388,7 @@ Las alertas se generan automaticamente al completar un analisis nuevo o re-anali
 
 **Impacto:** El medico no revisa 50 dashboards uno por uno — ve primero los pacientes que necesitan atencion inmediata.
 
-#### 4.2.11 Prescripcion Digital
+#### 4.2.12 Prescripción Digital
 
 Boton "Generar Prescripcion" en el tab Protocolo del dashboard (solo medicos). Abre un modal fullscreen para convertir el protocolo de IA en una receta medica legal.
 
@@ -381,7 +416,18 @@ Boton "Generar Prescripcion" en el tab Protocolo del dashboard (solo medicos). A
 
 **Separacion de responsabilidad:** El analisis de IA (lab_results.ai_analysis) es INMUTABLE. La prescripcion es una capa adicional del medico que no modifica el analisis original. El PDF es el documento legal con la firma del medico.
 
-#### 4.2.12 Desvincular Paciente
+#### 4.2.13 Evidencia Científica Expandible
+
+En el tab Protocolo, cada intervención tiene un enlace sutil "Ver más evidencia científica" que despliega 9 referencias adicionales categorizadas:
+
+| Categoría | Estudios incluidos |
+|---|---|
+| Suplementación | REDUCE-IT (omega-3), Q-SYMBIO (CoQ10), VITAL Trial (VitD), berberina, NAC, sulforafano, astaxantina, magnesio, curcumina |
+| Farmacológico | TAME (metformina), PEARL (rapamicina), VESALIUS-CV (PCSK9i), SELECT (semaglutida), D+Q senolíticos, espermidina, DAPA-HF, fisetina |
+| Estilo de vida | VO2max (predictor #1), Zone 2, fuerza, TRE, sueño, frío, meditación/telómeros, sauna finlandesa, PREDIMED |
+| Medicina regenerativa | Longeveron Phase 2b, MSC en NMOSD, meta-análisis seguridad, exosomas, OSK reprogramación, paracrina Karolinska |
+
+#### 4.2.14 Desvincular Paciente
 - En la tarjeta del paciente vinculado, hacer clic en la "X"
 - Confirmar desvinculacion
 - Se revoca el acceso; el paciente puede re-invitar en el futuro
@@ -479,11 +525,11 @@ src/
 │   ├── auth/RegisterModal.tsx    # Registro por rol
 │   ├── clinica/ClinicaDashboard  # Panel clinica
 │   ├── dashboard/
-│   │   ├── DashboardTabs.tsx     # Orquestador de 12 pestanas
+│   │   ├── DashboardTabs.tsx     # Orquestador de 13 pestañas
 │   │   ├── InstantDashboard.tsx  # Dashboard instantaneo (Fase 2)
 │   │   ├── LongevityChat.tsx     # Chatbot conversacional
 │   │   ├── ExportButtons.tsx     # Exportacion PDF/imagen
-│   │   └── tabs/                 # 12 componentes de pestana
+│   │   └── tabs/                 # 13 componentes de pestaña (incluye PeptidesTab)
 │   ├── medico/
 │   │   ├── InvitationsPanel.tsx    # Panel de invitaciones
 │   │   ├── AlertsPanel.tsx         # Panel lateral de alertas inteligentes
@@ -507,7 +553,8 @@ src/
 │   ├── longevity-trends.ts       # Tendencias longitudinales entre analisis
 │   ├── clinical-calculators.ts   # 8 calculadoras clinicas
 │   ├── medical-references.ts     # PubMed + Semantic Scholar + OpenAlex
-│   ├── biomarker-ranges.ts       # Catalogo de 133 biomarcadores
+│   ├── peptide-protocol.ts       # Motor de péptidos terapéuticos (6 péptidos)
+│   ├── biomarker-ranges.ts       # Catálogo de 164 biomarcadores (133 sangre + 31 orina)
 │   ├── pdf-report.ts             # Generador de PDF reporte medico
 │   ├── prescription-pdf.ts       # Generador de PDF prescripcion digital
 │   ├── generate-alerts.ts        # Generacion automatica de alertas para medicos
@@ -804,36 +851,54 @@ El prompt define la logica propietaria que Claude sigue para generar narrativa:
 
 ---
 
-### 5.6 Catalogo de Biomarcadores
+### 5.6 Catálogo de Biomarcadores
 
-#### Archivo: `src/lib/biomarker-ranges.ts`
+#### Archivos: `src/lib/biomarker-ranges.ts` + `src/types/index.ts` (interfaz Urinalysis)
 
-**133 biomarcadores** en **16 categorias** con rangos de medicina de longevidad:
+**164 biomarcadores** en **22 categorías**: 133 sanguíneos + 31 urinarios con rangos de medicina de longevidad.
 
-| Categoria | Cantidad | Alta Relevancia | Fuentes |
+**Biomarcadores sanguíneos (133):**
+
+| Categoría | Cantidad | Alta Relevancia | Fuentes |
 |-----------|:--------:|:---------------:|---------|
-| Hematologia | 16 | RDW, WBC, NLR | Harrison's |
+| Hematología | 16 | RDW, WBC, NLR | Harrison's |
 | Metabolismo (Glucosa) | 4 | Glucosa, HbA1c, Insulina, HOMA-IR | Stanford |
-| Metabolismo (Renal) | 5 | Creatinina, TFGe, Acido Urico | KDIGO |
-| Lipidos | 8 | LDL, HDL, TG, ApoB, Lp(a) | ACC/AHA |
-| Lipidos Avanzados | 4 | sdLDL, ox-LDL, Remanente, No-HDL | Harvard |
-| Hepatico | 9 | ALT, GGT, Albumina | AASLD |
+| Metabolismo (Renal) | 5 | Creatinina, TFGe, Ácido Úrico | KDIGO 2024 |
+| Lípidos | 8 | LDL, HDL, TG, ApoB, Lp(a) | ACC/AHA |
+| Lípidos Avanzados | 4 | sdLDL, ox-LDL, Remanente, No-HDL | Harvard |
+| Hepático | 9 | ALT, GGT, Albúmina | AASLD |
 | Tiroides | 5 | TSH, FT4, FT3 | Endocrine Society |
 | Hormonas | 10 | Testosterona, DHEA-S, Cortisol, IGF-1 | ACOG |
 | Hormonas Ampliadas | 4 | Leptina, Adiponectina | Friedman/Barzilai |
 | Vitaminas y Minerales | 10 | Vit D, B12, Ferritina, Mg, Zn | Mayo Clinic |
 | Vitaminas Ampliadas | 12 | MMA, PTH, Cobre | UpToDate, WHO |
-| Inflamacion | 5 | PCR-us, Homocisteina, IL-6, TNF-a | Johns Hopkins |
-| Electrolitos | 4 | Fosforo | UpToDate |
-| Coagulacion | 3 | - | UpToDate |
-| Cardiaco | 4 | NT-proBNP, Troponina | ACC/AHA |
-| Pancreatico | 4 | Peptido C | Mayo Clinic |
-| Inmunologico | 6 | C3, C4 | Harrison's |
+| Inflamación | 5 | PCR-us, Homocisteína, IL-6, TNF-α | Johns Hopkins |
+| Electrolitos | 4 | Fósforo | UpToDate |
+| Coagulación | 3 | - | UpToDate |
+| Cardíaco | 4 | NT-proBNP, Troponina | ACC/AHA |
+| Pancreático | 4 | Péptido C | Mayo Clinic |
+| Inmunológico | 6 | C3, C4 | Harrison's |
 | Marcadores Tumorales | 6 | - | NCCN |
-| Longevidad | 4 | Omega-3, CoQ10, Glutation, NAD+ | Horvath, Blackburn |
-| Longevidad Ampliada | 5 | Telomeros, Cistatina C, GDF-15 | UCSF, Baltimore |
+| Longevidad | 4 | Omega-3, CoQ10, Glutatión, NAD+ | Horvath, Blackburn |
+| Longevidad Ampliada | 5 | Telómeros, Cistatina C, GDF-15 | UCSF, Baltimore |
 | Metabolismo Avanzado | 3 | - | KDIGO, Sepsis |
-| Urinario | 1 | ACR | KDIGO |
+
+**Biomarcadores urinarios (31) — interfaz Urinalysis en types/index.ts:**
+
+| Categoría | Biomarcadores | Evidencia 2022-2026 |
+|-----------|---------------|---------------------|
+| Examen general (10) | pH, densidad, proteínas, glucosa, cetonas, sangre oculta, leucocito esterasa, nitritos, bilirrubina, urobilinógeno | Siener, Urolithiasis 2022 |
+| Daño renal temprano (3) | Microalbúmina, ACR (albúmina/creatinina), creatinina urinaria | KDIGO 2024; Bakris, Kidney Int 2024 |
+| Sedimento (5) | Eritrocitos, leucocitos, cilindros, cristales, bacterias | — |
+| Orina 24h (6) | Ácido úrico, calcio, oxalato, citrato, proteínas, cortisol libre | Ferraro NEJM 2024; Waikar JASN 2022; Fleseriu Lancet 2023 |
+| Toxicología (4) | Mercurio, plomo, cadmio, arsénico | Satarug Environ Health 2022; Lanphear Lancet Public Health 2023 |
+| Especiales (3) | Catecolaminas/metanefrinas, porfirinas, 5-HIAA | Endocrine Society 2023; Bissell NEJM 2023; Halperin JCO 2023 |
+
+**Integración con el análisis:** Los biomarcadores urinarios complementan el análisis de sangre:
+- ACR/microalbuminuria detecta daño renal 5-10 años antes que la creatinina sérica
+- Cortisol libre 24h integra producción diaria real (más preciso que cortisol sérico puntual)
+- Metales pesados miden carga corporal acumulada (no exposición aguda como sangre)
+- Si hay datos urinarios, el score RENAL se ajusta con peso adicional para ACR
 
 **Cada biomarcador incluye:**
 - `id` — Identificador unico
