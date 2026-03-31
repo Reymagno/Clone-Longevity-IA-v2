@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { getStatusColor, getStatusLabel, getScoreColor, getScoreLabel, getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
 import { MethodologyFooter } from '../MethodologyFooter'
+import { ClinicalNotesPanel } from '../../medico/ClinicalNotesPanel'
 
 // ── Score helpers (compartidos con OrganHealthTab) ───────────────
 const STATUS_SCORE: Record<string, number> = {
@@ -302,6 +303,8 @@ interface SummaryTabProps {
   resultDate?: string
   parsedData?: ParsedData | null
   patient?: Patient
+  viewerRole?: string
+  resultId?: string
 }
 
 // ── Extrae puntos clave de la historia clínica para el reporte ───
@@ -344,7 +347,7 @@ function extractClinicalContext(patient: Patient | undefined): {
 }
 
 // ── Componente principal ─────────────────────────────────────────
-export function SummaryTab({ analysis, patientAge, patientName, resultDate, parsedData, patient }: SummaryTabProps) {
+export function SummaryTab({ analysis, patientAge, patientName, resultDate, parsedData, patient, viewerRole, resultId }: SummaryTabProps) {
   const ageDiff = patientAge - analysis.longevity_age
   const gaugeCol = scoreColor(analysis.overallScore)
   const clinicalCtx = extractClinicalContext(patient)
@@ -882,6 +885,11 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
           </div>
         </div>
       </div>
+
+      {/* Notas clínicas del médico */}
+      {viewerRole === 'medico' && patient && resultId && (
+        <ClinicalNotesPanel patientId={patient.id} resultId={resultId} viewerRole={viewerRole} />
+      )}
 
       <MethodologyFooter type="scores" />
       <MethodologyFooter type="age" />

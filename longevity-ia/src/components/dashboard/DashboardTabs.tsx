@@ -396,6 +396,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
             resultDate={result.result_date}
             parsedData={parsedData}
             patient={patient}
+            viewerRole={viewerRole}
+            resultId={result.id}
           />
         )}
         {activeTab === 1 && (

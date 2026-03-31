@@ -1,4 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { computeAllScores, type ParsedBiomarkers } from '../longevity-scoring'
+import { computePhenoAge } from '../longevity-phenoage'
+import { computeFODA } from '../longevity-foda'
+import { computeProjection } from '../longevity-projection'
+import { analyzeWearables, applyWearableAdjustments, type WearableData } from '../longevity-wearables'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string; numpages: number }>
 
@@ -760,7 +765,7 @@ function deduplicateProtocol(protocol: object[]): void {
 
 // ─── Validación compartida del JSON de respuesta ──────────────────────────────
 
-function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiAnalysis: object } {
+function validateAndParseAiResponse(rawText: string, patientAge?: number, patientGender?: string, wearableData?: WearableData | null): { parsedData?: object; aiAnalysis: object } {
   if (!rawText) throw new Error('Claude no devolvió respuesta.')
 
   const firstBrace = rawText.indexOf('{')
@@ -834,6 +839,70 @@ function validateAndParseAiResponse(rawText: string): { parsedData?: object; aiA
       vitamins: validateParsedDataSection(pd.vitamins),
       hormones: validateParsedDataSection(pd.hormones),
       inflammation: validateParsedDataSection(pd.inflammation),
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // OVERRIDE MATEMÁTICO: Recalcular scores, edad, FODA y proyección
+  // con funciones deterministas (sigmoide, PhenoAge, Gompertz)
+  // Claude provee: clinicalSummary, keyAlerts, risks, protocol (narrativa)
+  // Código computa: systemScores, overallScore, longevity_age, swot, projectionData/Factors
+  // ══════════════════════════════════════════════════════════════
+
+  if (validatedParsedData) {
+    try {
+      const pd = validatedParsedData as ParsedBiomarkers
+      // Usar edad y género del paciente (pasados como parámetro o defaults)
+      const pAge = patientAge ?? 40
+      const pGender = patientGender ?? 'male'
+
+      // 1. Scores matemáticos con funciones sigmoideas
+      const computed = computeAllScores(pd, pGender)
+      if (Object.keys(computed.systemScores).length > 0) {
+        aiAnalysis.systemScores = computed.systemScores
+        aiAnalysis.overallScore = computed.overallScore
+      }
+
+      // 2. Edad biológica con PhenoAge + modificadores
+      const phenoAge = computePhenoAge(pd, pAge, pGender)
+      if (phenoAge.biologicalAge > 0) {
+        aiAnalysis.longevity_age = phenoAge.biologicalAge
+      }
+
+      // 3. FODA computada
+      const foda = computeFODA(computed, pAge)
+      aiAnalysis.swot = foda
+
+      // 4. Proyección Gompertz
+      const projection = computeProjection(computed, pAge)
+      aiAnalysis.projectionData = projection.projectionData
+      aiAnalysis.projectionFactors = projection.projectionFactors
+
+      // 5. Integración de wearables (si hay datos disponibles)
+      const wearableAnalysis = analyzeWearables(wearableData)
+      if (wearableAnalysis.hasData) {
+        const adjusted = applyWearableAdjustments(
+          aiAnalysis.systemScores as Record<string, number>,
+          aiAnalysis.overallScore as number,
+          aiAnalysis.longevity_age as number,
+          wearableAnalysis
+        )
+        aiAnalysis.systemScores = adjusted.systemScores
+        aiAnalysis.overallScore = adjusted.overallScore
+        aiAnalysis.longevity_age = adjusted.biologicalAge
+        // Adjuntar datos de wearables al análisis para que el frontend pueda mostrarlos
+        ;(aiAnalysis as Record<string, unknown>)._wearables = {
+          adjustments: wearableAnalysis.adjustments,
+          alerts: wearableAnalysis.alerts,
+          summary: wearableAnalysis.summary,
+          overallAdjustment: wearableAnalysis.overallAdjustment,
+          biologicalAgeAdjustment: wearableAnalysis.biologicalAgeAdjustment,
+        }
+      }
+
+    } catch (e) {
+      // Si falla el cálculo matemático, mantener los valores de Claude como fallback
+      console.warn('Override matemático falló, usando valores de Claude:', e)
     }
   }
 
@@ -1142,7 +1211,7 @@ export async function reanalyzeWithClinicalHistory(
 
   if (!rawText) throw new Error('Claude no devolvió respuesta.')
 
-  const validated = validateAndParseAiResponse(rawText)
+  const validated = validateAndParseAiResponse(rawText, patientContext.age, patientContext.gender)
 
   return validated.aiAnalysis
 }
@@ -1180,7 +1249,8 @@ export async function reanalyzePartial(
   parsedData: object,
   cachedAnalysis: object,
   patientContext: PatientContextForPrompt,
-  onProgress?: () => void
+  onProgress?: () => void,
+  wearableData?: WearableData | null
 ): Promise<object> {
   let contextText: string
   if (patientContext.clinical_history) {
@@ -1232,18 +1302,48 @@ export async function reanalyzePartial(
   const protocol = ensureArray(partial.protocol || cached.protocol) as object[]
   deduplicateProtocol(protocol)
 
-  const merged = {
-    systemScores: cached.systemScores,
-    overallScore: cached.overallScore,
-    longevity_age: cached.longevity_age,
+  // Recalcular scores, edad, FODA y proyección con funciones matemáticas
+  const pd = parsedData as ParsedBiomarkers
+  const computed = computeAllScores(pd, patientContext.gender)
+  const phenoAge = computePhenoAge(pd, patientContext.age, patientContext.gender)
+  const foda = computeFODA(computed, patientContext.age)
+  const projection = computeProjection(computed, patientContext.age)
+
+  let sysScores = Object.keys(computed.systemScores).length > 0 ? computed.systemScores : cached.systemScores as Record<string, number>
+  let overall = Object.keys(computed.systemScores).length > 0 ? computed.overallScore : cached.overallScore as number
+  let bioAge = phenoAge.biologicalAge > 0 ? phenoAge.biologicalAge : cached.longevity_age as number
+
+  // Integración de wearables (si hay datos disponibles)
+  const wearableAnalysis = analyzeWearables(wearableData)
+  let wearableMeta: object | undefined
+  if (wearableAnalysis.hasData) {
+    const adjusted = applyWearableAdjustments(sysScores, overall, bioAge, wearableAnalysis)
+    sysScores = adjusted.systemScores
+    overall = adjusted.overallScore
+    bioAge = adjusted.biologicalAge
+    wearableMeta = {
+      adjustments: wearableAnalysis.adjustments,
+      alerts: wearableAnalysis.alerts,
+      summary: wearableAnalysis.summary,
+      overallAdjustment: wearableAnalysis.overallAdjustment,
+      biologicalAgeAdjustment: wearableAnalysis.biologicalAgeAdjustment,
+    }
+  }
+
+  const merged: Record<string, unknown> = {
+    systemScores: sysScores,
+    overallScore: overall,
+    longevity_age: bioAge,
     keyAlerts: cached.keyAlerts,
-    swot: cached.swot,
+    swot: foda,
     risks: cached.risks,
     clinicalSummary: partial.clinicalSummary || cached.clinicalSummary,
     protocol,
-    projectionData: partial.projectionData || cached.projectionData,
-    projectionFactors: partial.projectionFactors || cached.projectionFactors,
+    projectionData: projection.projectionData,
+    projectionFactors: projection.projectionFactors,
   }
+
+  if (wearableMeta) merged._wearables = wearableMeta
 
   return merged
 }
