@@ -1,7 +1,7 @@
 # LONGEVITY IA — Manual Ejecutivo
 
 **Plataforma de Inteligencia Artificial para Medicina de Longevidad**
-Version 2.0 | Marzo 2026
+Version 3.0 | Marzo 2026
 
 ---
 
@@ -35,13 +35,25 @@ Longevity IA es una plataforma SaaS de analisis medico impulsada por inteligenci
 **Propuesta de valor unica:** El paciente sube su estudio de laboratorio y en segundos obtiene un dashboard visual con semaforos de biomarcadores. En 2-5 minutos, la IA genera un analisis clinico completo que incluye FODA medica, perfil de riesgo, protocolo farmacologico personalizado con 120+ moleculas, proyeccion a 10 anos y calculo de celulas madre.
 
 **Diferenciadores clave:**
-- Analisis basado en rangos de medicina de longevidad (no rangos de laboratorio convencionales)
-- Protocolo personalizado con evidencia cientifica de 39 instituciones de investigacion
+- Motor matematico propietario con funciones sigmoideas calibradas con UK Biobank, NHANES III y Framingham
+- Scoring determinista: mismo perfil siempre genera mismo score (no depende de IA para calculos)
+- Edad biologica con formula PhenoAge (Levine 2018) + 7 modificadores basados en evidencia
+- FODA medica computada programaticamente (no generada por IA) con 11 biomarcadores y evidencia citada
+- Proyeccion a 10 anos con modelo Gompertz (mortalidad se duplica cada 8 anos)
+- Verificacion de interacciones farmacologicas (10 pares criticos) y contraindicaciones por condicion
+- Integracion preparada para 13 metricas de wearables (HR, HRV, VO2max, pasos, sueno, CGM, SpO2)
+- 8 calculadoras clinicas auto-computadas (HOMA-IR, FIB-4, CKD-EPI, Framingham, ASCVD Risk)
+- Notas clinicas SOAP para medicos con historial auditable
+- Sistema de alertas inteligentes con priorizacion para medicos
+- Referencias verificadas via PubMed, Semantic Scholar y OpenAlex con abstracts y DOIs
+- Protocolo personalizado con evidencia cientifica de instituciones de nivel mundial
 - Dashboard instantaneo (segundos) + analisis profundo IA (minutos)
 - Sistema multi-rol: paciente, medico y clinica
 - Vinculacion segura paciente-medico por codigo unico
 - Chatbot conversacional que extrae historia clinica automaticamente
 - Catalogo de 133 biomarcadores con rangos por genero y edad
+- Deduplicacion automatica de protocolo (codigo + prompt)
+- Metodologia transparente con pie de pagina en cada seccion del dashboard
 
 ---
 
@@ -88,12 +100,18 @@ El mercado global de software de analisis clinicos esta valuado en USD 3.2B (202
 - Vinculacion con medicos por codigo
 
 #### Plan Medico
-- Gestion de multiples pacientes vinculados
+- Crear y gestionar pacientes propios + pacientes vinculados por invitacion
+- Notas clinicas SOAP (Subjetivo, Objetivo, Assessment, Plan) con historial auditable
+- 8 calculadoras clinicas auto-computadas (HOMA-IR, FIB-4, CKD-EPI, ASCVD, Framingham, IMC, TG/HDL, Ind. Aterogenico)
+- Tendencias longitudinales: deltas entre analisis, velocidad de cambio, proyeccion a danger
+- Alertas inteligentes: nuevos analisis, biomarcadores en danger, empeoramiento >20%
+- Referencias verificadas PubMed / Semantic Scholar / OpenAlex con abstracts y DOIs
+- Chat conversacional con IA para pacientes propios y vinculados
 - Reportes medicos PDF profesionales
-- Protocolo con evidencia cientifica
-- Algoritmo de celulas madre y exosomas
-- Re-analisis con historia clinica
-- Exportacion de datos clinicos
+- Protocolo con evidencia cientifica y verificacion de interacciones farmacologicas
+- Algoritmo de celulas madre hUC-MSC y exosomas
+- Re-analisis con historia clinica (pacientes propios)
+- Seguimiento de citas y proximos pasos
 - Panel de invitaciones de pacientes
 
 #### Plan Clinica
@@ -195,34 +213,78 @@ El dashboard tiene 11 pestanas:
 - El medico comparte este codigo con sus pacientes
 - Los pacientes usan el codigo para enviar invitaciones de vinculacion
 
-#### 4.2.3 Invitaciones de Pacientes
+#### 4.2.3 Crear Pacientes Propios
+- El medico puede crear pacientes directamente con el boton "Nuevo Paciente"
+- Los pacientes creados por el medico son "propios" — control total
+- El medico puede crear multiples pacientes (sin limite)
+- Puede subir estudios, completar historia clinica, re-analizar y usar chatbot
+
+#### 4.2.4 Invitaciones de Pacientes
 1. Cuando un paciente envia invitacion, aparece un banner de notificacion
 2. Hacer clic en "Invitaciones" para ver la lista
-3. Cada invitacion muestra: nombre del paciente, codigo, edad, fecha
+3. Cada invitacion muestra: nombre, codigo, edad, genero, peso, estatura, IMC, analisis realizados, estado de historia clinica
 4. Opciones: Aceptar (acceso a analisis) o Rechazar
 
-#### 4.2.4 Ver Analisis de Pacientes
-- Los pacientes vinculados aparecen como tarjetas en la pantalla principal
-- Cada tarjeta muestra: nombre, codigo, edad, score, alertas
-- Hacer clic en "Dashboard" para ver el analisis completo
-- El medico puede ver todas las pestanas excepto Historia Clinica
-- El medico NO puede: subir estudios, re-analizar, ni acceder al chatbot
+#### 4.2.5 Permisos del Medico (Paciente Propio vs Vinculado)
 
-#### 4.2.5 Desvincular Paciente
-- En la tarjeta del paciente, hacer clic en la "X"
+| Funcion | Paciente propio | Paciente vinculado |
+|---------|:-:|:-:|
+| Ver dashboard completo (11 pestanas) | Si | Si |
+| Chatbot Longevity IA | Si | Si |
+| Referencias verificadas (PubMed, Semantic Scholar, OpenAlex) | Si | Si |
+| Notas clinicas SOAP | Si | Si |
+| Calculadoras clinicas | Si | Si |
+| Exportar PDF | Si | Si |
+| Subir nuevo estudio | Si | No |
+| Re-analizar | Si | No |
+| Historia Clinica | Si | No |
+| Eliminar paciente | Si | No (solo desvincular) |
+
+#### 4.2.6 Notas Clinicas SOAP
+1. En el dashboard del paciente (tab Resumen), aparece el panel "Notas Clinicas"
+2. Hacer clic en "Nueva nota" para abrir el formulario SOAP:
+   - **S (Subjetivo):** Lo que el paciente reporta (sintomas, quejas)
+   - **O (Objetivo):** Hallazgos del examen fisico, signos vitales, labs
+   - **A (Assessment):** Evaluacion clinica, diagnosticos
+   - **P (Plan):** Plan de tratamiento, ajustes al protocolo, proximos pasos
+3. Las notas se guardan con timestamp y son visibles solo para el medico que las creo
+4. Historial de notas expandible con barra de scroll
+
+#### 4.2.7 Referencias Verificadas
+1. En el tab "Protocolo", aparece el boton "Buscar referencias cientificas"
+2. Busca en 3 bases de datos academicas simultaneamente:
+   - **PubMed** — titulos, autores, journal, ano, PMID, abstract
+   - **Semantic Scholar** — incluye TLDR (resumen IA de 1 linea) y conteo de citas
+   - **OpenAlex** — incluye badge Open Access y link a PDF gratuito si existe
+3. Cada referencia muestra DOI verificable y link directo al paper
+4. Boton "Ver resumen del estudio" para leer el abstract sin salir de Longevity IA
+
+#### 4.2.8 Calculadoras Clinicas
+Se calculan automaticamente con los datos del paciente (sin ingreso manual):
+
+| Calculadora | Formula | Referencia |
+|------------|---------|-----------|
+| HOMA-IR | Glucosa x Insulina / 405 | Matthews, Diabetologia 1985 |
+| FIB-4 | (Edad x AST) / (Plaquetas x raiz(ALT)) | Sterling, Hepatology 2006 |
+| CKD-EPI eGFR | Formula CKD-EPI 2021 sin raza | Levey, Ann Intern Med 2009 + KDIGO 2021 |
+| Indice Aterogenico | (Col.Total - HDL) / HDL | Castelli, Can J Cardiol 2004 |
+| Ratio TG/HDL | Trigliceridos / HDL | McLaughlin, Circulation 2005 |
+| IMC | Peso / Estatura^2 | WHO 2024 |
+| Framingham Risk | Score de puntos simplificado | D'Agostino, Circulation 2008 |
+| ASCVD Risk | Pooled Cohort Equations | Goff, Circulation 2014 |
+
+#### 4.2.9 Alertas Inteligentes
+- Notificacion cuando un paciente sube nuevo analisis
+- Alerta si algun biomarcador entra en rango DANGER
+- Alerta si biomarcador empeora >20% vs analisis anterior
+- Marcado como leida/descartada
+- API: GET /api/medico/alerts, PATCH para marcar como leidas
+
+#### 4.2.10 Desvincular Paciente
+- En la tarjeta del paciente vinculado, hacer clic en la "X"
 - Confirmar desvinculacion
 - Se revoca el acceso; el paciente puede re-invitar en el futuro
 - Los datos del paciente NO se eliminan
-
-#### 4.2.6 Restricciones del Medico
-| Funcion | Acceso |
-|---------|--------|
-| Ver dashboard completo (10 pestanas) | Si |
-| Exportar PDF | Si |
-| Historia Clinica | No |
-| Chatbot Longevity IA | No |
-| Re-analizar | No |
-| Subir nuevo estudio | No |
 
 ---
 
@@ -304,8 +366,12 @@ src/
 │   │   ├── analyze/route.ts      # Motor de analisis (2 fases)
 │   │   ├── chat/route.ts         # Chat streaming con IA
 │   │   ├── patients/             # CRUD pacientes
-│   │   ├── results/[id]/         # Resultados + re-analisis
-│   │   └── medico/invitations/   # Invitaciones medico
+│   │   ├── results/[id]/         # Resultados + re-analisis + DELETE
+│   │   ├── references/route.ts   # Busqueda PubMed/Semantic Scholar/OpenAlex
+│   │   └── medico/
+│   │       ├── invitations/      # Invitaciones medico
+│   │       ├── notes/route.ts    # CRUD notas clinicas SOAP
+│   │       └── alerts/route.ts   # Alertas inteligentes
 │   └── globals.css               # Estilos globales + animaciones
 │
 ├── components/
@@ -317,7 +383,9 @@ src/
 │   │   ├── LongevityChat.tsx     # Chatbot conversacional
 │   │   ├── ExportButtons.tsx     # Exportacion PDF/imagen
 │   │   └── tabs/                 # 12 componentes de pestana
-│   ├── medico/InvitationsPanel   # Panel de invitaciones
+│   ├── medico/
+│   │   ├── InvitationsPanel.tsx  # Panel de invitaciones
+│   │   └── ClinicalNotesPanel.tsx # Notas clinicas SOAP
 │   ├── patients/
 │   │   ├── PatientCard.tsx       # Tarjeta de paciente (multi-rol)
 │   │   ├── AnalysisCards.tsx     # Tarjetas de analisis por fecha
@@ -327,7 +395,15 @@ src/
 │   └── upload/FileUploader.tsx   # Componente de carga de archivos
 │
 ├── lib/
-│   ├── anthropic/analyzer.ts     # Motor IA (prompts + llamadas a Claude)
+│   ├── anthropic/analyzer.ts     # Motor IA (prompts + override matematico)
+│   ├── longevity-scoring.ts      # Funciones sigmoideas por biomarcador (30+)
+│   ├── longevity-phenoage.ts     # Edad biologica PhenoAge (Levine 2018)
+│   ├── longevity-foda.ts         # FODA computada (11 biomarcadores)
+│   ├── longevity-projection.ts   # Proyeccion Gompertz 10 anos
+│   ├── longevity-wearables.ts    # Integracion wearables (13 metricas)
+│   ├── longevity-trends.ts       # Tendencias longitudinales entre analisis
+│   ├── clinical-calculators.ts   # 8 calculadoras clinicas
+│   ├── medical-references.ts     # PubMed + Semantic Scholar + OpenAlex
 │   ├── biomarker-ranges.ts       # Catalogo de 133 biomarcadores
 │   ├── pdf-report.ts             # Generador de PDF programatico
 │   ├── supabase/
@@ -406,6 +482,41 @@ src/
 | invited_at | TIMESTAMPTZ | Fecha de invitacion |
 | confirmed_at | TIMESTAMPTZ | Fecha de confirmacion |
 
+**clinical_notes** (v3.0)
+| Columna | Tipo | Descripcion |
+|---------|------|-------------|
+| id | UUID PK | Identificador unico |
+| patient_id | UUID FK -> patients | Paciente |
+| medico_user_id | UUID FK -> auth.users | Medico autor |
+| result_id | UUID FK -> lab_results | Analisis asociado (opcional) |
+| note_type | TEXT | soap / follow_up / comment / protocol_adjustment |
+| subjective | TEXT | S: lo que el paciente reporta |
+| objective | TEXT | O: hallazgos objetivos |
+| assessment | TEXT | A: evaluacion clinica |
+| plan | TEXT | P: plan de tratamiento |
+| diagnoses | TEXT[] | Codigos CIE-10 |
+
+**medico_alerts** (v3.0)
+| Columna | Tipo | Descripcion |
+|---------|------|-------------|
+| id | UUID PK | Identificador unico |
+| medico_user_id | UUID FK -> auth.users | Medico destinatario |
+| patient_id | UUID FK -> patients | Paciente relacionado |
+| alert_type | TEXT | new_analysis / biomarker_danger / biomarker_worsened |
+| level | TEXT | info / warning / danger / critical |
+| title | TEXT | Titulo de la alerta |
+| read / dismissed | BOOLEAN | Estado de la alerta |
+
+**follow_ups** (v3.0)
+| Columna | Tipo | Descripcion |
+|---------|------|-------------|
+| id | UUID PK | Identificador unico |
+| patient_id | UUID FK -> patients | Paciente |
+| medico_user_id | UUID FK -> auth.users | Medico responsable |
+| title | TEXT | Descripcion del seguimiento |
+| due_date | DATE | Fecha limite |
+| status | TEXT | pending / completed / overdue / cancelled |
+
 #### Row Level Security (RLS)
 
 | Tabla | Politica | Regla |
@@ -415,59 +526,98 @@ src/
 | medicos | medicos_write | user_id = auth.uid() (INSERT) |
 | medicos | medicos_update | user_id = auth.uid() (UPDATE) |
 | patient_medico_links | links_read/insert/update | Abierto a autenticados (filtrado en codigo) |
+| lab_results | Owner CRUD | patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid()) |
+| clinical_notes | Medico manages own | medico_user_id = auth.uid() |
+| medico_alerts | Medico manages own | medico_user_id = auth.uid() |
+| follow_ups | Medico manages own | medico_user_id = auth.uid() |
 
 ---
 
-### 5.5 Motor de Analisis IA
+### 5.5 Motor de Analisis IA + Motor Matematico Deterministico
 
-#### Archivo: `src/lib/anthropic/analyzer.ts`
+#### Arquitectura hibrida (v3.0)
 
-**Modelo:** Claude Sonnet 4.6 (claude-sonnet-4-6)
+Longevity IA v3.0 usa una arquitectura de 2 capas:
 
-#### Flujo de Analisis Completo
+**Capa 1 — Claude IA (narrativa):** Extrae biomarcadores de PDFs/imagenes, genera clinicalSummary, keyAlerts, risks y protocol.
+
+**Capa 2 — Motor matematico (deterministico):** Recalcula systemScores, overallScore, longevity_age, FODA y proyeccion con funciones matematicas. Los valores de Claude se sobreescriben con calculos reproducibles y auditables.
 
 ```
 PDF/Imagen
     │
     ▼
-[extractBiomarkers]          ← Llamada 1: Ligera (~30-60s)
-    │  max_tokens: 8,000
+[extractBiomarkers]          ← Llamada 1: Claude (~30-60s)
     │  Extrae: 7 categorias de biomarcadores
-    │  Output: ParsedData (JSON estructurado)
     │
     ▼
-[GUARDAR parsed_data]        ← INSERT en lab_results
-[ENVIAR evento 'extracted']  ← Redirect a dashboard instantaneo
+[GUARDAR parsed_data + Dashboard instantaneo]
     │
     ▼
-[reanalyzeWithClinicalHistory]  ← Llamada 2: Pesada (~2-5 min)
-    │  max_tokens: 64,000
-    │  Input: parsedData + historia clinica + contexto paciente
-    │  Output: AIAnalysis (10 secciones)
+[reanalyzeWithClinicalHistory]  ← Llamada 2: Claude (~2-5 min)
+    │  Genera: clinicalSummary, keyAlerts, risks, protocol
+    │
+    ▼
+[OVERRIDE MATEMATICO]        ← Codigo deterministico (0.1s)
+    │  computeAllScores()    → systemScores (funciones sigmoideas)
+    │  computePhenoAge()     → longevity_age (Levine 2018)
+    │  computeFODA()         → FODA (basado en scores)
+    │  computeProjection()   → proyeccion (Gompertz)
+    │  analyzeWearables()    → ajustes por wearables (si hay datos)
+    │  deduplicateProtocol() → eliminar moleculas repetidas
     │
     ▼
 [GUARDAR ai_analysis]       ← UPDATE en lab_results
-[ENVIAR evento 'done']
 ```
 
-#### Prompt del Sistema (SYSTEM_PROMPT)
+#### Motor Matematico: 6 modulos
 
-El prompt define a Longevity IA con conocimiento de:
+**1. longevity-scoring.ts — Funciones sigmoideas**
+- 30+ funciones continuas 0-100 por biomarcador
+- 3 tipos de curva: descendente (LDL), ascendente (HDL), gaussiana (TSH)
+- 8 interacciones entre biomarcadores (LDL+PCR, glucosa+insulina, TG+HDL, etc.)
+- Pesos calibrados con UK Biobank (500K), NHANES III, Framingham, Copenhagen
 
-**39 instituciones de investigacion:**
-Harvard (Sinclair), Stanford, Buck Institute, Mayo Clinic, Karolinska, NIH/NIA, Baylor (GlyNAC), Altos Labs, SENS Foundation, Salk Institute, MIT (Guarente), Brigham/VITAL Trial, Cleveland Clinic (ApoB), Washington University (NMN), Graz (spermidina), Johns Hopkins, Copenhagen (ejercicio), Weizmann (microbioma), UCL (estres), Columbia (circadiano), Tufts, USC (Longo/FMD), y mas.
+**2. longevity-phenoage.ts — Edad biologica**
+- Formula PhenoAge (Levine, Aging 2018) con 9 biomarcadores
+- 7 modificadores: RDW, albumina, PCR, HbA1c, VitD, GFR, ferritina
+- Conversion automatica de unidades (mg/dL → mmol/L)
 
-**10 Hallmarks del Envejecimiento (Lopez-Otin 2023):**
-1. Inestabilidad genomica y acortamiento telomerico
-2. Alteraciones epigeneticas (relojes de Horvath, GrimAge, PhenoAge)
-3. Perdida de proteostasis (autofagia, UPS)
-4. Desregulacion de nutrientes (mTOR/AMPK/IGF-1/insulina/sirtuinas)
-5. Disfuncion mitocondrial (PGC-1alfa, mtDNA, ROS)
-6. Senescencia celular e inflammaging (SASP, IL-6, TNF-alfa)
-7. Agotamiento de celulas madre (nicho HSC)
-8. Comunicacion intercelular alterada (exosomas, microbioma)
-9. Inflamacion cronica de bajo grado (eje intestino-inmune)
-10. Disfuncion macroautofagica (mTOR, espermidina)
+**3. longevity-foda.ts — FODA computada**
+- Base de conocimiento para 11 biomarcadores
+- Fortalezas = top 4 biomarcadores score >80 por peso mortalidad
+- Debilidades = top 3 biomarcadores score <55
+- Oportunidades = intervenciones con evidencia nivel 1-2
+- Amenazas = riesgo proyectado por biomarcador + edad + historia familiar
+
+**4. longevity-projection.ts — Proyeccion Gompertz**
+- Mortalidad se duplica cada 8 anos (Gompertz 1825)
+- 5 niveles de deterioro: 1.5%/ano (optimo) a 10%/ano (critico)
+- Mejora terapeutica: 18% ano 1 → 12% → 8% → 4% → 1% (adherencia decae)
+- Riesgos por ano derivados de peores sistemas
+
+**5. longevity-wearables.ts — Integracion wearables (preparado)**
+- 13 metricas: HR reposo, HRV RMSSD, VO2max, pasos, sueno (duracion + profundo), glucosa CGM (promedio + TIR + CV), PA, SpO2 nocturno, grasa corporal, readiness, temperatura
+- Evidencia actualizada 2022-2025 para cada metrica
+- Si no hay datos de wearables: zero-impact (no afecta analisis)
+- Dispositivos soportados: Apple Watch, Oura Ring, Dexcom CGM, Withings, Garmin, Freestyle Libre
+
+**6. longevity-trends.ts — Tendencias longitudinales**
+- Deltas automaticos entre analisis (absolutos y porcentuales)
+- Velocidad de cambio mensual
+- Proyeccion: meses para alcanzar optimo o danger
+- Alertas si empeoramiento >20%
+
+#### Prompt del Sistema (SYSTEM_PROMPT) v3.0
+
+El prompt define la logica propietaria que Claude sigue para generar narrativa:
+- Fuentes condensadas de instituciones de nivel mundial
+- Estudios clave 2024-2026 (22 estudios verificados)
+- Jerarquia de urgencia basada en biomarcadores
+- Interacciones farmacologicas (10 pares criticos)
+- Contraindicaciones por condicion (7 condiciones)
+- Regla de no-duplicacion de moleculas
+- hUC-MSC como unica celula madre permitida
 
 #### Pool de Intervenciones (14 categorias, 120+ moleculas)
 
@@ -721,5 +871,6 @@ interface ClinicalHistory {
 
 ---
 
-**Documento generado por Longevity IA — Marzo 2026**
-**Confidencial — Uso interno y de inversionistas**
+*Documento generado por Longevity IA v3.0 — Marzo 2026*
+
+*Derechos reservados - Longevity Clinic SA de CV*
