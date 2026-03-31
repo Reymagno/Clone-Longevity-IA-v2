@@ -85,80 +85,10 @@ HALLMARKS OF AGING (Lopez-Otin 2023) que evalúas:
 10. Disfunción macroautofágica
 
 ══════════════════════════════════════════════════════════════
-LÓGICA PROPIETARIA LONGEVITY IA — SYSTEM SCORES (v2.0)
+NOTA: systemScores, overallScore, longevity_age, projectionData y projectionFactors
+se calculan por el MOTOR MATEMÁTICO (funciones sigmoideas, PhenoAge, Gompertz).
+NO los calcules — el código los sobreescribirá. Genera valores placeholder (0).
 ══════════════════════════════════════════════════════════════
-
-Cada sistema se puntúa 0-100 usando EXACTAMENTE esta fórmula:
-1. Identifica los biomarcadores disponibles para ese sistema
-2. Clasifica cada biomarcador: óptimo=100, normal=75, warning=40, danger=15
-3. Aplica el PESO de cada biomarcador según su poder predictivo de mortalidad
-4. Score del sistema = promedio ponderado de los biomarcadores disponibles
-5. Si no hay biomarcadores para un sistema, NO lo incluyas (omitir, no inventar)
-
-PESOS POR SISTEMA (biomarcador: peso relativo):
-
-CARDIOVASCULAR:
-- LDL: 0.20 | HDL: 0.15 | Triglicéridos: 0.15 | Colesterol total: 0.10
-- ApoB: 0.20 (si disponible, desplaza LDL a 0.10) | Lp(a): 0.10 (si disponible)
-- TG/HDL ratio: 0.10 (proxy resistencia insulina y partículas LDL densas)
-
-METABÓLICO:
-- Glucosa: 0.25 | HbA1c: 0.30 (si disponible, desplaza glucosa a 0.15)
-- Insulina: 0.20 (si disponible) | Ácido úrico: 0.15 | HOMA-IR: 0.10 (si calculable)
-
-HEPÁTICO:
-- ALT: 0.25 | AST: 0.20 | GGT: 0.25 (predictor mortalidad CV independiente)
-- Fosfatasa alcalina: 0.10 | Bilirrubina total: 0.10 | Albumina: 0.10
-
-RENAL:
-- Creatinina: 0.30 | GFR/TFG: 0.40 (si disponible, desplaza creatinina a 0.15)
-- BUN/Urea: 0.15 | Ácido úrico: 0.15
-- Si hay datos urinarios: ACR 0.25 (desplaza creatinina a 0.10, BUN a 0.10) | Microalbúmina 0.15 | Proteinuria 24h 0.15
-
-INMUNE:
-- Leucocitos: 0.25 | Neutrófilos: 0.20 | Linfocitos: 0.25
-- Ratio Neutrófilos/Linfocitos: 0.30 (si calculable, desplaza neutrófilos y linfocitos a 0.10 cada uno)
-
-HEMATOLÓGICO:
-- Hemoglobina: 0.25 | Hematocrito: 0.15 | RDW: 0.25 (predictor mortalidad independiente)
-- Plaquetas: 0.15 | VCM: 0.10 | HCM: 0.10
-
-INFLAMATORIO:
-- PCR ultrasensible: 0.40 | Homocisteína: 0.30 | Ferritina: 0.30
-- Si solo hay uno disponible, ese biomarcador = 100% del peso
-
-VITAMINAS:
-- Vitamina D: 0.35 | Vitamina B12: 0.25 | Ferritina: 0.20 (proxy hierro)
-- Ácido fólico: 0.20 (si disponible)
-
-overallScore = promedio ponderado de SOLO los sistemas que tienen datos.
-Ponderación: CV=0.20, Metabólico=0.20, Inflamatorio=0.15, Hepático=0.12, Renal=0.10, Hematológico=0.10, Inmune=0.08, Vitaminas=0.05.
-
-Escala de interpretación:
-- 85-100: Óptimo (biomarcadores en rangos de longevidad)
-- 65-84: Normal (dentro de referencia pero subóptimo para longevidad)
-- 40-64: Atención (fuera de rango óptimo, intervención recomendada)
-- 0-39: Crítico (riesgo activo, intervención urgente)
-
-══════════════════════════════════════════════════════════════
-LÓGICA PROPIETARIA LONGEVITY IA — EDAD BIOLÓGICA (v2.0)
-══════════════════════════════════════════════════════════════
-
-longevity_age = edad_cronológica + ajuste_biológico
-
-Cálculo del ajuste:
-1. Base = overallScore del paciente
-2. Si overallScore >= 85: ajuste = -(edad_cronológica * 0.08) → rejuvenecimiento ~8%
-3. Si overallScore 65-84: ajuste = -(edad_cronológica * 0.03) → rejuvenecimiento ~3%
-4. Si overallScore 40-64: ajuste = +(edad_cronológica * 0.05) → envejecimiento acelerado ~5%
-5. Si overallScore < 40: ajuste = +(edad_cronológica * 0.12) → envejecimiento acelerado ~12%
-
-Modificadores adicionales (acumulativos):
-- RDW > 14%: +1 año | Albumina < 4.0: +2 años | PCR > 3.0: +2 años
-- VitD > 60 ng/mL: -1 año | HbA1c < 5.2%: -1 año | GFR > 90: -0.5 años
-- Ferritina > 200 (hombres) o > 150 (mujeres): +1 año
-
-Redondear a entero. longevity_age no puede ser < 18 ni > edad_cronológica + 15.
 
 ══════════════════════════════════════════════════════════════
 LÓGICA PROPIETARIA LONGEVITY IA — FODA MÉDICA (v2.0)
@@ -185,31 +115,6 @@ AMENAZAS (3 exactas): Enfermedades o condiciones futuras DERIVADAS de las debili
 - Incluir probability (Alta/Media/Baja)
 
 REGLA: Cada punto del FODA debe estar DIRECTAMENTE vinculado a un biomarcador del paciente con su valor actual. No usar generalidades.
-
-══════════════════════════════════════════════════════════════
-LÓGICA PROPIETARIA LONGEVITY IA — PROYECCIÓN 10 AÑOS (v2.0)
-══════════════════════════════════════════════════════════════
-
-projectionData: 10 puntos (años 1-10), cada uno con withoutIntervention y withIntervention (scores 0-100).
-
-Cálculo SIN intervención (deterioro natural):
-- Año 1: overallScore actual
-- Años 2-10: score_anterior × factor_deterioro_anual
-- Factor deterioro = 0.97 si overallScore > 70 (deterioro lento del 3%/año)
-- Factor deterioro = 0.94 si overallScore 40-70 (deterioro moderado del 6%/año)
-- Factor deterioro = 0.90 si overallScore < 40 (deterioro rápido del 10%/año)
-- Modificador edad: si >60 años, multiplicar deterioro por 1.02 adicional por año
-- Mínimo: 15 (no puede bajar de 15)
-
-Cálculo CON intervención (mejora terapéutica):
-- Año 1: overallScore + (100 - overallScore) × 0.15 (mejora del 15% del gap al óptimo)
-- Años 2-3: mejora acumulativa adicional × 0.10/año (efecto terapéutico máximo)
-- Años 4-10: meseta con mantenimiento × 0.995/año (leve deterioro natural compensado)
-- Máximo: 95 (no puede alcanzar 100, siempre hay envejecimiento)
-
-yearRisk por año: máx 2 biomarcadores en riesgo, máx 2 condiciones posibles, 1 frase de urgencia.
-
-projectionFactors: exactamente 3 factores — los 3 biomarcadores con MAYOR impacto en la proyección del paciente (los más alterados o los más protectores). Cada uno con currentValue, optimalValue, medicalJustification (1 oración con autor+año+efecto), withoutProtocol (pronóstico sin intervenir), withProtocol (pronóstico con intervención).
 
 ══════════════════════════════════════════════════════════════
 LÓGICA PROPIETARIA LONGEVITY IA — JERARQUÍA DE URGENCIA
@@ -245,7 +150,7 @@ Cortisol libre 24h: 10-100 µg/24h | Proteinuria 24h: <150 mg/24h
 Cadmio: <2 µg/L | Mercurio: <20 µg/L | Plomo: <25 µg/L | Arsénico: <50 µg/L
 Eritrocitos orina: <3/campo | Leucocitos orina: <5/campo
 
-Calcula systemScores, overallScore, longevity_age, FODA, risks y proyección usando la LÓGICA PROPIETARIA LONGEVITY IA definida en el system prompt.
+Genera clinicalSummary, keyAlerts, FODA, risks y protocol. Los campos systemScores, overallScore, longevity_age, projectionData y projectionFactors se calculan por el motor matemático — genera valores placeholder (0).
 
 PROTOCOLO — 8-12 intervenciones de ≥4 categorías distintas:
 
@@ -1322,7 +1227,7 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 64000,
+      max_tokens: 16000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
@@ -1405,7 +1310,7 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
   }
 }
 
-REGLAS DE FORMATO: Scores: 85-100 óptimo, 65-84 normal, 40-64 atención, 0-39 crítico. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa/péptido si aplica; mechanism/expectedResult/action = 1 oración con biomarcador específico y valor). projectionData exactamente 10 puntos (años 1-10). projectionFactors exactamente 3 factores (withoutProtocol/withProtocol = 1 oración). Todo en español mexicano, lenguaje conciso.`
+REGLAS DE FORMATO: systemScores, overallScore, longevity_age, projectionData y projectionFactors = PLACEHOLDER (0/vacío), el motor matemático los calcula. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa/péptido si aplica; mechanism/expectedResult/action = 1 oración con biomarcador específico y valor). Todo en español mexicano, lenguaje conciso.`
 
 export async function reanalyzeWithClinicalHistory(
   parsedData: object,
@@ -1433,7 +1338,7 @@ export async function reanalyzeWithClinicalHistory(
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 64000,
+      max_tokens: 16000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
@@ -1472,7 +1377,7 @@ export async function reanalyzeWithClinicalHistory(
 // Regenera: clinicalSummary, protocol, projectionData, projectionFactors
 // ══════════════════════════════════════════════════════════════
 
-const PARTIAL_REANALYZE_PROMPT = `Regenera SOLO clinicalSummary, protocol, projectionData y projectionFactors. Las demás secciones (systemScores, overallScore, longevity_age, keyAlerts, swot, risks) ya están calculadas y se mantienen.
+const PARTIAL_REANALYZE_PROMPT = `Regenera SOLO clinicalSummary y protocol. Los demás campos (systemScores, overallScore, longevity_age, keyAlerts, swot, risks, projectionData, projectionFactors) se calculan por el motor matemático.
 
 PERSONALIZACIÓN CON HISTORIA CLÍNICA:
 - Protocolo ÚNICO para este paciente, 8-12 intervenciones de ≥4 categorías
@@ -1483,17 +1388,14 @@ PERSONALIZACIÓN CON HISTORIA CLÍNICA:
 - Cada molécula UNA SOLA VEZ. Si tiene múltiples beneficios, combínalos en un solo "mechanism"
 - Células madre: SOLO hUC-MSC cordón umbilical. NUNCA médula ósea ni tejido adiposo
 - Dosis formato: "Xmg Nx/día". clinicalTrial: nombre ensayo o "Sin ensayo nombrado — evidencia: Autor, Revista, Año"
-- Calcular projectionData con la LÓGICA PROPIETARIA de proyección del system prompt
 - Urgencia: immediate=riesgo vital, high=danger sin riesgo vital, medium=warning, low=optimización
 
 JSON (sin markdown):
 {
   "clinicalSummary": "",
-  "protocol": [{ "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }],
-  "projectionData": [{ "year": 1, "withoutIntervention": 0, "withIntervention": 0, "yearRisk": { "biomarkers": [], "conditions": [], "urgencyNote": "" } }],
-  "projectionFactors": [{ "factor": "", "currentValue": "", "optimalValue": "", "medicalJustification": "", "withoutProtocol": "", "withProtocol": "" }]
+  "protocol": [{ "number": 1, "category": "", "molecule": "", "dose": "", "mechanism": "", "evidence": "", "clinicalTrial": "", "targetBiomarkers": [], "expectedResult": "", "action": "", "urgency": "medium" }]
 }
-projectionData: 10 puntos (años 1-10). projectionFactors: 3 factores. Español mexicano, técnico.`
+Español mexicano, técnico y conciso.`
 
 export async function reanalyzePartial(
   parsedData: object,
@@ -1523,7 +1425,7 @@ export async function reanalyzePartial(
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 24000,
+      max_tokens: 12000,
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
