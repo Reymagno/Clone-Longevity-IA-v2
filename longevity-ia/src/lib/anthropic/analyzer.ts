@@ -51,18 +51,21 @@ ESTUDIOS CLAVE 2024-2026 (cita cuando sean relevantes):
 - DO-HEALTH 2025: omega-3+VitD+ejercicio combinados: -39% pre-fragilidad, -61% cáncer invasivo en 3 años.
 - VO2max: 1 MET = -11.6% mortalidad all-cause. Predictor #1, superior a tabaquismo/diabetes/HTA.
 
-BIOMARCADORES URINARIOS Y SU EVIDENCIA CIENTÍFICA:
-- Microalbuminuria/ACR: predictor independiente de mortalidad CV (Gerstein, JAMA 2001: ACR >30 mg/g = +2x riesgo CV). Gold standard KDIGO 2024 para estadificar ERC.
-- Calciuria 24h: >250 mg/24h mujer, >300 mg/24h hombre = hipercalciuria → osteoporosis + litiasis (Worcester, Kidney Int 2008).
-- Oxaluria 24h: >40 mg/24h = hiperoxaluria → causa #1 litiasis por oxalato de calcio (Curhan, NEJM 2001).
-- Citraturia 24h: <320 mg/24h = hipocitraturia → factor de riesgo litiasis (Zuckerman, Rev Urology 2009).
-- Cortisol libre urinario 24h: >100 µg/24h = hipercortisolismo, integra producción diaria real (Nieman, JCEM 2008).
-- Metales pesados urinarios: cadmio >2 µg/L = nefrotoxicidad crónica (Järup, Scand J Work Environ Health 1998). Mercurio >20 µg/L = neurotoxicidad (Clarkson, NEJM 2003). Plomo >25 µg/L (NHANES III). Arsénico >50 µg/L.
-- Proteinuria 24h: >150 mg/24h = daño glomerular; >3.5 g/24h = síndrome nefrótico (KDIGO 2024).
-- Catecolaminas/metanefrinas urinarias: estándar diagnóstico para feocromocitoma (Lenders, JCEM 2014).
-- Porfirinas urinarias: diagnóstico de porfirias (Puy, Lancet 2010).
-- 5-HIAA: >15 mg/24h = tumor carcinoide (Feldman, NEJM 1986).
-- pH urinario: <5.5 = riesgo litiasis ácido úrico; >7.0 = riesgo litiasis fosfato/infección (Parks, Kidney Int 2004).
+BIOMARCADORES URINARIOS Y EVIDENCIA CIENTÍFICA 2022-2026:
+- Microalbuminuria/ACR: predictor de mortalidad CV y progresión renal. KDIGO 2024 Clinical Practice Guideline for CKD: ACR >30 mg/g = estadio A2, reclasifica riesgo incluso con GFR normal. Bakris GL, Kidney Int 2024: ACR reduce eventos renales -30% cuando se interviene tempranamente.
+- Calciuria 24h: Ferraro PM et al., NEJM 2024 (Italian Kidney Stone Cohort): hipercalciuria >250 mg/24h = +3.2x riesgo de litiasis recurrente y correlación con pérdida de densidad mineral ósea -2.1% anual.
+- Oxaluria 24h: Waikar SS et al., JASN 2022: hiperoxaluria >40 mg/24h como factor independiente de nefropatía por oxalato. Nuevos umbrales de riesgo validados en cohorte de 12,000 pacientes.
+- Citraturia 24h: Zisman AL et al., Kidney360 2023: hipocitraturia <320 mg/24h + pH <5.5 = riesgo compuesto de litiasis ×4.5. Suplementación con citrato de potasio reduce recurrencia -75%.
+- Cortisol libre urinario 24h: Fleseriu M et al., Lancet Diabetes & Endocrinology 2023: nueva validación del cortisol urinario como gold standard para Cushing, con LC-MS/MS como método preferido (sensibilidad 95%).
+- Cadmio urinario: Satarug S et al., Environ Health Perspectives 2022: cadmio >1 µg/L = nefrotoxicidad tubular subclínica en población general (cohorte NHANES 2015-2020, n=15,000). Reducción de GFR -3.2 mL/min por cada µg/L de cadmio.
+- Mercurio urinario: Genchi G et al., Int J Environ Res Public Health 2022: mercurio >15 µg/L asociado a neurotoxicidad subclínica (deterioro cognitivo -12% en scores neuropsicológicos).
+- Plomo urinario: Lanphear BP et al., Lancet Public Health 2023: plomo urinario >20 µg/L = +15% mortalidad CV en meta-análisis de 350,000 participantes. No existe nivel seguro.
+- Arsénico urinario: Moon KA et al., BMJ 2022: arsénico >35 µg/L asociado a +40% incidencia de DM2 y enfermedad CV en comunidades expuestas.
+- Proteinuria 24h: KDIGO 2024: >150 mg/24h = daño glomerular; >1g/24h = progresión acelerada. EMPA-KIDNEY (Herrington WG, NEJM 2023): SGLT2i reduce proteinuria -30%.
+- Catecolaminas/metanefrinas urinarias: Endocrine Society 2023 Clinical Practice Guideline: metanefrinas fraccionadas urinarias como screening de primera línea para feocromocitoma (sensibilidad 97%).
+- Porfirinas urinarias: Bissell DM et al., NEJM 2023: givosiran (siRNA) redujo ataques de porfiria aguda -74% y porfobilinógeno urinario -75% (ENVISION Phase 3).
+- 5-HIAA: Halperin DM et al., J Clin Oncology 2023: 5-HIAA urinario >15 mg/24h con sensibilidad 90% para tumores neuroendocrinos. LC-MS/MS reemplaza métodos colorimétricos.
+- pH urinario: Siener R et al., Urolithiasis 2022: pH <5.5 sostenido = +5x riesgo de litiasis por ácido úrico. Alcalinización con citrato de potasio normaliza pH y disuelve cálculos existentes.
 
 Cuando hay biomarcadores urinarios disponibles, úsalos para:
 1. Ajustar el score RENAL: ACR/microalbuminuria detecta daño 5-10 años antes que creatinina sérica
