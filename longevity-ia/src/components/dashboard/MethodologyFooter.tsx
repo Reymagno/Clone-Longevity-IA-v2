@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Info, ChevronDown } from 'lucide-react'
 
 interface MethodologyFooterProps {
-  type: 'scores' | 'age' | 'swot' | 'projection'
+  type: 'scores' | 'age' | 'swot' | 'projection' | 'trends'
 }
 
 const METHODOLOGIES: Record<string, { title: string; content: string }> = {
@@ -46,18 +46,24 @@ Límites: mínimo 18 años, máximo edad cronológica + 15 años.
 La edad biológica refleja cómo funcionan los sistemas del cuerpo en comparación con la edad cronológica, basándose en biomarcadores con evidencia de predicción de mortalidad (RDW, albumina, PCR, GFR — Shamliyan, Annals of Internal Medicine 2012; Fulop, Nature Reviews Immunology 2018).`,
   },
   swot: {
-    title: 'Metodología Longevity IA — FODA Médica v2.0',
-    content: `El análisis FODA médico evalúa el perfil del paciente en 4 dimensiones vinculadas directamente a sus biomarcadores:
+    title: 'Metodología Longevity IA — FODA Médica Híbrida v3.0',
+    content: `El análisis FODA médico utiliza una arquitectura híbrida que combina selección determinista con narrativa personalizada por IA:
 
-Fortalezas (4): Biomarcadores en rango ÓPTIMO de longevidad que protegen activamente al paciente. Criterio: valor en rango óptimo con evidencia de reducción de mortalidad. Incluye impacto cuantificado.
+FASE 1 — Selección matemática (Motor Longevity IA):
+El motor matemático selecciona los biomarcadores del FODA usando funciones sigmoideas y pesos de mortalidad calibrados con UK Biobank, NHANES III y Framingham. Criterios: Fortaleza = score sigmoid >= 80/100, Debilidad = score sigmoid < 55/100. El orden de prioridad se determina por el peso de mortalidad de cada biomarcador (ej: LDL=0.95, PCR=0.92, RDW=0.90, glucosa=0.88).
 
-Debilidades (3): Biomarcadores en rango ATENCIÓN o CRÍTICO que representan un riesgo actual. Criterio: valor fuera de rango óptimo con evidencia de aumento de mortalidad/morbilidad. Incluye probabilidad de progresión (Alta/Media/Baja).
+FASE 2 — Narrativa personalizada (Claude Sonnet 4.6):
+La IA redacta el detalle de cada punto integrando la historia clínica del paciente: edad, ejercicio, dieta, antecedentes familiares, medicamentos actuales, sueño y estrés. Esto permite que el mismo biomarcador alterado se explique diferente para un atleta de 30 años vs un sedentario de 65 con antecedentes familiares de diabetes.
 
-Oportunidades (4): Intervenciones disponibles con alta probabilidad de mejorar las debilidades identificadas. Criterio: existe intervención con evidencia nivel 1-2 (ensayos clínicos o meta-análisis) que puede mover el biomarcador al rango óptimo. Incluye impacto esperado cuantificado.
+Fortalezas (4): Biomarcadores con score >= 80 que protegen activamente al paciente, ordenados por peso de mortalidad. Incluye impacto cuantificado personalizado.
 
-Amenazas (3): Enfermedades o condiciones futuras derivadas de las debilidades actuales si no se interviene. Criterio: riesgo proyectado basado en el patrón de biomarcadores alterados + historia familiar + edad del paciente. Incluye probabilidad (Alta/Media/Baja).
+Debilidades (3): Biomarcadores con score < 55 que representan riesgo actual, ordenados por peso de mortalidad. Incluye probabilidad de progresión (Alta/Media/Baja) calculada matemáticamente.
 
-Cada punto del FODA está respaldado por evidencia científica con autor, revista y año de publicación. Los rangos utilizados son rangos óptimos de longevidad, más estrictos que los rangos de referencia convencionales de laboratorio.`,
+Oportunidades (4): Intervenciones con evidencia nivel 1-2 para cada debilidad. Impacto esperado cuantificado.
+
+Amenazas (3): Enfermedades derivadas de las debilidades, con probabilidad ajustada por edad y antecedentes.
+
+Cada punto está respaldado por evidencia científica (autor, revista, año, magnitud del efecto). Si la historia clínica no está disponible, el sistema usa narrativa basada en templates con evidencia preconfigurada como fallback.`,
   },
   projection: {
     title: 'Metodología Longevity IA — Proyección a 10 Años v2.0',
@@ -79,6 +85,24 @@ Con intervención (protocolo terapéutico):
 • Techo máximo: 95 puntos (el envejecimiento biológico siempre existe).
 
 Los 3 factores de proyección representan los biomarcadores con mayor impacto en el pronóstico del paciente, con valores actuales, objetivos óptimos, y pronóstico con/sin protocolo basado en evidencia científica.`,
+  },
+  trends: {
+    title: 'Metodología Longevity IA — Tendencias Longitudinales v1.0',
+    content: `Las tendencias longitudinales comparan biomarcadores entre múltiples análisis del mismo paciente para detectar patrones de mejora o deterioro.
+
+Cálculo de dirección: Se compara el valor actual vs el valor anterior. El umbral de cambio significativo es 5% del rango óptimo del biomarcador — cambios menores se clasifican como "estable".
+
+Velocidad de cambio: Se calcula la tasa mensual de cambio (delta / meses entre análisis). Con esta tasa se proyecta linealmente cuántos meses faltan para alcanzar el rango óptimo (si mejora) o el rango crítico (si empeora).
+
+Scores por sistema: Se grafican los scores calculados por el motor matemático (funciones sigmoideas) de cada sistema a lo largo del tiempo, permitiendo ver si un sistema mejora o empeora consistentemente.
+
+Alertas de velocidad: Se generan alertas automáticas cuando un biomarcador empeora >10% (warning) o >20% (danger) entre análisis, o cuando la proyección lineal indica que alcanzará nivel crítico en menos de 12 meses.
+
+Clasificación general: Si >2x más biomarcadores mejoran que empeoran = "Mejorando". Si >2x más empeoran = "Empeorando". Si ninguno cambió = "Estable". En cualquier otro caso = "Mixta".
+
+Metadatos: Se analizan 24 biomarcadores con rangos óptimos de longevidad (más estrictos que referencia convencional) calibrados con UK Biobank, NHANES III y Framingham.
+
+Limitación: Las proyecciones asumen tendencia lineal constante. En realidad, las intervenciones terapéuticas pueden cambiar la trayectoria significativamente.`,
   },
 }
 

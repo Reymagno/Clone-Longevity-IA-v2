@@ -8,7 +8,7 @@ import { NewPatientModal } from '@/components/patients/NewPatientModal'
 import { AnalysisCards } from '@/components/patients/AnalysisCards'
 import { Button } from '@/components/ui/button'
 import type { Patient, PatientWithLatestResult } from '@/types'
-import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, Hash } from 'lucide-react'
+import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, Hash, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
@@ -16,6 +16,7 @@ import { LogoIcon } from '@/components/ui/logo-icon'
 import { toast } from 'sonner'
 import { MedicoLinksPanel } from '@/components/patients/MedicoLinksPanel'
 import { InvitationsPanel } from '@/components/medico/InvitationsPanel'
+import { AlertsPanel } from '@/components/medico/AlertsPanel'
 import { ClinicaDashboard } from '@/components/clinica/ClinicaDashboard'
 
 export default function PatientsPage() {
@@ -26,7 +27,9 @@ export default function PatientsPage() {
   const [showModal, setShowModal] = useState(false)
   const [showMedicoPanel, setShowMedicoPanel] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
+  const [showAlerts, setShowAlerts] = useState(false)
   const [pendingInvCount, setPendingInvCount] = useState(0)
+  const [alertCount, setAlertCount] = useState(0)
   const [search, setSearch] = useState('')
   const [userRole, setUserRole] = useState<string>('paciente')
   const [medicoCode, setMedicoCode] = useState<string | null>(null)
@@ -65,6 +68,15 @@ export default function PatientsPage() {
           .eq('status', 'pending')
         setPendingInvCount(pendingLinks?.length ?? 0)
         if ((pendingLinks?.length ?? 0) > 0) setShowInvitations(true)
+
+        // Count unread alerts
+        const { data: unreadAlerts } = await supabase
+          .from('medico_alerts')
+          .select('id')
+          .eq('medico_user_id', user.id)
+          .eq('read', false)
+          .eq('dismissed', false)
+        setAlertCount(unreadAlerts?.length ?? 0)
 
         // Load linked patients (from invitations)
         const { data: links } = await supabase
@@ -243,15 +255,26 @@ export default function PatientsPage() {
           </Link>
           <div className="flex items-center gap-2">
             {userRole === 'medico' && (
-              <Button variant="outline" size="sm" onClick={() => setShowInvitations(true)} className="relative">
-                <Bell size={14} />
-                <span className="hidden sm:inline">Invitaciones</span>
-                {pendingInvCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-accent text-background text-[10px] font-bold flex items-center justify-center">
-                    {pendingInvCount}
-                  </span>
-                )}
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowAlerts(true)} className="relative">
+                  <AlertTriangle size={14} />
+                  <span className="hidden sm:inline">Alertas</span>
+                  {alertCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                      {alertCount > 99 ? '99+' : alertCount}
+                    </span>
+                  )}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowInvitations(true)} className="relative">
+                  <Bell size={14} />
+                  <span className="hidden sm:inline">Invitaciones</span>
+                  {pendingInvCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-accent text-background text-[10px] font-bold flex items-center justify-center">
+                      {pendingInvCount}
+                    </span>
+                  )}
+                </Button>
+              </>
             )}
             {(userRole === 'paciente' || userRole === 'medico') && (
               <Button onClick={() => setShowModal(true)}>
@@ -396,6 +419,13 @@ export default function PatientsPage() {
         <InvitationsPanel
           onClose={() => setShowInvitations(false)}
           onAccepted={() => { loadPatients(); setPendingInvCount(c => Math.max(0, c - 1)) }}
+        />
+      )}
+
+      {userRole === 'medico' && showAlerts && (
+        <AlertsPanel
+          onClose={() => setShowAlerts(false)}
+          onAlertRead={() => setAlertCount(c => Math.max(0, c - 1))}
         />
       )}
     </div>

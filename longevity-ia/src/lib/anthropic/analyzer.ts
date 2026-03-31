@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { computeAllScores, type ParsedBiomarkers } from '../longevity-scoring'
+import { computeAllScores, type ParsedBiomarkers, type AllScoresResult } from '../longevity-scoring'
 import { computePhenoAge } from '../longevity-phenoage'
-import { computeFODA } from '../longevity-foda'
+import { computeFODA, computeFODASkeleton, type FODASkeleton, type FODAResult } from '../longevity-foda'
 import { computeProjection } from '../longevity-projection'
 import { analyzeWearables, applyWearableAdjustments, type WearableData } from '../longevity-wearables'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -763,6 +763,172 @@ function deduplicateProtocol(protocol: object[]): void {
   }
 }
 
+// ─── FODA Híbrido: Motor selecciona, Claude redacta ──────────────────────────
+
+const FODA_ENRICH_PROMPT = `Eres el narrador clínico de Longevity IA. El motor matemático ya seleccionó los biomarcadores del FODA y su orden de prioridad. Tu trabajo es REDACTAR el detalle narrativo de cada punto, personalizado con la historia clínica del paciente.
+
+REGLAS:
+- NO cambies los biomarcadores seleccionados, NO cambies el orden, NO agregues ni quites puntos
+- Personaliza cada "detail" incorporando contexto del paciente: edad, ejercicio, dieta, antecedentes, medicamentos, sueño, estrés
+- Cada "detail" debe ser 1-2 oraciones: mecanismo fisiopatológico + contexto clínico del paciente
+- Cada "evidence" debe citar autor, revista, año y magnitud del efecto cuantificado
+- expectedImpact (fortalezas y oportunidades): dato cuantificado de beneficio
+- probability (debilidades y amenazas): "Alta", "Media" o "Baja" — ya viene precalculada, ajústala solo si la historia clínica lo justifica claramente
+- Español mexicano, lenguaje técnico y preciso
+- Responde ÚNICAMENTE con JSON válido, sin markdown`
+
+/**
+ * FODA Híbrido: el motor selecciona biomarcadores (determinista),
+ * Claude redacta el detalle narrativo (contextualizado).
+ *
+ * Si la llamada a Claude falla, retorna el FODA estático como fallback.
+ */
+async function enrichFODANarrative(
+  skeleton: FODASkeleton,
+  patientContext: PatientContextForPrompt | null,
+  computed: AllScoresResult,
+  patientAge: number,
+): Promise<FODAResult> {
+  // Fallback estático (el FODA del motor puro)
+  const staticFoda = computeFODA(computed, patientAge)
+
+  // Si no hay historia clínica, no vale la pena llamar a Claude
+  if (!patientContext?.clinical_history) return staticFoda
+
+  // Si el skeleton no tiene suficientes items para enriquecer, usar estático
+  const totalItems = skeleton.strengths.length + skeleton.weaknesses.length +
+    skeleton.opportunities.length + skeleton.threats.length
+  if (totalItems < 4) return staticFoda
+
+  try {
+    const contextText = formatClinicalHistory(patientContext)
+
+    const skeletonJson = JSON.stringify({
+      strengths: skeleton.strengths.map(s => ({
+        biomarker: s.biomarkerName,
+        value: s.value,
+        unit: s.unit,
+        score: s.score,
+        templateLabel: s.templateLabel,
+        templateDetail: s.templateDetail,
+        templateEvidence: s.templateEvidence,
+        templateImpact: s.templateImpactOrProbability,
+      })),
+      weaknesses: skeleton.weaknesses.map(s => ({
+        biomarker: s.biomarkerName,
+        value: s.value,
+        unit: s.unit,
+        score: s.score,
+        templateLabel: s.templateLabel,
+        templateDetail: s.templateDetail,
+        templateEvidence: s.templateEvidence,
+        templateProbability: s.templateImpactOrProbability,
+      })),
+      opportunities: skeleton.opportunities.map(s => ({
+        biomarker: s.biomarkerName,
+        value: s.value,
+        unit: s.unit,
+        score: s.score,
+        templateLabel: s.templateLabel,
+        templateDetail: s.templateDetail,
+        templateEvidence: s.templateEvidence,
+        templateImpact: s.templateImpactOrProbability,
+      })),
+      threats: skeleton.threats.map(s => ({
+        biomarker: s.biomarkerName,
+        value: s.value,
+        unit: s.unit,
+        score: s.score,
+        templateLabel: s.templateLabel,
+        templateDetail: s.templateDetail,
+        templateEvidence: s.templateEvidence,
+        templateProbability: s.templateImpactOrProbability,
+      })),
+    }, null, 2)
+
+    const userMsg = `${contextText}
+
+SKELETON FODA (selección determinista del motor matemático — NO cambiar biomarcadores ni orden):
+${skeletonJson}
+
+Genera el FODA enriquecido con narrativa personalizada. JSON exacto:
+{
+  "strengths": [{ "label": "", "detail": "", "evidence": "", "expectedImpact": "" }],
+  "weaknesses": [{ "label": "", "detail": "", "evidence": "", "probability": "Alta|Media|Baja" }],
+  "opportunities": [{ "label": "", "detail": "", "evidence": "", "expectedImpact": "" }],
+  "threats": [{ "label": "", "detail": "", "evidence": "", "probability": "Alta|Media|Baja" }]
+}`
+
+    let rawText = ''
+    await client.messages
+      .stream({
+        model: MODEL,
+        max_tokens: 4000,
+        temperature: 0,
+        system: FODA_ENRICH_PROMPT,
+        messages: [{ role: 'user', content: userMsg }],
+      })
+      .on('text', (text) => { rawText += text })
+      .finalMessage()
+
+    if (!rawText) return staticFoda
+
+    const firstBrace = rawText.indexOf('{')
+    const lastBrace = rawText.lastIndexOf('}')
+    if (firstBrace === -1 || lastBrace === -1) return staticFoda
+
+    const parsed = JSON.parse(rawText.slice(firstBrace, lastBrace + 1)) as Record<string, unknown>
+
+    // Merge: narrativa de Claude + metadata del motor
+    const enriched: FODAResult = {
+      strengths: mergeNarrativeWithSkeleton(parsed.strengths, skeleton.strengths, 'strength', staticFoda.strengths),
+      weaknesses: mergeNarrativeWithSkeleton(parsed.weaknesses, skeleton.weaknesses, 'weakness', staticFoda.weaknesses),
+      opportunities: mergeNarrativeWithSkeleton(parsed.opportunities, skeleton.opportunities, 'opportunity', staticFoda.opportunities),
+      threats: mergeNarrativeWithSkeleton(parsed.threats, skeleton.threats, 'threat', staticFoda.threats),
+    }
+
+    return enriched
+  } catch (e) {
+    console.warn('FODA híbrido: Claude falló, usando FODA estático:', e)
+    return staticFoda
+  }
+}
+
+/** Combina la narrativa de Claude con los datos numéricos del motor */
+function mergeNarrativeWithSkeleton(
+  claudeItems: unknown,
+  skeletonItems: FODASkeleton['strengths'],
+  category: string,
+  fallbackItems: FODAResult['strengths'],
+): FODAResult['strengths'] {
+  const claudeArr = Array.isArray(claudeItems) ? claudeItems : []
+
+  return skeletonItems.map((skel, i) => {
+    const claude = (claudeArr[i] && typeof claudeArr[i] === 'object') ? claudeArr[i] as Record<string, unknown> : null
+    const fallback = fallbackItems[i]
+
+    if (!claude) return fallback
+
+    const item: FODAResult['strengths'][0] = {
+      label: ensureString(claude.label, skel.templateLabel),
+      detail: ensureString(claude.detail, skel.templateDetail),
+      evidence: ensureString(claude.evidence, skel.templateEvidence),
+      biomarker: skel.biomarkerName,
+      value: skel.value,
+      score: skel.score,
+    }
+
+    if (category === 'strength' || category === 'opportunity') {
+      item.expectedImpact = ensureString(claude.expectedImpact, skel.templateImpactOrProbability)
+    }
+    if (category === 'weakness' || category === 'threat') {
+      item.probability = ensureString(claude.probability, skel.templateImpactOrProbability)
+    }
+
+    return item
+  })
+}
+
 // ─── Validación compartida del JSON de respuesta ──────────────────────────────
 
 function validateAndParseAiResponse(rawText: string, patientAge?: number, patientGender?: string, wearableData?: WearableData | null): { parsedData?: object; aiAnalysis: object } {
@@ -1122,10 +1288,30 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
     throw new Error(`Claude no devolvió respuesta. (${files.length} archivo${files.length > 1 ? 's' : ''} enviado${files.length > 1 ? 's' : ''})`)
   }
 
-  const validated = validateAndParseAiResponse(rawText)
+  const validated = validateAndParseAiResponse(
+    rawText,
+    patientContext?.age,
+    patientContext?.gender
+  )
 
   if (!validated.parsedData) {
     throw new Error('Estructura JSON incompleta: falta parsedData')
+  }
+
+  // ── FODA Híbrido: enriquecer con narrativa de Claude si hay historia clínica ──
+  if (patientContext?.clinical_history && validated.parsedData) {
+    try {
+      const pd = validated.parsedData as ParsedBiomarkers
+      const pAge = patientContext.age ?? 40
+      const computed = computeAllScores(pd, patientContext.gender ?? 'male')
+      if (Object.keys(computed.systemScores).length > 0) {
+        const skeleton = computeFODASkeleton(computed, pAge)
+        const enrichedFoda = await enrichFODANarrative(skeleton, patientContext, computed, pAge)
+        ;(validated.aiAnalysis as Record<string, unknown>).swot = enrichedFoda
+      }
+    } catch (e) {
+      console.warn('FODA híbrido en analyzeLabFiles falló, usando FODA estático:', e)
+    }
   }
 
   return {
@@ -1212,6 +1398,21 @@ export async function reanalyzeWithClinicalHistory(
   if (!rawText) throw new Error('Claude no devolvió respuesta.')
 
   const validated = validateAndParseAiResponse(rawText, patientContext.age, patientContext.gender)
+
+  // ── FODA Híbrido ──
+  if (patientContext.clinical_history) {
+    try {
+      const pd = parsedData as ParsedBiomarkers
+      const computed = computeAllScores(pd, patientContext.gender)
+      if (Object.keys(computed.systemScores).length > 0) {
+        const skeleton = computeFODASkeleton(computed, patientContext.age)
+        const enrichedFoda = await enrichFODANarrative(skeleton, patientContext, computed, patientContext.age)
+        ;(validated.aiAnalysis as Record<string, unknown>).swot = enrichedFoda
+      }
+    } catch (e) {
+      console.warn('FODA híbrido en reanalyzeWithClinicalHistory falló:', e)
+    }
+  }
 
   return validated.aiAnalysis
 }
@@ -1306,12 +1507,20 @@ export async function reanalyzePartial(
   const pd = parsedData as ParsedBiomarkers
   const computed = computeAllScores(pd, patientContext.gender)
   const phenoAge = computePhenoAge(pd, patientContext.age, patientContext.gender)
-  const foda = computeFODA(computed, patientContext.age)
   const projection = computeProjection(computed, patientContext.age)
 
   let sysScores = Object.keys(computed.systemScores).length > 0 ? computed.systemScores : cached.systemScores as Record<string, number>
   let overall = Object.keys(computed.systemScores).length > 0 ? computed.overallScore : cached.overallScore as number
   let bioAge = phenoAge.biologicalAge > 0 ? phenoAge.biologicalAge : cached.longevity_age as number
+
+  // FODA Híbrido: motor selecciona, Claude redacta (con fallback estático)
+  let foda: FODAResult
+  if (Object.keys(computed.systemScores).length > 0 && patientContext.clinical_history) {
+    const skeleton = computeFODASkeleton(computed, patientContext.age)
+    foda = await enrichFODANarrative(skeleton, patientContext, computed, patientContext.age)
+  } else {
+    foda = computeFODA(computed, patientContext.age)
+  }
 
   // Integración de wearables (si hay datos disponibles)
   const wearableAnalysis = analyzeWearables(wearableData)

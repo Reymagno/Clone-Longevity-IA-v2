@@ -1,7 +1,7 @@
 # LONGEVITY IA — Manual Ejecutivo
 
 **Plataforma de Inteligencia Artificial para Medicina de Longevidad**
-Version 3.0 | Marzo 2026
+Version 3.1 | Marzo 2026
 
 ---
 
@@ -38,7 +38,7 @@ Longevity IA es una plataforma SaaS de analisis medico impulsada por inteligenci
 - Motor matematico propietario con funciones sigmoideas calibradas con UK Biobank, NHANES III y Framingham
 - Scoring determinista: mismo perfil siempre genera mismo score (no depende de IA para calculos)
 - Edad biologica con formula PhenoAge (Levine 2018) + 7 modificadores basados en evidencia
-- FODA medica computada programaticamente (no generada por IA) con 11 biomarcadores y evidencia citada
+- FODA medica hibrida v3.0: motor matematico selecciona biomarcadores (determinista), Claude redacta narrativa personalizada con historia clinica del paciente
 - Proyeccion a 10 anos con modelo Gompertz (mortalidad se duplica cada 8 anos)
 - Verificacion de interacciones farmacologicas (10 pares criticos) y contraindicaciones por condicion
 - Integracion preparada para 13 metricas de wearables (HR, HRV, VO2max, pasos, sueno, CGM, SpO2)
@@ -157,7 +157,7 @@ El mercado global de software de analisis clinicos esta valuado en USD 3.2B (202
 8. Cuando la IA termina, aparece boton "Ver Analisis IA Completo"
 
 #### 4.1.4 Dashboard de Salud
-El dashboard tiene 11 pestanas:
+El dashboard tiene 12 pestanas (la pestana "Tendencias" es exclusiva para medicos):
 
 | Pestana | Contenido |
 |---------|-----------|
@@ -172,6 +172,7 @@ El dashboard tiene 11 pestanas:
 | Estudio | Archivo original del laboratorio |
 | Celulas Madre | Calculo personalizado de dosis MSC y exosomas |
 | Historia Clinica | Visualizacion de datos clinicos recopilados |
+| Tendencias | Comparacion longitudinal entre analisis: biomarcadores, scores por sistema, velocidad de cambio (solo medicos) |
 
 #### 4.1.5 Chat con Longevity IA
 - Disponible como boton flotante en el dashboard
@@ -229,7 +230,8 @@ El dashboard tiene 11 pestanas:
 
 | Funcion | Paciente propio | Paciente vinculado |
 |---------|:-:|:-:|
-| Ver dashboard completo (11 pestanas) | Si | Si |
+| Ver dashboard completo (12 pestanas) | Si | Si |
+| Tendencias longitudinales (tab exclusivo) | Si | Si |
 | Chatbot Longevity IA | Si | Si |
 | Referencias verificadas (PubMed, Semantic Scholar, OpenAlex) | Si | Si |
 | Notas clinicas SOAP | Si | Si |
@@ -273,7 +275,31 @@ Se calculan automaticamente con los datos del paciente (sin ingreso manual):
 | Framingham Risk | Score de puntos simplificado | D'Agostino, Circulation 2008 |
 | ASCVD Risk | Pooled Cohort Equations | Goff, Circulation 2014 |
 
-#### 4.2.9 Alertas Inteligentes
+#### 4.2.9 Tendencias Longitudinales (Exclusivo Medico)
+
+Dashboard visual que compara biomarcadores entre multiples analisis del mismo paciente. Disponible como tab "Tendencias" en el dashboard (solo visible para medicos). Requiere al menos 2 analisis del paciente.
+
+**4 secciones interactivas:**
+
+| Seccion | Contenido |
+|---------|-----------|
+| Resumen | Conteo de biomarcadores mejorando/empeorando/estables, grafica del Score General en linea de tiempo, alertas de velocidad de deterioro |
+| Biomarcadores | Lista expandible de cada biomarcador con mini-grafica de evolucion, delta %, velocidad mensual y proyeccion |
+| Scores por Sistema | Grafica de linea temporal por cada sistema (cardiovascular, metabolico, hepatico, renal, etc.) mostrando la evolucion del score sigmoid |
+| Velocidad de Cambio | Tabla ordenada por tasa de cambio: biomarcadores con mayor velocidad de deterioro primero, con proyeccion de meses hasta nivel critico u optimo |
+
+**Alertas de velocidad:**
+- Si un biomarcador empeora >10%: alerta warning
+- Si empeora >20%: alerta danger
+- Si la proyeccion lineal indica nivel critico en <12 meses: alerta con mensaje "A este ritmo de deterioro, [biomarcador] llegara a nivel critico en ~X meses"
+
+**Scores por sistema en linea de tiempo:**
+- Cada sistema muestra su score (0-100) en cada analisis con grafica de linea
+- Ejemplo: "Cardiovascular: 72 → 68 → 63 en 3 analisis" con indicador de tendencia
+
+**Datos analizados:** 24 biomarcadores con rangos optimos de longevidad, delta absoluto, delta porcentual, velocidad de cambio mensual, proyeccion a rango optimo o critico.
+
+#### 4.2.10 Alertas Inteligentes
 - Notificacion cuando un paciente sube nuevo analisis
 - Alerta si algun biomarcador entra en rango DANGER
 - Alerta si biomarcador empeora >20% vs analisis anterior
@@ -378,7 +404,7 @@ src/
 │   ├── auth/RegisterModal.tsx    # Registro por rol
 │   ├── clinica/ClinicaDashboard  # Panel clinica
 │   ├── dashboard/
-│   │   ├── DashboardTabs.tsx     # Orquestador de 11 pestanas
+│   │   ├── DashboardTabs.tsx     # Orquestador de 12 pestanas
 │   │   ├── InstantDashboard.tsx  # Dashboard instantaneo (Fase 2)
 │   │   ├── LongevityChat.tsx     # Chatbot conversacional
 │   │   ├── ExportButtons.tsx     # Exportacion PDF/imagen
@@ -541,7 +567,9 @@ Longevity IA v3.0 usa una arquitectura de 2 capas:
 
 **Capa 1 — Claude IA (narrativa):** Extrae biomarcadores de PDFs/imagenes, genera clinicalSummary, keyAlerts, risks y protocol.
 
-**Capa 2 — Motor matematico (deterministico):** Recalcula systemScores, overallScore, longevity_age, FODA y proyeccion con funciones matematicas. Los valores de Claude se sobreescriben con calculos reproducibles y auditables.
+**Capa 2 — Motor matematico (deterministico):** Recalcula systemScores, overallScore, longevity_age y proyeccion con funciones matematicas. Los valores de Claude se sobreescriben con calculos reproducibles y auditables.
+
+**Capa 3 — FODA Hibrida (motor + IA):** El motor matematico selecciona QUE biomarcadores entran en el FODA y en QUE ORDEN (determinista, basado en scores sigmoid y pesos de mortalidad). Claude redacta el DETALLE NARRATIVO de cada punto, personalizado con la historia clinica del paciente (ejercicio, dieta, antecedentes familiares, medicamentos, sueno, estres). Si no hay historia clinica o Claude falla, se usa FODA estatica con templates de evidencia como fallback.
 
 ```
 PDF/Imagen
@@ -561,10 +589,15 @@ PDF/Imagen
 [OVERRIDE MATEMATICO]        ← Codigo deterministico (0.1s)
     │  computeAllScores()    → systemScores (funciones sigmoideas)
     │  computePhenoAge()     → longevity_age (Levine 2018)
-    │  computeFODA()         → FODA (basado en scores)
     │  computeProjection()   → proyeccion (Gompertz)
     │  analyzeWearables()    → ajustes por wearables (si hay datos)
     │  deduplicateProtocol() → eliminar moleculas repetidas
+    │
+    ▼
+[FODA HIBRIDA]               ← Motor + Claude (~10-15s adicionales)
+    │  computeFODASkeleton() → seleccion determinista de biomarcadores
+    │  enrichFODANarrative() → Claude redacta detalle con historia clinica
+    │  fallback:             → computeFODA() si no hay HC o Claude falla
     │
     ▼
 [GUARDAR ai_analysis]       ← UPDATE en lab_results
@@ -583,12 +616,17 @@ PDF/Imagen
 - 7 modificadores: RDW, albumina, PCR, HbA1c, VitD, GFR, ferritina
 - Conversion automatica de unidades (mg/dL → mmol/L)
 
-**3. longevity-foda.ts — FODA computada**
-- Base de conocimiento para 11 biomarcadores
-- Fortalezas = top 4 biomarcadores score >80 por peso mortalidad
+**3. longevity-foda.ts — FODA Hibrida (motor + IA)**
+- Base de conocimiento para 11 biomarcadores con pesos de mortalidad
+- Arquitectura de 2 fases:
+  - Fase 1 (determinista): computeFODASkeleton() selecciona biomarcadores y orden por score sigmoid + mortalityWeight
+  - Fase 2 (narrativa): enrichFODANarrative() en analyzer.ts hace llamada ligera a Claude (~4K tokens, ~10-15s) para redactar detalle personalizado con historia clinica
+- Fortalezas = top 4 biomarcadores score >=80 por peso mortalidad
 - Debilidades = top 3 biomarcadores score <55
 - Oportunidades = intervenciones con evidencia nivel 1-2
 - Amenazas = riesgo proyectado por biomarcador + edad + historia familiar
+- Fallback automatico: si no hay historia clinica o Claude falla, usa computeFODA() con templates estaticos
+- Resultado: seleccion reproducible (siempre los mismos biomarcadores) + redaccion personalizada (diferente para atleta de 30 vs sedentario de 65)
 
 **4. longevity-projection.ts — Proyeccion Gompertz**
 - Mortalidad se duplica cada 8 anos (Gompertz 1825)

@@ -13,6 +13,7 @@ import { FilesTab } from './tabs/FilesTab'
 import { StemCellTab } from './tabs/StemCellTab'
 import { ClinicalHistoryTab } from './tabs/ClinicalHistoryTab'
 import { CompareTab } from './tabs/CompareTab'
+import { TrendsTab } from './tabs/TrendsTab'
 import { ExportButtons } from './ExportButtons'
 import { LongevityChat } from './LongevityChat'
 import { InstantDashboard } from './InstantDashboard'
@@ -21,7 +22,7 @@ import { toast } from 'sonner'
 import {
   BarChart2, Shield, Activity, FlaskConical,
   TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Upload, ChevronDown, FileText,
-  GitCompareArrows, RefreshCw, Trash2
+  GitCompareArrows, RefreshCw, Trash2, LineChart
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, hashString } from '@/lib/utils'
@@ -51,6 +52,7 @@ const TABS = [
   { id: 8, label: 'Estudio', icon: ScanSearch },
   { id: 9, label: 'Células Madre', icon: HeartPulse },
   { id: 10, label: 'Historia Clínica', icon: FileText },
+  { id: 11, label: 'Tendencias', icon: LineChart },
 ]
 
 export function DashboardTabs({ patient, result, allResults = [], viewerRole = 'paciente' }: DashboardTabsProps) {
@@ -308,7 +310,13 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
         {/* Tabs — solo si hay análisis */}
         {analysis && parsedData && (
           <div className="flex overflow-x-auto scrollbar-none -mb-px">
-            {TABS.filter(tab => !(viewerRole === 'medico' && !isOwnPatient && tab.id === 10)).map((tab) => {
+            {TABS.filter(tab => {
+              // Hide Historia Clínica for linked medico patients
+              if (viewerRole === 'medico' && !isOwnPatient && tab.id === 10) return false
+              // Tendencias only for medicos
+              if (tab.id === 11 && viewerRole !== 'medico') return false
+              return true
+            }).map((tab) => {
               const Icon = tab.icon
               const showDot = tab.id === 10 && !patient.clinical_history
               return (
@@ -416,7 +424,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <ProjectionTab analysis={analysis} />
         )}
         {activeTab === 5 && (
-          <ProtocolTab protocol={analysis.protocol} viewerRole={viewerRole} />
+          <ProtocolTab protocol={analysis.protocol} viewerRole={viewerRole} patient={patient} />
         )}
         {activeTab === 6 && (
           <OrganHealthTab parsedData={parsedData} analysis={analysis} />
@@ -446,6 +454,12 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <ClinicalHistoryTab
             patient={patient}
             result={result}
+          />
+        )}
+        {activeTab === 11 && viewerRole === 'medico' && (
+          <TrendsTab
+            patient={patient}
+            allResults={allResults}
           />
         )}
       </div>

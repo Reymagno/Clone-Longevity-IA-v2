@@ -1,18 +1,23 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { AIAnalysis } from '@/types'
+import type { AIAnalysis, Patient } from '@/types'
 import { getUrgencyColor, getUrgencyLabel } from '@/lib/utils'
-import { FlaskConical, BookOpen, Target, Zap } from 'lucide-react'
+import { FlaskConical, BookOpen, Target, Zap, FileDown } from 'lucide-react'
 import { VerifiedReferences } from '../VerifiedReferences'
+import { PrescriptionBuilder } from '@/components/medico/PrescriptionBuilder'
 
 interface ProtocolTabProps {
   protocol: AIAnalysis['protocol']
   viewerRole?: string
+  patient?: Patient
 }
 
-export function ProtocolTab({ protocol, viewerRole }: ProtocolTabProps) {
+export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps) {
+  const [showPrescription, setShowPrescription] = useState(false)
+
   if (!protocol || protocol.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground">
@@ -27,7 +32,24 @@ export function ProtocolTab({ protocol, viewerRole }: ProtocolTabProps) {
         <p className="text-sm text-muted-foreground">
           {protocol.length} intervenciones basadas en evidencia científica
         </p>
+        {viewerRole === 'medico' && patient && (
+          <button
+            onClick={() => setShowPrescription(true)}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-accent text-background rounded-xl hover:bg-accent/90 transition-all shadow-accent/20 shadow-lg"
+          >
+            <FileDown size={13} />
+            Generar Prescripcion
+          </button>
+        )}
       </div>
+
+      {showPrescription && patient && (
+        <PrescriptionBuilder
+          patient={patient}
+          protocol={protocol}
+          onClose={() => setShowPrescription(false)}
+        />
+      )}
 
       {/* Referencias verificadas — solo para médicos */}
       {viewerRole === 'medico' && (

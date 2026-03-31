@@ -27,6 +27,28 @@ export interface FODAItem {
   score: number
 }
 
+/** Skeleton ligero que el motor entrega a Claude para enriquecer narrativamente */
+export interface FODASkeleton {
+  strengths: FODASkeletonItem[]
+  weaknesses: FODASkeletonItem[]
+  opportunities: FODASkeletonItem[]
+  threats: FODASkeletonItem[]
+}
+
+export interface FODASkeletonItem {
+  biomarkerKey: string
+  biomarkerName: string
+  unit: string
+  value: number
+  score: number
+  mortalityWeight: number
+  category: 'strength' | 'weakness' | 'opportunity' | 'threat'
+  templateLabel: string
+  templateEvidence: string
+  templateDetail: string
+  templateImpactOrProbability: string
+}
+
 export interface FODAResult {
   strengths: FODAItem[]      // 4 exactas
   weaknesses: FODAItem[]     // 3 exactas
@@ -410,5 +432,86 @@ function genericThreat(age: number): FODAItem {
     evidence: 'López-Otín, Hallmarks of Aging, Cell 2023',
     probability: age > 55 ? 'Alta' : age > 40 ? 'Media' : 'Baja',
     biomarker: 'Edad', value: age, score: Math.max(20, 100 - age),
+  }
+}
+
+// ── Skeleton para FODA Híbrido ──────────────────────────────────
+
+/**
+ * Genera el skeleton determinista del FODA: qué biomarcadores entran, en qué
+ * categoría, en qué orden. Claude luego redacta el detalle narrativo.
+ * Retorna los mismos biomarcadores que computeFODA seleccionaría,
+ * pero con metadata suficiente para que Claude personalice.
+ */
+export function computeFODASkeleton(
+  scores: AllScoresResult,
+  patientAge: number
+): FODASkeleton {
+  const allBiomarkers: { key: string; scored: ScoredBiomarker }[] = []
+
+  for (const system of Object.values(scores.systems)) {
+    if (!system) continue
+    for (const [key, scored] of Object.entries(system.biomarkers)) {
+      allBiomarkers.push({ key, scored })
+    }
+  }
+
+  const strong = allBiomarkers
+    .filter(b => b.scored.score >= 80 && KNOWLEDGE[b.key])
+    .sort((a, b) => (KNOWLEDGE[b.key]?.mortalityWeight ?? 0) - (KNOWLEDGE[a.key]?.mortalityWeight ?? 0))
+
+  const weak = allBiomarkers
+    .filter(b => b.scored.score < 55 && KNOWLEDGE[b.key])
+    .sort((a, b) => (KNOWLEDGE[b.key]?.mortalityWeight ?? 0) - (KNOWLEDGE[a.key]?.mortalityWeight ?? 0))
+
+  function toSkeletonItem(b: { key: string; scored: ScoredBiomarker }, cat: FODASkeletonItem['category']): FODASkeletonItem {
+    const k = KNOWLEDGE[b.key]!
+    let templateLabel = '', templateEvidence = '', templateDetail = '', templateImpactOrProbability = ''
+    switch (cat) {
+      case 'strength':
+        templateLabel = k.strengthLabel
+        templateEvidence = k.strengthEvidence
+        templateDetail = k.strengthDetail
+        templateImpactOrProbability = k.strengthImpact
+        break
+      case 'weakness':
+        templateLabel = k.weaknessLabel
+        templateEvidence = k.weaknessEvidence
+        templateDetail = k.weaknessDetail
+        templateImpactOrProbability = k.weaknessProbability(b.scored.score)
+        break
+      case 'opportunity':
+        templateLabel = k.opportunityLabel
+        templateEvidence = k.opportunityEvidence
+        templateDetail = k.opportunityDetail
+        templateImpactOrProbability = k.opportunityImpact
+        break
+      case 'threat':
+        templateLabel = k.threatDisease
+        templateEvidence = k.threatEvidence
+        templateDetail = k.threatDetail
+        templateImpactOrProbability = k.threatProbability(b.scored.score, patientAge)
+        break
+    }
+    return {
+      biomarkerKey: b.key,
+      biomarkerName: k.nameES,
+      unit: k.unit,
+      value: b.scored.value,
+      score: b.scored.score,
+      mortalityWeight: k.mortalityWeight,
+      category: cat,
+      templateLabel,
+      templateEvidence,
+      templateDetail,
+      templateImpactOrProbability,
+    }
+  }
+
+  return {
+    strengths: strong.slice(0, 4).map(b => toSkeletonItem(b, 'strength')),
+    weaknesses: weak.slice(0, 3).map(b => toSkeletonItem(b, 'weakness')),
+    opportunities: weak.slice(0, 4).map(b => toSkeletonItem(b, 'opportunity')),
+    threats: weak.slice(0, 3).map(b => toSkeletonItem(b, 'threat')),
   }
 }

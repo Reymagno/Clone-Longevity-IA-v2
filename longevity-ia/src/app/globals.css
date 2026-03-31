@@ -131,9 +131,15 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
 .animate-slide-up { animation: slideUp 0.4s ease-out; }
 .animate-slide-in { animation: slideIn 0.3s ease-out; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out; }
 .animate-slide-down { animation: slideDown 0.3s ease-out; }
 .animate-scale-in { animation: scaleIn 0.3s ease-out; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }

@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { reanalyzeWithClinicalHistory, reanalyzePartial } from '@/lib/anthropic/analyzer'
+import { generateAlertsForResult } from '@/lib/generate-alerts'
 
 function hashClinicalHistory(ch: unknown): string {
   return createHash('sha256').update(JSON.stringify(ch ?? null)).digest('hex').slice(0, 16)
@@ -101,6 +102,14 @@ export async function POST(
           .single()
 
         if (updateError) { send({ ok: false, error: `Error al guardar: ${updateError.message}` }); return }
+
+        // Generate alerts for linked medicos (non-blocking)
+        generateAlertsForResult(
+          supabase, result.patient_id, params.id,
+          updated.parsed_data as Record<string, unknown> | null,
+          analysisWithMeta as Record<string, unknown>,
+          false
+        ).catch(e => console.error('Alert generation on reanalyze failed:', e))
 
         send({ ok: true, step: 'done', resultId: params.id, result: updated })
 

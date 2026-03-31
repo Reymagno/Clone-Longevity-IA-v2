@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server'
 import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { extractBiomarkers, reanalyzeWithClinicalHistory } from '@/lib/anthropic/analyzer'
+import { generateAlertsForResult } from '@/lib/generate-alerts'
 
 /** Compute a combined SHA-256 hash of all file buffers for cache lookup */
 function computeFilesHash(buffers: Buffer[]): string {
@@ -215,6 +216,14 @@ export async function POST(request: NextRequest) {
           send({ ok: false, error: `Error al guardar análisis: ${updateError.message}` })
           return
         }
+
+        // Generate alerts for linked medicos (non-blocking)
+        generateAlertsForResult(
+          supabase, patientId!, labResult.id,
+          parsedData as Record<string, unknown>,
+          aiAnalysisWithMeta as Record<string, unknown>,
+          true
+        ).catch(e => console.error('Alert generation failed:', e))
 
         send({ ok: true, step: 'done', resultId: labResult.id, patientId })
 

@@ -888,7 +888,13 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
 
       {/* Notas clínicas del médico */}
       {viewerRole === 'medico' && patient && resultId && (
-        <ClinicalNotesPanel patientId={patient.id} resultId={resultId} viewerRole={viewerRole} />
+        <ClinicalNotesPanel
+          patientId={patient.id}
+          resultId={resultId}
+          viewerRole={viewerRole}
+          parsedData={parsedData}
+          protocol={analysis?.protocol}
+        />
       )}
 
       <MethodologyFooter type="scores" />
