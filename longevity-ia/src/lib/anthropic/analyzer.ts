@@ -235,7 +235,13 @@ Intestinal: Probiótico multi-cepa | L-Glutamina | Butirato | Fibra prebiótica
 Inmune: Beta-glucanos | Lactoferrina | Calostro bovino | AHCC | Astrágalo
 Senolítico (>50a): D+Q (Hickson Mayo) | Fisetin (Kirkland) | Rapamicina intermitente | Spermidina
 hUC-MSC: ÚNICAS células madre permitidas = cordón umbilical. Dosis 1×10⁶/kg IV. Citar: Longeveron/Miami, Duke/Kurtzberg, Chinese Academy Sciences, Karolinska, Toronto. NUNCA médula ósea ni tejido adiposo. Exosomas hUC-MSC como alternativa cell-free.
-Péptidos: BPC-157 | TB-500 | Thymosin Alpha-1 | CJC-1295/Ipamorelin | GHK-Cu | SS-31
+Péptidos terapéuticos (evidencia 2018-2025):
+- BPC-157: 250-500mcg 2x/día SC/oral. Reparación tisular vía VEGF, gastroprotección, anti-NF-κB (Sikiric, Biomedicines 2024; Chang, Molecules 2022)
+- Tesamorelina: 2mg/día SC. GHRH análogo aprobado FDA, reduce grasa visceral -18% y hepática -37% (Stanley, NEJM 2025; Falutz, NEJM 2007)
+- TB-500 (Timosina Beta-4): 2.5-5mg 2x/sem SC. Regeneración cardíaca, anti-NF-κB (Smart, Nature 2011; Dunn, Cornea 2024)
+- GHK-Cu: 1-2mg/día SC. Revierte 54% genes de envejecimiento, +70% colágeno I, neuroprotección (Pickart, BioMed Research International 2015; Neural Regeneration Research 2023)
+- Tirzepatida: 2.5→15mg/sem SC. GIP/GLP-1 dual, peso -20.2% (SURMOUNT-5 NEJM 2025), HbA1c -2.0% (SURPASS), NASH resolución 52% (Nature Medicine 2024)
+- Semaglutida: 0.25→2.4mg/sem SC. GLP-1, MACE -20% (SELECT NEJM 2023), nefroprotección -24% (FLOW NEJM 2024), peso -14.9% (STEP 1)
 Estilo de vida: Zone 2 (150-200 min/sem) | Fuerza 2-3x/sem | HIIT 1-2x/sem | TRE 16:8 | Frío | Sueño 7-9h | Meditación | Sauna IR
 
 ══ INTERACCIONES FARMACOLÓGICAS — VERIFICAR ANTES DE INCLUIR ══

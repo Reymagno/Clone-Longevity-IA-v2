@@ -14,6 +14,7 @@ import { StemCellTab } from './tabs/StemCellTab'
 import { ClinicalHistoryTab } from './tabs/ClinicalHistoryTab'
 import { CompareTab } from './tabs/CompareTab'
 import { TrendsTab } from './tabs/TrendsTab'
+import { PeptidesTab } from './tabs/PeptidesTab'
 import { ExportButtons } from './ExportButtons'
 import { LongevityChat } from './LongevityChat'
 import { InstantDashboard } from './InstantDashboard'
@@ -22,7 +23,7 @@ import { toast } from 'sonner'
 import {
   BarChart2, Shield, Activity, FlaskConical,
   TrendingUp, ClipboardList, ArrowLeft, HeartPulse, ScanSearch, Upload, ChevronDown, FileText,
-  GitCompareArrows, RefreshCw, Trash2, LineChart
+  GitCompareArrows, RefreshCw, Trash2, LineChart, Dna
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, hashString } from '@/lib/utils'
@@ -53,6 +54,7 @@ const TABS = [
   { id: 9, label: 'Células Madre', icon: HeartPulse },
   { id: 10, label: 'Historia Clínica', icon: FileText },
   { id: 11, label: 'Tendencias', icon: LineChart },
+  { id: 12, label: 'Péptidos', icon: Dna },
 ]
 
 export function DashboardTabs({ patient, result, allResults = [], viewerRole = 'paciente' }: DashboardTabsProps) {
@@ -463,6 +465,13 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <TrendsTab
             patient={patient}
             allResults={allResults}
+          />
+        )}
+        {activeTab === 12 && parsedData && (
+          <PeptidesTab
+            patient={patient}
+            parsedData={parsedData}
+            analysis={analysis}
           />
         )}
       </div>

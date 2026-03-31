@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   FileText, Plus, Clock, ChevronDown, Send, Stethoscope,
   FlaskConical, ClipboardList, Tag, CheckCircle2, XCircle,
-  Edit3, MessageSquare, Search,
+  Edit3, MessageSquare, Search, Trash2,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import type { ParsedData, ProtocolItem } from '@/types'
@@ -139,6 +139,17 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
       toast.error('Error al guardar la nota')
       return false
     } finally { setSaving(false) }
+  }
+
+  async function deleteNote(noteId: string) {
+    try {
+      const res = await fetch(`/api/medico/notes?noteId=${noteId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar')
+      toast.success('Nota eliminada')
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+    } catch {
+      toast.error('Error al eliminar la nota')
+    }
   }
 
   async function handleSaveSoap() {
@@ -368,7 +379,7 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
             </div>
           )}
 
-          <NotesList notes={notes.filter(n => n.note_type === 'soap')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} />
+          <NotesList notes={notes.filter(n => n.note_type === 'soap')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} onDelete={deleteNote} />
         </div>
       )}
 
@@ -433,7 +444,7 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
             </div>
           )}
 
-          <NotesList notes={notes.filter(n => n.note_type === 'comment')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} />
+          <NotesList notes={notes.filter(n => n.note_type === 'comment')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} onDelete={deleteNote} />
         </div>
       )}
 
@@ -560,7 +571,7 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
             </div>
           )}
 
-          <NotesList notes={notes.filter(n => n.note_type === 'protocol_adjustment')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} />
+          <NotesList notes={notes.filter(n => n.note_type === 'protocol_adjustment')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} onDelete={deleteNote} />
         </div>
       )}
 
@@ -631,7 +642,7 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
             </div>
           )}
 
-          <NotesList notes={notes.filter(n => n.note_type === 'diagnosis')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} />
+          <NotesList notes={notes.filter(n => n.note_type === 'diagnosis')} loading={loading} expandedNote={expandedNote} setExpandedNote={setExpandedNote} noteTypeLabel={noteTypeLabel} noteTypeColor={noteTypeColor} onDelete={deleteNote} />
         </div>
       )}
     </div>
@@ -640,13 +651,14 @@ export function ClinicalNotesPanel({ patientId, resultId, viewerRole, parsedData
 
 // ── Notes List Sub-component ────────────────────────────────────
 
-function NotesList({ notes, loading, expandedNote, setExpandedNote, noteTypeLabel, noteTypeColor }: {
+function NotesList({ notes, loading, expandedNote, setExpandedNote, noteTypeLabel, noteTypeColor, onDelete }: {
   notes: ClinicalNote[]
   loading: boolean
   expandedNote: string | null
   setExpandedNote: (id: string | null) => void
   noteTypeLabel: (type: string) => string
   noteTypeColor: (type: string) => string
+  onDelete: (noteId: string) => void
 }) {
   return (
     <div className="max-h-64 overflow-y-auto">
@@ -686,6 +698,16 @@ function NotesList({ notes, loading, expandedNote, setExpandedNote, noteTypeLabe
 
             {expandedNote === note.id && (
               <div className="px-4 pb-3 animate-fade-in">
+                {/* Botón eliminar */}
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={() => { if (window.confirm('¿Eliminar esta nota?')) onDelete(note.id) }}
+                    className="flex items-center gap-1 px-2 py-1 text-[9px] text-red-400/60 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                  >
+                    <Trash2 size={9} />
+                    Eliminar
+                  </button>
+                </div>
                 {/* SOAP fields */}
                 {note.note_type === 'soap' && (
                   <div className="grid grid-cols-2 gap-2">
