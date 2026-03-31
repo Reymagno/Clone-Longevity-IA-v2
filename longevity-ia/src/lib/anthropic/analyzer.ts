@@ -1117,7 +1117,7 @@ export async function extractBiomarkers(files: AnalyzeFileParams[], onProgress?:
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 8000,
+      max_tokens: 16000,  // 164 biomarcadores (sangre + orina) necesitan espacio
       temperature: 0,
       system: 'Eres un sistema experto en extracción de datos de laboratorio clínico. Extraes biomarcadores con precisión y los clasificas según rangos óptimos de longevidad. Respondes ÚNICAMENTE con JSON válido.',
       messages: [{ role: 'user', content: userContent }],
@@ -1227,7 +1227,7 @@ export async function analyzeLabFiles(files: AnalyzeFileParams[], patientContext
   await client.messages
     .stream({
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: 32000,  // parsedData (164 biomarcadores) + aiAnalysis necesitan más espacio
       temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
