@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ClipboardList, CheckCircle2, RefreshCw, Brain, Sparkles } from 'lucide-react'
+import { ArrowLeft, ClipboardList, CheckCircle2, RefreshCw, Brain, Sparkles, Mic } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import type { Patient, ClinicalHistory } from '@/types'
+import type { Patient, ClinicalHistory, VoiceNote } from '@/types'
 import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
+import { VoiceRecorder } from '@/components/voice/VoiceRecorder'
 
 interface LatestResult {
   id: string
@@ -22,6 +23,7 @@ export default function IntakePage({ params }: { params: { id: string } }) {
   const [showChat, setShowChat] = useState(false)
   const [justCompleted, setJustCompleted] = useState(false)
   const [reanalyzing, setReanalyzing] = useState(false)
+  const [isMedico, setIsMedico] = useState(false)
 
   function loadData() {
     Promise.all([
@@ -33,9 +35,11 @@ export default function IntakePage({ params }: { params: { id: string } }) {
         .order('result_date', { ascending: false })
         .limit(1)
         .single(),
-    ]).then(([{ data: p }, { data: r }]) => {
+      supabase.auth.getUser(),
+    ]).then(([{ data: p }, { data: r }, { data: { user } }]) => {
       setPatient(p)
       setLatestResult(r ?? null)
+      setIsMedico(user?.user_metadata?.role === 'medico')
       setLoading(false)
       if (!p?.clinical_history) setShowChat(true)
     })
@@ -189,13 +193,29 @@ export default function IntakePage({ params }: { params: { id: string } }) {
               onClick={() => { setShowChat(true); setJustCompleted(false) }}
               className="flex items-center gap-2 text-sm text-muted-foreground border border-border px-4 py-2 rounded-lg hover:text-foreground hover:border-accent/50 transition-colors"
             >
-              <RefreshCw size={14} />
-              Actualizar historial clínico
+              {isMedico ? <Mic size={14} /> : <RefreshCw size={14} />}
+              {isMedico ? 'Agregar nota de voz' : 'Actualizar historial clínico'}
             </button>
           </div>
 
+        ) : isMedico ? (
+          /* Médico → grabación de voz */
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground mb-1">Historia Clínica por Voz</h1>
+              <p className="text-sm text-muted-foreground">
+                Describe padecimientos, recomendaciones y aspectos importantes de {patient.name}. La IA analizará y utilizará esta información en el análisis del paciente.
+              </p>
+            </div>
+
+            <IntakeMedicoVoicePanel
+              patientId={params.id}
+              patientName={patient.name}
+              onNoteSaved={() => { setJustCompleted(true); setShowChat(false); loadData() }}
+            />
+          </div>
         ) : (
-          /* Chat de intake */
+          /* Paciente → chat de intake */
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-1">Historia Clínica</h1>
@@ -213,6 +233,185 @@ export default function IntakePage({ params }: { params: { id: string } }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Panel de voz para médicos ────────────────────────────────────────────────
+
+function IntakeMedicoVoicePanel({
+  patientId,
+  patientName,
+  onNoteSaved,
+}: {
+  patientId: string
+  patientName: string
+  onNoteSaved: () => void
+}) {
+  const [saving, setSaving] = useState(false)
+  const [transcript, setTranscript] = useState('')
+  const [manualText, setManualText] = useState('')
+  const [savedNotes, setSavedNotes] = useState<VoiceNote[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch(`/api/voice-notes?patientId=${patientId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (!cancelled) setSavedNotes(data.notes || [])
+        }
+      } catch { /* silenciar */ }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [patientId])
+
+  async function saveNote(text: string) {
+    if (!text.trim()) return
+    setSaving(true)
+    try {
+      const formData = new FormData()
+      formData.append('patientId', patientId)
+      formData.append('transcript', text.trim())
+
+      const res = await fetch('/api/voice-notes', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('Error al guardar')
+
+      const data = await res.json()
+      setSavedNotes(prev => [data.note, ...prev])
+      setTranscript('')
+      setManualText('')
+      toast.success('Nota guardada y analizada por IA')
+      onNoteSaved()
+    } catch {
+      toast.error('No se pudo guardar la nota')
+    }
+    setSaving(false)
+  }
+
+  function handleVoiceTranscript(text: string) {
+    setTranscript(prev => prev ? `${prev} ${text}` : text)
+  }
+
+  const finalText = transcript || manualText
+
+  return (
+    <div className="space-y-6">
+      {/* Instrucciones */}
+      <div
+        className="card-medical p-5 border border-purple-500/20"
+        style={{ background: 'linear-gradient(to right, rgba(139,92,246,0.06), rgba(139,92,246,0.02))' }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}
+          >
+            <Mic size={18} style={{ color: '#8b5cf6' }} />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground text-sm mb-1">
+              Nota clínica por voz para {patientName}
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Describe padecimientos, hallazgos del examen físico, recomendaciones terapéuticas y aspectos importantes.
+              La IA extraerá datos clínicos relevantes y los incorporará al análisis del paciente.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Grabador */}
+      <div className="card-medical p-5 space-y-4">
+        <VoiceRecorder
+          onTranscript={handleVoiceTranscript}
+          placeholder="Presiona el micrófono y dicta la nota clínica del paciente"
+          disabled={saving}
+        />
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            {transcript ? 'Transcripción (puedes editar)' : 'O escribe manualmente'}
+          </label>
+          <textarea
+            value={transcript || manualText}
+            onChange={e => {
+              if (transcript) setTranscript(e.target.value)
+              else setManualText(e.target.value)
+            }}
+            rows={5}
+            placeholder="Paciente presenta dolor lumbar crónico de 6 meses de evolución, refractario a AINES. Se recomienda iniciar protocolo de BPC-157 y fisioterapia..."
+            className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-accent resize-y transition-colors"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => saveNote(finalText)}
+            disabled={!finalText.trim() || saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            {saving ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-background/30 border-t-background animate-spin" />
+                Analizando y guardando…
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} />
+                Guardar y analizar nota
+              </>
+            )}
+          </button>
+
+          {finalText.trim() && !saving && (
+            <button
+              onClick={() => { setTranscript(''); setManualText('') }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Notas recientes */}
+      {savedNotes.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Notas recientes ({savedNotes.length})
+          </p>
+          {savedNotes.slice(0, 3).map(note => (
+            <div key={note.id} className="card-medical p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Mic size={11} />
+                <span>
+                  {new Date(note.created_at).toLocaleDateString('es-MX', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                {note.transcript}
+              </p>
+              {note.ai_summary && (
+                <details className="group">
+                  <summary className="text-xs text-accent cursor-pointer flex items-center gap-1 hover:underline">
+                    <Sparkles size={10} />
+                    Ver análisis IA
+                  </summary>
+                  <div className="mt-2 bg-accent/5 border border-accent/15 rounded-lg px-3 py-2 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                    {note.ai_summary}
+                  </div>
+                </details>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
