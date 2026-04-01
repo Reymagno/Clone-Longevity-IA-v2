@@ -50,7 +50,7 @@ const TABS = [
   { id: 5, label: 'Órganos', icon: HeartPulse },
   { id: 6, label: 'Protocolo', icon: ClipboardList },
   { id: 7, label: 'Células Madre', icon: HeartPulse },
-  { id: 8, label: 'Péptidos', icon: Dna },
+  { id: 8, label: 'Productos y suplementos', icon: Dna },
   { id: 9, label: 'Historia Clínica', icon: FileText },
   { id: 10, label: 'Comparar', icon: GitCompareArrows },
   { id: 11, label: 'Estudio', icon: ScanSearch },
