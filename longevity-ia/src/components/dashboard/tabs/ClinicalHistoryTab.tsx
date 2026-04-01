@@ -1,19 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
 import {
-  Activity, AlertTriangle, Apple, Brain, CheckCircle2, ChevronRight,
-  ClipboardList, Dumbbell, FileText, Heart, HeartPulse, Pill,
-  RefreshCw, Sparkles, ArrowLeft, Users, Shield, Zap, Droplets,
+  Activity, AlertTriangle, Apple, Brain, CheckCircle2, ChevronRight, ChevronDown,
+  ClipboardList, Dumbbell, FileText, Heart, HeartPulse, Mic, Pill,
+  RefreshCw, Sparkles, ArrowLeft, Users, Shield, Zap, Droplets, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Patient, LabResult, ClinicalHistory } from '@/types'
+import { VoiceRecorder } from '@/components/voice/VoiceRecorder'
+import type { Patient, LabResult, ClinicalHistory, VoiceNote } from '@/types'
 
 interface Props {
   patient: Patient
   result: LabResult
+  viewerRole?: string
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,7 +35,8 @@ interface Section {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function ClinicalHistoryTab({ patient, result }: Props) {
+export function ClinicalHistoryTab({ patient, result, viewerRole = 'paciente' }: Props) {
+  const isMedico = viewerRole === 'medico'
   const router = useRouter()
   const [showChat, setShowChat] = useState(!patient.clinical_history)
   const [reanalyzing, setReanalyzing] = useState(false)
@@ -86,11 +89,43 @@ export function ClinicalHistoryTab({ patient, result }: Props) {
     }
   }
 
-  // ── Vista: chat de intake ──────────────────────────────────────────────────
-  if (showChat) {
+  // ── Vista: médico → grabación de voz ────────────────────────────────────────
+  if (isMedico && showChat) {
     return (
       <div className="max-w-2xl mx-auto space-y-5">
-        {/* Chat header */}
+        <div className="flex items-center gap-3">
+          {patient.clinical_history && (
+            <button
+              onClick={() => setShowChat(false)}
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors shrink-0"
+              aria-label="Volver al resumen"
+            >
+              <ArrowLeft size={15} />
+            </button>
+          )}
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              Historia Clínica por Voz
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Describe padecimientos, recomendaciones y aspectos importantes del paciente. La IA analizará y utilizará esta información en el análisis.
+            </p>
+          </div>
+        </div>
+
+        <MedicoVoicePanel
+          patientId={patient.id}
+          patientName={patient.name}
+          onNoteSaved={() => { setJustSaved(true); setShowChat(false) }}
+        />
+      </div>
+    )
+  }
+
+  // ── Vista: paciente → chat de intake ──────────────────────────────────────
+  if (!isMedico && showChat) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5">
         <div className="flex items-center gap-3">
           {patient.clinical_history && (
             <button
@@ -176,8 +211,10 @@ export function ClinicalHistoryTab({ patient, result }: Props) {
           onClick={() => { setShowChat(true); setJustSaved(false) }}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground border border-border px-4 py-2 rounded-lg hover:text-foreground hover:border-accent/40 hover:bg-accent/5 transition-all shrink-0"
         >
-          <RefreshCw size={14} />
-          {patient.clinical_history ? 'Actualizar historial' : 'Completar historial'}
+          {isMedico ? <Mic size={14} /> : <RefreshCw size={14} />}
+          {isMedico
+            ? 'Agregar nota de voz'
+            : patient.clinical_history ? 'Actualizar historial' : 'Completar historial'}
         </button>
       </div>
 
@@ -186,6 +223,9 @@ export function ClinicalHistoryTab({ patient, result }: Props) {
         <>
           {/* Summary cards grid */}
           <HistorySummary history={patient.clinical_history} />
+
+          {/* Voice Notes Section — solo médicos */}
+          {isMedico && <VoiceNotesSection patientId={patient.id} />}
 
           {/* Re-analyze CTA card */}
           <div
@@ -248,19 +288,392 @@ export function ClinicalHistoryTab({ patient, result }: Props) {
           </div>
 
           <h3 className="text-lg font-bold text-foreground mb-2">
-            Completa tu Historia Clínica
+            {isMedico ? 'Agregar Historia Clínica por Voz' : 'Completa tu Historia Clínica'}
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-7">
-            Un asistente conversacional recopilará tu información en ~10 minutos. Esta información personaliza tu protocolo de longevidad.
+            {isMedico
+              ? 'Dicta padecimientos, recomendaciones y aspectos importantes del paciente. La IA analizará y enriquecerá el análisis.'
+              : 'Un asistente conversacional recopilará tu información en ~10 minutos. Esta información personaliza tu protocolo de longevidad.'}
           </p>
 
           <button
             onClick={() => setShowChat(true)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-background text-sm font-semibold rounded-xl hover:bg-accent/90 transition-all shadow-sm"
           >
-            Comenzar Historia Clínica
-            <ChevronRight size={16} />
+            {isMedico ? <><Mic size={16} /> Grabar nota de voz</> : <>Comenzar Historia Clínica <ChevronRight size={16} /></>}
           </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Medico Voice Panel (pantalla completa de grabación para médicos) ────────
+
+function MedicoVoicePanel({
+  patientId,
+  patientName,
+  onNoteSaved,
+}: {
+  patientId: string
+  patientName: string
+  onNoteSaved: () => void
+}) {
+  const [saving, setSaving] = useState(false)
+  const [transcript, setTranscript] = useState('')
+  const [manualText, setManualText] = useState('')
+  const [savedNotes, setSavedNotes] = useState<VoiceNote[]>([])
+
+  // Cargar notas existentes
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch(`/api/voice-notes?patientId=${patientId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (!cancelled) setSavedNotes(data.notes || [])
+        }
+      } catch { /* silenciar */ }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [patientId])
+
+  async function saveNote(text: string) {
+    if (!text.trim()) return
+    setSaving(true)
+    try {
+      const formData = new FormData()
+      formData.append('patientId', patientId)
+      formData.append('transcript', text.trim())
+
+      const res = await fetch('/api/voice-notes', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('Error al guardar')
+
+      const data = await res.json()
+      setSavedNotes(prev => [data.note, ...prev])
+      setTranscript('')
+      setManualText('')
+      toast.success('Nota guardada y analizada por IA')
+      onNoteSaved()
+    } catch {
+      toast.error('No se pudo guardar la nota')
+    }
+    setSaving(false)
+  }
+
+  function handleVoiceTranscript(text: string) {
+    setTranscript(prev => prev ? `${prev} ${text}` : text)
+  }
+
+  const finalText = transcript || manualText
+
+  return (
+    <div className="space-y-6">
+      {/* Instrucciones */}
+      <div
+        className="card-medical p-5 border border-purple-500/20"
+        style={{ background: 'linear-gradient(to right, rgba(139,92,246,0.06), rgba(139,92,246,0.02))' }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}
+          >
+            <Mic size={18} style={{ color: '#8b5cf6' }} />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground text-sm mb-1">
+              Nota clínica por voz para {patientName}
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Describe padecimientos, hallazgos del examen físico, recomendaciones terapéuticas y aspectos importantes.
+              La IA extraerá datos clínicos relevantes y los incorporará al análisis del paciente.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Grabador de voz */}
+      <div className="card-medical p-5 space-y-4">
+        <VoiceRecorder
+          onTranscript={handleVoiceTranscript}
+          placeholder="Presiona el micrófono y dicta la nota clínica del paciente"
+          disabled={saving}
+        />
+
+        {/* Transcripción acumulada o texto manual */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            {transcript ? 'Transcripción (puedes editar)' : 'O escribe manualmente'}
+          </label>
+          <textarea
+            value={transcript || manualText}
+            onChange={e => {
+              if (transcript) setTranscript(e.target.value)
+              else setManualText(e.target.value)
+            }}
+            rows={5}
+            placeholder="Paciente de 45 años presenta dolor lumbar crónico de 6 meses de evolución, refractario a AINES. Se recomienda iniciar protocolo de BPC-157 y fisioterapia..."
+            className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-accent resize-y transition-colors"
+          />
+        </div>
+
+        {/* Botón guardar */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => saveNote(finalText)}
+            disabled={!finalText.trim() || saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            {saving ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-background/30 border-t-background animate-spin" />
+                Analizando y guardando…
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} />
+                Guardar y analizar nota
+              </>
+            )}
+          </button>
+
+          {finalText.trim() && !saving && (
+            <button
+              onClick={() => { setTranscript(''); setManualText('') }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Notas guardadas recientes */}
+      {savedNotes.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Notas recientes ({savedNotes.length})
+          </p>
+          {savedNotes.slice(0, 3).map(note => (
+            <div key={note.id} className="card-medical p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Mic size={11} />
+                <span>
+                  {new Date(note.created_at).toLocaleDateString('es-MX', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                {note.transcript}
+              </p>
+              {note.ai_summary && (
+                <details className="group">
+                  <summary className="text-xs text-accent cursor-pointer flex items-center gap-1 hover:underline">
+                    <Sparkles size={10} />
+                    Ver análisis IA
+                  </summary>
+                  <div className="mt-2 bg-accent/5 border border-accent/15 rounded-lg px-3 py-2 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                    {note.ai_summary}
+                  </div>
+                </details>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Voice Notes Section ─────────────────────────────────────────────────────
+
+function VoiceNotesSection({ patientId }: { patientId: string }) {
+  const [notes, setNotes] = useState<VoiceNote[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [expandedNote, setExpandedNote] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/voice-notes?patientId=${patientId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (!cancelled) setNotes(data.notes || [])
+        }
+      } catch { /* silenciar */ }
+      if (!cancelled) setLoading(false)
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [patientId])
+
+  async function handleTranscript(text: string) {
+    setSaving(true)
+    try {
+      const formData = new FormData()
+      formData.append('patientId', patientId)
+      formData.append('transcript', text)
+
+      const res = await fetch('/api/voice-notes', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error('Error al guardar')
+
+      const data = await res.json()
+      setNotes(prev => [data.note, ...prev])
+      toast.success('Nota de voz guardada y analizada')
+    } catch {
+      toast.error('No se pudo guardar la nota de voz')
+    }
+    setSaving(false)
+  }
+
+  async function handleAudioBlob(blob: Blob, duration: number) {
+    // Audio se guarda junto con la transcripción en el próximo save
+    // Para guardar audio separadamente, se necesitaría una cola
+    void blob
+    void duration
+  }
+
+  async function handleDelete(noteId: string) {
+    if (!confirm('¿Eliminar esta nota de voz?')) return
+    try {
+      const res = await fetch(`/api/voice-notes?noteId=${noteId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar')
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+      toast.success('Nota eliminada')
+    } catch {
+      toast.error('No se pudo eliminar la nota')
+    }
+  }
+
+  return (
+    <div className="card-medical overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}
+          >
+            <Mic size={16} style={{ color: '#8b5cf6' }} />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-foreground">Notas de Voz</p>
+            <p className="text-xs text-muted-foreground">
+              {notes.length === 0 ? 'Graba notas clínicas por voz' : `${notes.length} nota${notes.length !== 1 ? 's' : ''} guardada${notes.length !== 1 ? 's' : ''}`}
+            </p>
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {expanded && (
+        <div className="px-5 pb-5 space-y-4 border-t border-border/50 pt-4">
+          {/* Recorder */}
+          <VoiceRecorder
+            onTranscript={handleTranscript}
+            onAudioBlob={handleAudioBlob}
+            placeholder="Presiona el micrófono para dictar una nota clínica. La IA analizará y extraerá datos relevantes."
+            disabled={saving}
+          />
+
+          {saving && (
+            <div className="flex items-center gap-2 text-sm text-accent">
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+              Analizando y guardando nota…
+            </div>
+          )}
+
+          {/* Notes List */}
+          {loading ? (
+            <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
+              <span className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin mr-2" />
+              Cargando notas…
+            </div>
+          ) : notes.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Historial de notas
+              </p>
+              {notes.map(note => (
+                <div key={note.id} className="border border-border rounded-lg overflow-hidden">
+                  {/* Note header */}
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Mic size={12} className="text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(note.created_at).toLocaleDateString('es-MX', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                      {note.duration_seconds && (
+                        <span className="text-xs text-muted-foreground/60">
+                          ({Math.floor(note.duration_seconds / 60)}:{(note.duration_seconds % 60).toString().padStart(2, '0')})
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDelete(note.id)}
+                      className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                      title="Eliminar nota"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Transcript */}
+                  <div className="px-3 py-2">
+                    <p className="text-sm text-foreground leading-relaxed">{note.transcript}</p>
+                  </div>
+
+                  {/* AI Analysis (expandable) */}
+                  {note.ai_summary && (
+                    <div className="border-t border-border/50">
+                      <button
+                        onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-accent hover:bg-accent/5 transition-colors"
+                      >
+                        <Sparkles size={11} />
+                        <span>Análisis IA</span>
+                        <ChevronDown
+                          size={11}
+                          className={`ml-auto transition-transform ${expandedNote === note.id ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {expandedNote === note.id && (
+                        <div className="px-3 pb-3">
+                          <div className="bg-accent/5 border border-accent/15 rounded-lg px-3 py-2 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                            {note.ai_summary}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

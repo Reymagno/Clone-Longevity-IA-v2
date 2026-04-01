@@ -452,6 +452,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
           <ClinicalHistoryTab
             patient={patient}
             result={result}
+            viewerRole={viewerRole}
           />
         )}
         {activeTab === 10 && (

@@ -189,6 +189,24 @@ export async function POST(request: NextRequest) {
         // ══════════════════════════════════════════════════════════════
         send({ ok: true, step: 'analyzing' })
 
+        // Obtener notas de voz del médico para contexto adicional
+        let voiceNotesContext = ''
+        try {
+          const { data: voiceNotes } = await supabase
+            .from('voice_notes')
+            .select('transcript, ai_summary, created_at')
+            .eq('patient_id', patientId)
+            .order('created_at', { ascending: false })
+            .limit(10)
+          if (voiceNotes && voiceNotes.length > 0) {
+            voiceNotesContext = '\n\n--- NOTAS CLÍNICAS DEL MÉDICO (por voz) ---\n' +
+              voiceNotes.map((n: { transcript: string; ai_summary: string | null; created_at: string }, i: number) =>
+                `[Nota ${i + 1} — ${new Date(n.created_at).toLocaleDateString('es-MX')}]\n${n.transcript}` +
+                (n.ai_summary ? `\n[Análisis IA]: ${n.ai_summary}` : '')
+              ).join('\n\n')
+          }
+        } catch { /* no crítico */ }
+
         const aiAnalysis = await reanalyzeWithClinicalHistory(parsedData, {
           name: ownPatient.name,
           age: ownPatient.age,
@@ -196,6 +214,7 @@ export async function POST(request: NextRequest) {
           weight: ownPatient.weight,
           height: ownPatient.height,
           clinical_history: ownPatient.clinical_history ?? null,
+          voice_notes_context: voiceNotesContext,
         }, () => enqueue(': keepalive\n\n'))
 
         // Guardar análisis IA con hash de historia clínica

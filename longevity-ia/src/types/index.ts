@@ -326,6 +326,21 @@ export interface PatientWithLatestResult extends Patient {
 }
 
 // ============================================================
+// NOTAS DE VOZ
+// ============================================================
+
+export interface VoiceNote {
+  id: string
+  patient_id: string
+  user_id: string
+  transcript: string
+  ai_summary: string | null
+  audio_url: string | null
+  duration_seconds: number | null
+  created_at: string
+}
+
+// ============================================================
 // ESTADO DE ANÁLISIS (ZUSTAND)
 // ============================================================
 

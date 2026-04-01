@@ -320,6 +320,8 @@ export interface PatientContextForPrompt {
   weight: number | null
   height: number | null
   clinical_history: ClinicalHistoryForPrompt | null
+  /** Notas clínicas del médico transcritas por voz (contexto adicional) */
+  voice_notes_context?: string
 }
 
 function formatClinicalHistory(patient: PatientContextForPrompt): string {
@@ -451,8 +453,13 @@ function formatClinicalHistory(patient: PatientContextForPrompt): string {
     if (legacy_recent['current_medications']) lines.push(`⚠ Medicamentos (dato anterior): ${legacy_recent['current_medications']}`)
   }
 
+  // Notas de voz del médico
+  if (patient.voice_notes_context) {
+    lines.push(patient.voice_notes_context)
+  }
+
   lines.push('=== FIN DE HISTORIA CLÍNICA ===')
-  lines.push('INSTRUCCIONES ESPECIALES: Usa esta historia clínica para personalizar el análisis de forma integral: (1) Ajusta el protocolo según actividad física, dieta y suplementos actuales; (2) Considera los riesgos familiares en el FODA; (3) NUNCA recomendar medicamentos a los que el paciente sea alérgico; (4) Evalúa síntomas cardiovasculares y cognitivos como señales de alerta; (5) Ajusta la edad biológica según nivel de energía, calidad de sueño, manejo del estrés y horas sedentarias.')
+  lines.push('INSTRUCCIONES ESPECIALES: Usa esta historia clínica para personalizar el análisis de forma integral: (1) Ajusta el protocolo según actividad física, dieta y suplementos actuales; (2) Considera los riesgos familiares en el FODA; (3) NUNCA recomendar medicamentos a los que el paciente sea alérgico; (4) Evalúa síntomas cardiovasculares y cognitivos como señales de alerta; (5) Ajusta la edad biológica según nivel de energía, calidad de sueño, manejo del estrés y horas sedentarias. (6) Si hay notas clínicas del médico, integra padecimientos, recomendaciones y hallazgos reportados en el protocolo y FODA.')
 
   return lines.join('\n')
 }

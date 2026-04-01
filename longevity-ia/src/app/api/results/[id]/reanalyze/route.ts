@@ -53,6 +53,24 @@ export async function POST(
 
         if (patientError || !patient) { send({ ok: false, error: 'No autorizado' }); return }
 
+        // Obtener notas de voz del médico (contexto adicional)
+        const { data: voiceNotes } = await supabase
+          .from('voice_notes')
+          .select('transcript, ai_summary, created_at')
+          .eq('patient_id', result.patient_id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+
+        // Construir contexto de notas de voz para el análisis
+        let voiceNotesContext = ''
+        if (voiceNotes && voiceNotes.length > 0) {
+          voiceNotesContext = '\n\n--- NOTAS CLÍNICAS DEL MÉDICO (por voz) ---\n' +
+            voiceNotes.map((n, i) =>
+              `[Nota ${i + 1} — ${new Date(n.created_at).toLocaleDateString('es-MX')}]\n${n.transcript}` +
+              (n.ai_summary ? `\n[Análisis IA]: ${n.ai_summary}` : '')
+            ).join('\n\n')
+        }
+
         const patientCtx = {
           name: patient.name as string,
           age: patient.age as number,
@@ -61,6 +79,7 @@ export async function POST(
           height: patient.height as number | null,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           clinical_history: patient.clinical_history as any,
+          voice_notes_context: voiceNotesContext,
         }
 
         // Si ya existe un análisis IA previo, usar re-análisis parcial (solo protocolo + proyección + resumen)
