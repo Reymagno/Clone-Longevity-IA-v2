@@ -9,7 +9,7 @@ import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Calendar, Cpu,
-  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles, ClipboardList
+  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles, ClipboardList, StopCircle
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
@@ -40,6 +40,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [section, setSection] = useState<'upload' | 'history'>('upload')
   const analyzeIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     supabase.from('patients').select('*').eq('id', params.id).single()
@@ -75,6 +76,25 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   }, [])
 
   const isAnalyzing = ['uploading', 'reading', 'analyzing', 'saving', 'done'].includes(step)
+  const canCancel = ['uploading', 'reading', 'analyzing', 'saving'].includes(step)
+
+  function handleCancelAnalysis() {
+    // Abortar fetch
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    // Limpiar intervalo de progreso
+    if (analyzeIntervalRef.current) {
+      clearInterval(analyzeIntervalRef.current)
+      analyzeIntervalRef.current = null
+    }
+    // Resetear estado
+    setStep('idle')
+    setProgress(0)
+    setErrorMsg(null)
+    toast('Análisis detenido')
+  }
 
   const handleAnalyze = useCallback(async () => {
     if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return }
@@ -88,9 +108,13 @@ export default function UploadPage({ params }: { params: { id: string } }) {
       formData.append('patientId', params.id)
       formData.append('resultDate', date)
 
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       })
 
       if (!response.ok || !response.body) {
@@ -159,11 +183,15 @@ export default function UploadPage({ params }: { params: { id: string } }) {
       }
 
     } catch (err) {
+      // Si fue cancelado por el usuario, no mostrar error
+      if (err instanceof DOMException && err.name === 'AbortError') return
       setStep('error')
       setProgress(0)
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       setErrorMsg(msg)
       toast.error(msg)
+    } finally {
+      abortControllerRef.current = null
     }
   }, [files, date, params.id, router, goToProgress])
 
@@ -310,6 +338,17 @@ export default function UploadPage({ params }: { params: { id: string } }) {
               <p className="text-xs text-muted-foreground mt-6 text-center max-w-xs">
                 La IA está leyendo todos tus biomarcadores y generando el análisis clínico. Esto puede tardar 2-5 minutos.
               </p>
+            )}
+
+            {/* Botón detener análisis */}
+            {canCancel && (
+              <button
+                onClick={handleCancelAnalysis}
+                className="mt-6 flex items-center gap-2 px-5 py-2.5 text-xs font-medium text-red-400/70 border border-red-500/20 rounded-xl hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all"
+              >
+                <StopCircle size={14} />
+                Detener análisis
+              </button>
             )}
 
             {step === 'done' && (
