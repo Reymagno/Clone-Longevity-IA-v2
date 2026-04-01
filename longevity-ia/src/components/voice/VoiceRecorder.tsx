@@ -81,12 +81,12 @@ function injectKeyframes() {
       50% { background-position: 100% 50%; }
     }
     @keyframes vr-sphere-idle-glow {
-      0%, 100% { box-shadow: 0 0 20px rgba(139,92,246,0.15), 0 0 60px rgba(139,92,246,0.05), inset 0 0 30px rgba(139,92,246,0.1); }
-      50% { box-shadow: 0 0 30px rgba(139,92,246,0.25), 0 0 80px rgba(139,92,246,0.1), inset 0 0 40px rgba(139,92,246,0.15); }
+      0%, 100% { box-shadow: 0 0 40px rgba(139,92,246,0.3), 0 0 120px rgba(139,92,246,0.1), inset 0 0 50px rgba(139,92,246,0.2); }
+      50% { box-shadow: 0 0 60px rgba(139,92,246,0.5), 0 0 160px rgba(139,92,246,0.2), inset 0 0 60px rgba(139,92,246,0.3); }
     }
     @keyframes vr-sphere-recording-glow {
-      0%, 100% { box-shadow: 0 0 40px rgba(139,92,246,0.5), 0 0 100px rgba(56,189,248,0.2), inset 0 0 40px rgba(139,92,246,0.2); }
-      50% { box-shadow: 0 0 60px rgba(139,92,246,0.7), 0 0 120px rgba(56,189,248,0.3), inset 0 0 50px rgba(139,92,246,0.3); }
+      0%, 100% { box-shadow: 0 0 60px rgba(139,92,246,0.7), 0 0 150px rgba(56,189,248,0.3), 0 0 220px rgba(139,92,246,0.15), inset 0 0 50px rgba(139,92,246,0.3); }
+      50% { box-shadow: 0 0 90px rgba(139,92,246,0.9), 0 0 180px rgba(56,189,248,0.45), 0 0 260px rgba(139,92,246,0.25), inset 0 0 70px rgba(139,92,246,0.4); }
     }
   `
   document.head.appendChild(style)
@@ -137,7 +137,7 @@ function SoundWave({ bars = 24, radius = 62 }: { bars?: number; radius?: number 
     Array.from({ length: bars }, (_, i) => ({
       angle: (360 / bars) * i,
       delay: Math.random() * 0.8,
-      height: 8 + Math.random() * 14,
+      height: 12 + Math.random() * 16,
       duration: 0.4 + Math.random() * 0.5,
     })),
     [bars]
@@ -388,21 +388,21 @@ export function VoiceRecorder({
     <div className={`flex flex-col items-center select-none ${className}`}>
 
       {/* ── Sci-fi grid backdrop ──────────────────────────────────────────── */}
-      <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+      <div className="relative flex items-center justify-center" style={{ width: 340, height: 340 }}>
 
         {/* Scan line effect */}
         <div
           className="absolute pointer-events-none overflow-hidden rounded-full"
-          style={{ width: 180, height: 180, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+          style={{ width: 280, height: 280, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
         >
           <div
             style={{
               position: 'absolute',
               width: '100%',
-              height: 1,
+              height: 2,
               background: isRecording
-                ? 'linear-gradient(90deg, transparent, rgba(139,92,246,0.4), transparent)'
-                : 'linear-gradient(90deg, transparent, rgba(139,92,246,0.15), transparent)',
+                ? 'linear-gradient(90deg, transparent, rgba(139,92,246,0.6), transparent)'
+                : 'linear-gradient(90deg, transparent, rgba(139,92,246,0.25), transparent)',
               animation: 'vr-scan 3s ease-in-out infinite',
             }}
           />
@@ -414,7 +414,7 @@ export function VoiceRecorder({
             <div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: 88, height: 88,
+                width: 140, height: 140,
                 left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
                 border: '1px solid rgba(139,92,246,0.5)',
                 animation: 'vr-expand 2s ease-out infinite',
@@ -423,7 +423,7 @@ export function VoiceRecorder({
             <div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: 88, height: 88,
+                width: 140, height: 140,
                 left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
                 border: '1px solid rgba(56,189,248,0.4)',
                 animation: 'vr-expand 2s ease-out infinite 0.7s',
@@ -432,7 +432,7 @@ export function VoiceRecorder({
             <div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: 88, height: 88,
+                width: 140, height: 140,
                 left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
                 border: '1px solid rgba(139,92,246,0.3)',
                 animation: 'vr-expand 2s ease-out infinite 1.4s',
@@ -444,58 +444,58 @@ export function VoiceRecorder({
         {/* ── Concentric rotating rings ──────────────────────────────────── */}
         {isRecording && (
           <>
-            <ConcentricRing radius={56} borderColor="rgba(139,92,246,0.35)" duration={8} opacity={0.5} />
-            <ConcentricRing radius={68} borderColor="rgba(56,189,248,0.25)" duration={12} reverse dashed />
-            <ConcentricRing radius={80} borderColor="rgba(139,92,246,0.15)" duration={18} opacity={0.25} />
+            <ConcentricRing radius={85} borderColor="rgba(139,92,246,0.35)" duration={8} opacity={0.5} />
+            <ConcentricRing radius={105} borderColor="rgba(56,189,248,0.25)" duration={12} reverse dashed />
+            <ConcentricRing radius={130} borderColor="rgba(139,92,246,0.15)" duration={18} opacity={0.25} />
           </>
         )}
 
         {isTranscribing && (
           <>
-            <ConcentricRing radius={56} borderColor="rgba(46,174,123,0.4)" duration={4} opacity={0.5} />
-            <ConcentricRing radius={68} borderColor="rgba(46,174,123,0.25)" duration={6} reverse dashed />
-            <ConcentricRing radius={80} borderColor="rgba(46,174,123,0.15)" duration={10} opacity={0.3} />
+            <ConcentricRing radius={85} borderColor="rgba(46,174,123,0.4)" duration={4} opacity={0.5} />
+            <ConcentricRing radius={105} borderColor="rgba(46,174,123,0.25)" duration={6} reverse dashed />
+            <ConcentricRing radius={130} borderColor="rgba(46,174,123,0.15)" duration={10} opacity={0.3} />
           </>
         )}
 
         {isIdle && (
           <>
-            <ConcentricRing radius={58} borderColor="rgba(139,92,246,0.08)" duration={30} opacity={0.15} />
-            <ConcentricRing radius={70} borderColor="rgba(139,92,246,0.05)" duration={40} reverse dashed opacity={0.1} />
+            <ConcentricRing radius={90} borderColor="rgba(139,92,246,0.08)" duration={30} opacity={0.15} />
+            <ConcentricRing radius={115} borderColor="rgba(139,92,246,0.05)" duration={40} reverse dashed opacity={0.1} />
           </>
         )}
 
         {/* ── Orbital particles ──────────────────────────────────────────── */}
         {isRecording && (
           <>
-            <OrbitParticles count={8} radius={58} duration={4} color="rgba(139,92,246,0.9)" size={3} />
-            <OrbitParticles count={6} radius={72} duration={7} color="rgba(56,189,248,0.7)" size={2} reverse />
-            <OrbitParticles count={4} radius={86} duration={10} color="rgba(139,92,246,0.5)" size={2} />
+            <OrbitParticles count={12} radius={90} duration={4} color="rgba(139,92,246,0.9)" size={4} />
+            <OrbitParticles count={8} radius={110} duration={7} color="rgba(56,189,248,0.7)" size={3} reverse />
+            <OrbitParticles count={6} radius={135} duration={10} color="rgba(139,92,246,0.5)" size={3} />
           </>
         )}
 
         {isTranscribing && (
-          <OrbitParticles count={6} radius={58} duration={3} color="rgba(46,174,123,0.8)" size={3} />
+          <OrbitParticles count={6} radius={90} duration={3} color="rgba(46,174,123,0.8)" size={4} />
         )}
 
         {isIdle && (
-          <OrbitParticles count={4} radius={60} duration={16} color="rgba(139,92,246,0.3)" size={2} />
+          <OrbitParticles count={4} radius={95} duration={16} color="rgba(139,92,246,0.3)" size={3} />
         )}
 
         {/* ── Sound wave visualization (recording) ──────────────────────── */}
-        {isRecording && <SoundWave bars={28} radius={52} />}
+        {isRecording && <SoundWave bars={36} radius={82} />}
 
         {/* ── Ambient glow behind sphere ─────────────────────────────────── */}
         <div
           className="absolute rounded-full pointer-events-none transition-all duration-700"
           style={{
-            width: 120, height: 120,
+            width: 200, height: 200,
             left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
             background: isRecording
-              ? 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(56,189,248,0.08) 40%, transparent 70%)'
+              ? 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, rgba(56,189,248,0.12) 40%, transparent 70%)'
               : isTranscribing
-                ? 'radial-gradient(circle, rgba(46,174,123,0.2) 0%, rgba(46,174,123,0.05) 40%, transparent 70%)'
-                : 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 60%)',
+                ? 'radial-gradient(circle, rgba(46,174,123,0.25) 0%, rgba(46,174,123,0.08) 40%, transparent 70%)'
+                : 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 60%)',
             animation: 'vr-breathe 3s ease-in-out infinite',
           }}
         />
@@ -512,8 +512,8 @@ export function VoiceRecorder({
           <div
             className="relative rounded-full flex items-center justify-center transition-all duration-700 ease-out"
             style={{
-              width: isRecording ? 96 : 88,
-              height: isRecording ? 96 : 88,
+              width: isRecording ? 150 : 130,
+              height: isRecording ? 150 : 130,
 
               /* Glass morphism background */
               background: isRecording
@@ -550,12 +550,12 @@ export function VoiceRecorder({
             <div
               className="absolute pointer-events-none rounded-full"
               style={{
-                width: '55%',
-                height: '30%',
-                top: '10%',
-                left: '15%',
-                background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.18), transparent)',
-                filter: 'blur(2px)',
+                width: '60%',
+                height: '35%',
+                top: '8%',
+                left: '12%',
+                background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.25), transparent)',
+                filter: 'blur(3px)',
               }}
             />
 
@@ -577,14 +577,14 @@ export function VoiceRecorder({
             <div
               className="absolute pointer-events-none rounded-full"
               style={{
-                width: '50%',
-                height: '15%',
-                bottom: '12%',
-                left: '25%',
+                width: '55%',
+                height: '18%',
+                bottom: '10%',
+                left: '22%',
                 background: isRecording
-                  ? 'radial-gradient(ellipse, rgba(56,189,248,0.12), transparent)'
-                  : 'radial-gradient(ellipse, rgba(139,92,246,0.06), transparent)',
-                filter: 'blur(3px)',
+                  ? 'radial-gradient(ellipse, rgba(56,189,248,0.18), transparent)'
+                  : 'radial-gradient(ellipse, rgba(139,92,246,0.1), transparent)',
+                filter: 'blur(4px)',
               }}
             />
 
@@ -592,24 +592,24 @@ export function VoiceRecorder({
             <div className="relative z-10 flex items-center justify-center">
               {isTranscribing ? (
                 <Loader2
-                  size={30}
+                  size={38}
                   className="text-white/90"
                   strokeWidth={1.5}
                   style={{ animation: 'vr-ring-spin 1.5s linear infinite' }}
                 />
               ) : isRecording ? (
                 <Square
-                  size={22}
+                  size={28}
                   className="text-white drop-shadow-lg"
                   strokeWidth={2}
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' }}
+                  style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' }}
                 />
               ) : (
                 <Mic
-                  size={30}
+                  size={38}
                   className="text-white/80 group-hover:text-white transition-colors duration-300 drop-shadow-lg"
                   strokeWidth={1.5}
-                  style={{ filter: 'drop-shadow(0 0 4px rgba(139,92,246,0.5))' }}
+                  style={{ filter: 'drop-shadow(0 0 6px rgba(139,92,246,0.6))' }}
                 />
               )}
             </div>
@@ -619,37 +619,37 @@ export function VoiceRecorder({
 
       {/* ── HUD Timer (recording) ───────────────────────────────────────── */}
       <div
-        className="flex items-center justify-center gap-3 transition-all duration-500"
+        className="flex items-center justify-center gap-4 transition-all duration-500"
         style={{
-          height: isRecording ? 32 : 0,
+          height: isRecording ? 40 : 0,
           opacity: isRecording ? 1 : 0,
-          marginTop: isRecording ? 8 : 0,
+          marginTop: isRecording ? 10 : 0,
           overflow: 'hidden',
         }}
       >
         <span
-          className="w-2 h-2 rounded-full"
+          className="w-2.5 h-2.5 rounded-full"
           style={{
             background: '#8b5cf6',
-            boxShadow: '0 0 8px rgba(139,92,246,0.8)',
+            boxShadow: '0 0 12px rgba(139,92,246,0.9), 0 0 24px rgba(139,92,246,0.4)',
             animation: 'vr-hud-blink 1.5s ease-in-out infinite',
           }}
         />
         <span
-          className="font-mono text-sm tracking-[0.3em] uppercase"
+          className="font-mono text-base tracking-[0.35em] uppercase"
           style={{
-            color: 'rgba(167,139,250,0.9)',
-            textShadow: '0 0 10px rgba(139,92,246,0.4)',
-            letterSpacing: '0.3em',
+            color: 'rgba(167,139,250,0.95)',
+            textShadow: '0 0 14px rgba(139,92,246,0.6), 0 0 28px rgba(139,92,246,0.2)',
+            letterSpacing: '0.35em',
           }}
         >
           rec {formatTime(elapsed)}
         </span>
         <span
-          className="w-2 h-2 rounded-full"
+          className="w-2.5 h-2.5 rounded-full"
           style={{
             background: '#8b5cf6',
-            boxShadow: '0 0 8px rgba(139,92,246,0.8)',
+            boxShadow: '0 0 12px rgba(139,92,246,0.9), 0 0 24px rgba(139,92,246,0.4)',
             animation: 'vr-hud-blink 1.5s ease-in-out infinite 0.75s',
           }}
         />
@@ -657,13 +657,13 @@ export function VoiceRecorder({
 
       {/* ── Status text ─────────────────────────────────────────────────── */}
       <p
-        className="text-center text-sm leading-relaxed max-w-xs transition-all duration-500 mt-3"
+        className="text-center text-[15px] leading-relaxed max-w-sm transition-all duration-500 mt-3"
         style={{
           color: isRecording
-            ? 'rgba(167,139,250,0.7)'
+            ? 'rgba(167,139,250,0.8)'
             : isTranscribing
-              ? 'rgba(46,174,123,0.7)'
-              : 'rgba(107,102,96,0.8)',
+              ? 'rgba(46,174,123,0.8)'
+              : 'rgba(107,102,96,0.9)',
           letterSpacing: '0.02em',
         }}
       >
@@ -676,7 +676,7 @@ export function VoiceRecorder({
 
       {/* ── Real-time transcript ────────────────────────────────────────── */}
       <div
-        className="w-full max-w-md transition-all duration-500 overflow-hidden"
+        className="w-full max-w-lg transition-all duration-500 overflow-hidden"
         style={{
           maxHeight: (isRecording && interim) ? 120 : 0,
           opacity: (isRecording && interim) ? 1 : 0,
@@ -684,7 +684,7 @@ export function VoiceRecorder({
         }}
       >
         <div
-          className="px-5 py-3 text-sm italic leading-relaxed text-center rounded-2xl"
+          className="px-6 py-4 text-sm italic leading-relaxed text-center rounded-2xl"
           style={{
             color: 'rgba(226,223,214,0.6)',
             background: 'linear-gradient(135deg, rgba(10,23,41,0.6), rgba(16,31,56,0.4))',
