@@ -211,7 +211,7 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="absolute inset-4 sm:inset-8 bg-card rounded-2xl border border-border/60 shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+      <div className="absolute top-4 left-4 right-4 sm:top-8 sm:left-[10%] sm:right-[10%] max-h-[85vh] bg-card rounded-2xl border border-border/60 shadow-2xl flex flex-col overflow-hidden animate-scale-in">
         {/* ═══ Header ════════════════════════════════════════════ */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card shrink-0">
           <div className="flex items-center gap-3">

@@ -78,6 +78,24 @@ const LIGHT_CSS = `
     print-color-adjust: exact !important;
     animation: none !important;
     transition: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+  }
+
+  /* Ocultar pseudo-elementos problemáticos para html2canvas */
+  #dashboard-export .card-medical::before,
+  #dashboard-export .card-medical::after,
+  #dashboard-export .header-scan::after,
+  #dashboard-export .noise-overlay::before,
+  #dashboard-export .btn-primary::before {
+    display: none !important;
+  }
+
+  /* Vignette y reanalyzing-bar pseudo-elementos */
+  .vignette::after,
+  .reanalyzing-bar::before {
+    display: none !important;
   }
 `
 
@@ -271,7 +289,25 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
   styleEl.innerHTML = LIGHT_CSS
   document.head.appendChild(styleEl)
 
-  // 2. Parchear TODOS los elementos usando getComputedStyle
+  // 2. Desactivar clases problemáticas en el padre (vignette, hero-gradient, etc.)
+  const parent = element.parentElement
+  const parentClasses: string[] = []
+  if (parent) {
+    for (const cls of ['vignette', 'hero-gradient', 'reanalyzing-bar', 'header-scan']) {
+      if (parent.classList.contains(cls)) {
+        parent.classList.remove(cls)
+        parentClasses.push(cls)
+      }
+    }
+  }
+
+  // 3. Forzar que animaciones estén resueltas (evitar capturar mid-blur)
+  element.style.animation = 'none'
+  element.style.opacity = '1'
+  element.style.transform = 'none'
+  element.style.filter = 'none'
+
+  // 4. Parchear TODOS los elementos usando getComputedStyle
   const restoreAll = patchAllComputedStyles(element)
 
   try {
@@ -283,7 +319,16 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
       logging: false,
     })
   } finally {
-    // 3. Restaurar todo al tema original
+    // 5. Restaurar todo al tema original
+    element.style.animation = ''
+    element.style.opacity = ''
+    element.style.transform = ''
+    element.style.filter = ''
+    if (parent) {
+      for (const cls of parentClasses) {
+        parent.classList.add(cls)
+      }
+    }
     styleEl.remove()
     restoreAll()
   }
@@ -338,6 +383,25 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       styleEl.id = '__longevity-export-pdf-style__'
       styleEl.innerHTML = LIGHT_CSS
       document.head.appendChild(styleEl)
+
+      // Desactivar clases problemáticas en el padre
+      const parent = element.parentElement
+      const parentClasses: string[] = []
+      if (parent) {
+        for (const cls of ['vignette', 'hero-gradient', 'reanalyzing-bar', 'header-scan']) {
+          if (parent.classList.contains(cls)) {
+            parent.classList.remove(cls)
+            parentClasses.push(cls)
+          }
+        }
+      }
+
+      // Forzar animaciones resueltas
+      element.style.animation = 'none'
+      element.style.opacity = '1'
+      element.style.transform = 'none'
+      element.style.filter = 'none'
+
       const restoreAll = patchAllComputedStyles(element)
 
       let currentY = margin
@@ -409,6 +473,15 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
           isFirstPage = false
         }
       } finally {
+        element.style.animation = ''
+        element.style.opacity = ''
+        element.style.transform = ''
+        element.style.filter = ''
+        if (parent) {
+          for (const cls of parentClasses) {
+            parent.classList.add(cls)
+          }
+        }
         styleEl.remove()
         restoreAll()
       }

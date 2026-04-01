@@ -536,6 +536,21 @@ body {
     box-shadow: none !important;
     backdrop-filter: none !important;
   }
+  .card-medical::before,
+  .card-medical::after,
+  .header-scan::after,
+  .noise-overlay::before,
+  .btn-primary::before,
+  .vignette::after,
+  .reanalyzing-bar::before {
+    display: none !important;
+  }
+  * {
+    animation: none !important;
+    transition: none !important;
+    backdrop-filter: none !important;
+    filter: none !important;
+  }
 }
 
 /* ── Recharts estilos ──────────────────────────────────────────── */

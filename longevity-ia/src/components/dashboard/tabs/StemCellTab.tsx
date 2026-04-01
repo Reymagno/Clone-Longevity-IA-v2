@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { Patient, ParsedData, AIAnalysis, BiomarkerValue } from '@/types'
+import { toast } from 'sonner'
 import {
   Dna, ChevronDown, ChevronUp, Syringe, FlaskConical,
   AlertTriangle, CheckCircle2, Info, Activity, User,
-  BarChart3, Clock, ShieldCheck, BookOpen, Calculator
+  BarChart3, Clock, ShieldCheck, BookOpen, Calculator, FileDown
 } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────
@@ -582,9 +584,49 @@ export function StemCellTab({ patient, parsedData, analysis }: StemCellTabProps)
   const protocol = computeProtocol(patient, parsedData, analysis)
   const totalFactorPct = ((protocol.totalFactor - 1) * 100).toFixed(0)
   const factorSign = protocol.totalFactor >= 1 ? '+' : ''
+  const [downloading, setDownloading] = useState(false)
+
+  async function handleDownloadPDF() {
+    setDownloading(true)
+    try {
+      const { generateStemCellProtocolPDF } = await import('@/lib/stemcell-protocol-pdf')
+      await generateStemCellProtocolPDF(patient, parsedData, analysis, {
+        mscDose: protocol.mscDose,
+        exosomeDose: protocol.exosomeDose,
+        route: protocol.route,
+        sessions: protocol.sessions,
+        schedule: protocol.schedule,
+        totalFactor: protocol.totalFactor,
+        indication: protocol.indication,
+        factors: protocol.factors,
+        monitoring: protocol.monitoring,
+        contraindications: protocol.contraindications,
+        alerts: protocol.alerts,
+      })
+      toast.success('Protocolo PDF generado correctamente')
+    } catch {
+      toast.error('Error al generar el protocolo PDF')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   return (
     <div className="space-y-4 animate-fade-in">
+
+      {/* Download button */}
+      <div className="flex justify-end">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleDownloadPDF}
+          loading={downloading}
+          className="rounded-xl"
+        >
+          <FileDown size={14} />
+          Descargar Protocolo PDF
+        </Button>
+      </div>
 
       {/* Alertas */}
       {(protocol.alerts.length > 0 || protocol.contraindications.length > 0) && (
