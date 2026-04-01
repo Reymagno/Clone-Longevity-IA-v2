@@ -1352,23 +1352,59 @@ export async function reanalyzeWithClinicalHistory(
   if (!rawText) throw new Error('Claude no devolvió respuesta.')
 
   const validated = validateAndParseAiResponse(rawText, patientContext.age, patientContext.gender)
+  const ai = validated.aiAnalysis as Record<string, unknown>
 
-  // ── FODA Híbrido ──
-  if (patientContext.clinical_history) {
-    try {
-      const pd = parsedData as ParsedBiomarkers
-      const computed = computeAllScores(pd, patientContext.gender)
-      if (Object.keys(computed.systemScores).length > 0) {
-        const skeleton = computeFODASkeleton(computed, patientContext.age)
-        const enrichedFoda = await enrichFODANarrative(skeleton, patientContext, computed, patientContext.age)
-        ;(validated.aiAnalysis as Record<string, unknown>).swot = enrichedFoda
-      }
-    } catch (e) {
-      console.warn('FODA híbrido en reanalyzeWithClinicalHistory falló:', e)
+  // ══ OVERRIDE MATEMÁTICO (el parsedData viene como parámetro, no de Claude) ══
+  try {
+    const pd = parsedData as ParsedBiomarkers
+    const pAge = patientContext.age ?? 40
+    const pGender = patientContext.gender ?? 'male'
+
+    // 1. Scores sigmoideos
+    const computed = computeAllScores(pd, pGender)
+    if (Object.keys(computed.systemScores).length > 0) {
+      ai.systemScores = computed.systemScores
+      ai.overallScore = computed.overallScore
     }
+
+    // 2. Edad biológica PhenoAge
+    const phenoAge = computePhenoAge(pd, pAge, pGender)
+    if (phenoAge.biologicalAge > 0) {
+      ai.longevity_age = phenoAge.biologicalAge
+    }
+
+    // 3. FODA híbrida
+    if (patientContext.clinical_history && Object.keys(computed.systemScores).length > 0) {
+      const skeleton = computeFODASkeleton(computed, pAge)
+      const enrichedFoda = await enrichFODANarrative(skeleton, patientContext, computed, pAge)
+      ai.swot = enrichedFoda
+    } else {
+      ai.swot = computeFODA(computed, pAge)
+    }
+
+    // 4. Proyección Gompertz
+    const projection = computeProjection(computed, pAge)
+    ai.projectionData = projection.projectionData
+    ai.projectionFactors = projection.projectionFactors
+
+    // 5. Wearables (si hay datos)
+    const wearableAnalysis = analyzeWearables(null)
+    if (wearableAnalysis.hasData) {
+      const adjusted = applyWearableAdjustments(
+        ai.systemScores as Record<string, number>,
+        ai.overallScore as number,
+        ai.longevity_age as number,
+        wearableAnalysis
+      )
+      ai.systemScores = adjusted.systemScores
+      ai.overallScore = adjusted.overallScore
+      ai.longevity_age = adjusted.biologicalAge
+    }
+  } catch (e) {
+    console.warn('Override matemático en reanalyzeWithClinicalHistory falló:', e)
   }
 
-  return validated.aiAnalysis
+  return ai
 }
 
 // ══════════════════════════════════════════════════════════════
