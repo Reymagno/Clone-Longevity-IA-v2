@@ -9,8 +9,9 @@ import { LogoIcon } from '@/components/ui/logo-icon'
 import Link from 'next/link'
 import {
   ArrowLeft, Activity, FlaskConical, Droplets, Pill,
-  Heart, Shield, Loader2, CheckCircle2, Sparkles,
+  Heart, Shield, Loader2, CheckCircle2, Sparkles, Trash2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 // ── Map ParsedData keys to catalog IDs ──────────────────────
 
@@ -131,6 +132,21 @@ export function InstantDashboard({ patient, result, allResults = [], viewerRole 
   const router = useRouter()
   const [aiReady, setAiReady] = useState(false)
   const [polling, setPolling] = useState(true)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDeleteResult() {
+    if (!window.confirm('¿Eliminar este análisis? Se borrarán los biomarcadores extraídos y el dashboard instantáneo.')) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/results/${result.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar')
+      toast.success('Análisis eliminado')
+      router.push(`/patients/${patient.id}/upload`)
+    } catch {
+      toast.error('Error al eliminar el análisis')
+      setDeleting(false)
+    }
+  }
   const parsedData = result.parsed_data as ParsedData | null
 
   // Poll for AI analysis completion
@@ -210,7 +226,7 @@ export function InstantDashboard({ patient, result, allResults = [], viewerRole 
               </div>
             </div>
 
-            {/* AI status indicator */}
+            {/* AI status indicator + delete */}
             <div className="flex items-center gap-2">
               {aiReady ? (
                 <button
@@ -218,7 +234,7 @@ export function InstantDashboard({ patient, result, allResults = [], viewerRole 
                   className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-medium rounded-xl hover:bg-accent/90 transition-all shadow-accent/20 shadow-lg animate-scale-in"
                 >
                   <Sparkles size={14} />
-                  Ver Analisis IA Completo
+                  Ver Análisis IA Completo
                 </button>
               ) : (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/30 border border-border/50">
@@ -226,6 +242,15 @@ export function InstantDashboard({ patient, result, allResults = [], viewerRole 
                   <span className="text-xs text-muted-foreground">IA analizando...</span>
                 </div>
               )}
+              <button
+                onClick={handleDeleteResult}
+                disabled={deleting}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs text-red-400/60 border border-red-500/20 rounded-xl hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all disabled:opacity-50"
+                title="Eliminar análisis"
+              >
+                <Trash2 size={13} />
+                <span className="hidden sm:inline">{deleting ? 'Eliminando...' : 'Eliminar'}</span>
+              </button>
             </div>
           </div>
         </div>
