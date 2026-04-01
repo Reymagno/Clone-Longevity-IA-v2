@@ -299,53 +299,30 @@ function IntakeMedicoVoicePanel({
 
   return (
     <div className="space-y-6">
-      {/* Instrucciones */}
-      <div
-        className="card-medical p-5 border border-purple-500/20"
-        style={{ background: 'linear-gradient(to right, rgba(139,92,246,0.06), rgba(139,92,246,0.02))' }}
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}
-          >
-            <Mic size={18} style={{ color: '#8b5cf6' }} />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground text-sm mb-1">
-              Nota clínica por voz para {patientName}
-            </p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Describe padecimientos, hallazgos del examen físico, recomendaciones terapéuticas y aspectos importantes.
-              La IA extraerá datos clínicos relevantes y los incorporará al análisis del paciente.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Grabador */}
-      <div className="card-medical p-5 space-y-4">
+      {/* Esfera protagonista */}
+      <div className="card-medical py-10 px-5">
         <VoiceRecorder
           onTranscript={handleVoiceTranscript}
-          placeholder="Presiona el micrófono y dicta la nota clínica del paciente"
+          placeholder={`Toca la esfera y describe los padecimientos, recomendaciones y aspectos importantes de ${patientName}`}
           disabled={saving}
         />
+      </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {transcript ? 'Transcripción (puedes editar)' : 'O escribe manualmente'}
-          </label>
-          <textarea
-            value={transcript || manualText}
-            onChange={e => {
-              if (transcript) setTranscript(e.target.value)
-              else setManualText(e.target.value)
-            }}
-            rows={5}
-            placeholder="Paciente presenta dolor lumbar crónico de 6 meses de evolución, refractario a AINES. Se recomienda iniciar protocolo de BPC-157 y fisioterapia..."
-            className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-accent resize-y transition-colors"
-          />
-        </div>
+      {/* Textarea para editar o escribir */}
+      <div className="card-medical p-5 space-y-4">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {transcript ? 'Transcripción (puedes editar antes de guardar)' : 'O si prefiere, escriba la nota manualmente'}
+        </label>
+        <textarea
+          value={transcript || manualText}
+          onChange={e => {
+            if (transcript) setTranscript(e.target.value)
+            else setManualText(e.target.value)
+          }}
+          rows={4}
+          placeholder="Paciente presenta dolor lumbar crónico de 6 meses de evolución, refractario a AINES. Se recomienda iniciar protocolo de BPC-157 y fisioterapia..."
+          className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-accent resize-y transition-colors"
+        />
 
         <div className="flex items-center gap-3">
           <button

@@ -1,28 +1,20 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Mic, MicOff, Square, Loader2 } from 'lucide-react'
+import { Mic, Square, Loader2 } from 'lucide-react'
 
 interface VoiceRecorderProps {
-  /** Llamada cuando la transcripción está lista */
   onTranscript: (text: string) => void
-  /** Llamada con el blob de audio grabado (opcional) */
   onAudioBlob?: (blob: Blob, durationSeconds: number) => void
-  /** Modo compacto (solo botón, sin texto) */
   compact?: boolean
-  /** Idioma de reconocimiento */
   lang?: string
-  /** Texto placeholder */
   placeholder?: string
-  /** Clase CSS adicional */
   className?: string
-  /** Deshabilitado */
   disabled?: boolean
 }
 
 type RecordingState = 'idle' | 'recording' | 'transcribing'
 
-// Detectar soporte de Web Speech API
 function getSpeechRecognition(): (new () => SpeechRecognition) | null {
   if (typeof window === 'undefined') return null
   const w = window as Window & { SpeechRecognition?: new () => SpeechRecognition; webkitSpeechRecognition?: new () => SpeechRecognition }
@@ -34,7 +26,7 @@ export function VoiceRecorder({
   onAudioBlob,
   compact = false,
   lang = 'es-MX',
-  placeholder = 'Presiona el micrófono para dictar',
+  placeholder = 'Toca la esfera y dicta tu nota clínica',
   className = '',
   disabled = false,
 }: VoiceRecorderProps) {
@@ -58,7 +50,6 @@ export function VoiceRecorder({
       setUseWhisper(true)
     }
     return () => {
-      // Cleanup on unmount (sync)
       if (timerRef.current) clearInterval(timerRef.current)
       if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -78,80 +69,53 @@ export function VoiceRecorder({
   }, [])
 
   const stopTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
   }, [])
 
-  // ─── Iniciar grabación con MediaRecorder (para Whisper o audio backup) ───
   const startMediaRecorder = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
       chunksRef.current = []
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-
-      recorder.start(250) // chunks cada 250ms
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      recorder.start(250)
       mediaRecorderRef.current = recorder
       return stream
-    } catch {
-      return null
-    }
+    } catch { return null }
   }, [])
 
   const stopMediaRecorder = useCallback((): Promise<{ blob: Blob; duration: number } | null> => {
     return new Promise((resolve) => {
       const recorder = mediaRecorderRef.current
-      if (!recorder || recorder.state === 'inactive') {
-        resolve(null)
-        return
-      }
-
+      if (!recorder || recorder.state === 'inactive') { resolve(null); return }
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         const duration = Math.floor((Date.now() - startTimeRef.current) / 1000)
-        // Detener todas las pistas del stream
         recorder.stream.getTracks().forEach(t => t.stop())
         resolve({ blob, duration })
       }
-
       recorder.stop()
     })
   }, [])
 
-  // ─── Transcripción con Whisper API ───────────────────────────────────────
   const transcribeWithWhisper = useCallback(async (blob: Blob): Promise<string> => {
     const formData = new FormData()
     formData.append('audio', blob, 'recording.webm')
-    formData.append('language', lang.split('-')[0]) // 'es'
-
-    const res = await fetch('/api/transcribe', {
-      method: 'POST',
-      body: formData,
-    })
-
+    formData.append('language', lang.split('-')[0])
+    const res = await fetch('/api/transcribe', { method: 'POST', body: formData })
     if (!res.ok) throw new Error('Error en transcripción')
     const data = await res.json()
     return data.text || ''
   }, [lang])
 
-  // ─── Iniciar grabación ──────────────────────────────────────────────────
   const startRecording = useCallback(async () => {
     if (disabled || state !== 'idle') return
-
     fullTranscriptRef.current = ''
     setInterim('')
     setState('recording')
     startTimer()
-
-    // Siempre iniciar MediaRecorder para capturar audio
     await startMediaRecorder()
 
-    // Si hay Web Speech API disponible y no forzamos Whisper, usarla
     if (!useWhisper) {
       const SR = getSpeechRecognition()!
       const recognition = new SR()
@@ -163,26 +127,17 @@ export function VoiceRecorder({
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let finalText = ''
         let interimText = ''
-
         for (let i = 0; i < event.results.length; i++) {
           const result = event.results[i]
-          if (result.isFinal) {
-            finalText += result[0].transcript + ' '
-          } else {
-            interimText += result[0].transcript
-          }
+          if (result.isFinal) finalText += result[0].transcript + ' '
+          else interimText += result[0].transcript
         }
-
-        if (finalText) {
-          fullTranscriptRef.current = finalText.trim()
-        }
+        if (finalText) fullTranscriptRef.current = finalText.trim()
         setInterim(interimText || finalText)
       }
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        if (event.error === 'not-allowed') {
-          setUseWhisper(true)
-        }
+        if (event.error === 'not-allowed') setUseWhisper(true)
       }
 
       recognition.start()
@@ -190,22 +145,12 @@ export function VoiceRecorder({
     }
   }, [disabled, state, startTimer, startMediaRecorder, useWhisper, lang])
 
-  // ─── Detener grabación ──────────────────────────────────────────────────
   const stopRecording = useCallback(async () => {
     stopTimer()
-
-    // Detener Web Speech
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      recognitionRef.current = null
-    }
-
-    // Detener MediaRecorder y obtener blob
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null }
     const audioResult = await stopMediaRecorder()
-
     if (state !== 'recording') return
 
-    // Si usamos Whisper, transcribir el audio
     if (useWhisper && audioResult) {
       setState('transcribing')
       try {
@@ -214,33 +159,26 @@ export function VoiceRecorder({
           onTranscript(text.trim())
           onAudioBlob?.(audioResult.blob, audioResult.duration)
         }
-      } catch {
-        // Fallback: no hay transcripción disponible
-      }
+      } catch { /* sin transcripción */ }
       setState('idle')
       setInterim('')
       return
     }
 
-    // Web Speech: usar la transcripción acumulada
     const transcript = fullTranscriptRef.current.trim()
     if (transcript) {
       onTranscript(transcript)
-      if (audioResult) {
-        onAudioBlob?.(audioResult.blob, audioResult.duration)
-      }
+      if (audioResult) onAudioBlob?.(audioResult.blob, audioResult.duration)
     }
-
     setState('idle')
     setInterim('')
   }, [state, useWhisper, stopTimer, stopMediaRecorder, transcribeWithWhisper, onTranscript, onAudioBlob])
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 
-  if (!supported && !useWhisper) {
-    return null // No hay soporte de voz en absoluto
-  }
+  if (!supported && !useWhisper) return null
 
+  // ─── Modo compacto (solo botón pequeño) ────────────────────────────────
   if (compact) {
     return (
       <button
@@ -258,66 +196,133 @@ export function VoiceRecorder({
         {state === 'recording' && (
           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
         )}
-        {state === 'transcribing' ? (
-          <Loader2 size={14} className="animate-spin" />
-        ) : state === 'recording' ? (
-          <Square size={14} />
-        ) : (
-          <Mic size={14} />
-        )}
+        {state === 'transcribing' ? <Loader2 size={14} className="animate-spin" />
+          : state === 'recording' ? <Square size={14} />
+          : <Mic size={14} />}
       </button>
     )
   }
 
+  // ─── Modo esfera flotante (principal) ──────────────────────────────────
   return (
-    <div className={`space-y-2 ${className}`}>
-      <div className="flex items-center gap-3">
+    <div className={`flex flex-col items-center ${className}`}>
+
+      {/* Esfera pulsante */}
+      <div className="relative flex items-center justify-center mb-5">
+        {/* Anillos de expansión cuando graba */}
+        {state === 'recording' && (
+          <>
+            <span
+              className="absolute rounded-full animate-ping"
+              style={{
+                width: 140, height: 140,
+                background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+                animationDuration: '2s',
+              }}
+            />
+            <span
+              className="absolute rounded-full animate-ping"
+              style={{
+                width: 110, height: 110,
+                background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)',
+                animationDuration: '1.5s',
+                animationDelay: '0.3s',
+              }}
+            />
+            <span
+              className="absolute rounded-full"
+              style={{
+                width: 96, height: 96,
+                background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)',
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              }}
+            />
+          </>
+        )}
+
+        {/* Halo sutil en idle */}
+        {state === 'idle' && (
+          <span
+            className="absolute rounded-full"
+            style={{
+              width: 96, height: 96,
+              background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
+              animation: 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            }}
+          />
+        )}
+
+        {/* Esfera principal */}
         <button
           onClick={state === 'idle' ? startRecording : stopRecording}
           disabled={disabled || state === 'transcribing'}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-            state === 'recording'
-              ? 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'
-              : state === 'transcribing'
-                ? 'bg-accent/10 border border-accent/20 text-accent cursor-wait'
-                : 'bg-accent/10 border border-accent/20 text-accent hover:bg-accent/15'
-          }`}
+          className="relative z-10 group transition-all duration-300 ease-out"
+          style={{ outline: 'none' }}
         >
-          {state === 'transcribing' ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Transcribiendo…
-            </>
-          ) : state === 'recording' ? (
-            <>
-              <Square size={16} />
-              Detener ({formatTime(elapsed)})
-            </>
-          ) : (
-            <>
-              <Mic size={16} />
-              Grabar nota de voz
-            </>
-          )}
-        </button>
+          <div
+            className={`
+              w-20 h-20 rounded-full flex items-center justify-center
+              transition-all duration-500 ease-out
+              ${state === 'recording'
+                ? 'shadow-[0_0_40px_rgba(139,92,246,0.4),0_0_80px_rgba(139,92,246,0.15)]'
+                : state === 'transcribing'
+                  ? 'shadow-[0_0_30px_rgba(46,174,123,0.3)]'
+                  : 'shadow-[0_0_20px_rgba(139,92,246,0.15)] group-hover:shadow-[0_0_35px_rgba(139,92,246,0.3)]'
+              }
+            `}
+            style={{
+              background: state === 'recording'
+                ? 'radial-gradient(circle at 35% 35%, rgba(167,139,250,0.95), rgba(139,92,246,0.85), rgba(109,40,217,0.9))'
+                : state === 'transcribing'
+                  ? 'radial-gradient(circle at 35% 35%, rgba(74,222,128,0.9), rgba(46,174,123,0.85), rgba(22,163,74,0.9))'
+                  : 'radial-gradient(circle at 35% 35%, rgba(167,139,250,0.6), rgba(139,92,246,0.5), rgba(109,40,217,0.55))',
+              border: state === 'recording'
+                ? '1.5px solid rgba(167,139,250,0.6)'
+                : state === 'transcribing'
+                  ? '1.5px solid rgba(74,222,128,0.5)'
+                  : '1.5px solid rgba(139,92,246,0.25)',
+              transform: state === 'recording' ? 'scale(1.08)' : undefined,
+            }}
+          >
+            {/* Brillo superior de la esfera */}
+            <div
+              className="absolute top-2 left-5 w-6 h-3 rounded-full opacity-40"
+              style={{ background: 'radial-gradient(ellipse, rgba(255,255,255,0.6), transparent)' }}
+            />
 
-        {state === 'recording' && (
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-xs text-red-400">Grabando…</span>
+            {state === 'transcribing' ? (
+              <Loader2 size={28} className="text-white animate-spin" strokeWidth={1.8} />
+            ) : state === 'recording' ? (
+              <Square size={24} className="text-white drop-shadow-md" strokeWidth={2} />
+            ) : (
+              <Mic size={28} className="text-white drop-shadow-md" strokeWidth={1.8} />
+            )}
           </div>
-        )}
+        </button>
       </div>
 
-      {/* Transcripción en tiempo real */}
-      {state === 'recording' && interim && (
-        <div className="bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground italic">
-          {interim}
+      {/* Timer cuando graba */}
+      {state === 'recording' && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+          <span className="text-sm font-mono text-purple-300/80 tracking-wider">{formatTime(elapsed)}</span>
         </div>
       )}
 
-      {state === 'idle' && !compact && (
-        <p className="text-xs text-muted-foreground/60">{placeholder}</p>
+      {/* Frase al pie */}
+      <p className="text-center text-sm text-muted-foreground/70 leading-relaxed max-w-xs mb-4">
+        {state === 'transcribing'
+          ? 'Procesando transcripción…'
+          : state === 'recording'
+            ? 'Escuchando… Toca la esfera para detener'
+            : placeholder}
+      </p>
+
+      {/* Transcripción en tiempo real */}
+      {state === 'recording' && interim && (
+        <div className="w-full bg-muted/30 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground/70 italic leading-relaxed text-center max-w-md">
+          &ldquo;{interim}&rdquo;
+        </div>
       )}
     </div>
   )
