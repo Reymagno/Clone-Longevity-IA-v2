@@ -30,6 +30,11 @@ const config: Config = {
         'gold-400': '#9A7D3A',
         'gold-500': '#7A6330',
       },
+      fontSize: {
+        'micro': ['0.5625rem', { lineHeight: '0.75rem' }],
+        'mini':  ['0.625rem', { lineHeight: '0.875rem' }],
+        'tiny':  ['0.6875rem', { lineHeight: '1rem' }],
+      },
       fontFamily: {
         sans: ['Space Grotesk', 'sans-serif'],
         mono: ['DM Mono', 'monospace'],

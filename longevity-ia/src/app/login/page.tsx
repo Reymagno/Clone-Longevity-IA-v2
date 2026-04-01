@@ -47,9 +47,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background ambient */}
-      <div className="absolute top-[-30%] left-[-20%] w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-15%] w-[400px] h-[400px] rounded-full bg-info/[0.03] blur-[80px] pointer-events-none" />
+      {/* Background ambient with drift */}
+      <div className="absolute top-[-30%] left-[-20%] w-[500px] h-[500px] rounded-full bg-accent/[0.04] blur-[100px] pointer-events-none orb-drift-1" />
+      <div className="absolute bottom-[-20%] right-[-15%] w-[400px] h-[400px] rounded-full bg-info/[0.03] blur-[80px] pointer-events-none orb-drift-2" />
 
       <div className="w-full max-w-sm relative animate-scale-in">
         {/* Logo */}

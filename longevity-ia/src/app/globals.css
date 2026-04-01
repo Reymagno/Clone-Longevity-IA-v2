@@ -154,9 +154,146 @@ body {
 .stagger-4 { animation-delay: 0.2s; animation-fill-mode: both; }
 .stagger-5 { animation-delay: 0.25s; animation-fill-mode: both; }
 .stagger-6 { animation-delay: 0.3s; animation-fill-mode: both; }
+.stagger-7 { animation-delay: 0.35s; animation-fill-mode: both; }
+.stagger-8 { animation-delay: 0.4s; animation-fill-mode: both; }
+.stagger-9 { animation-delay: 0.45s; animation-fill-mode: both; }
+.stagger-10 { animation-delay: 0.5s; animation-fill-mode: both; }
+.stagger-11 { animation-delay: 0.55s; animation-fill-mode: both; }
+.stagger-12 { animation-delay: 0.6s; animation-fill-mode: both; }
+
+/* ── Panel reveal (tab transitions) ──────────────────────────────── */
+@keyframes revealPanel {
+  0% { opacity: 0; transform: translateY(8px) scale(0.998); filter: blur(4px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.animate-reveal-panel {
+  animation: revealPanel 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Staggered row entrance ──────────────────────────────────────── */
+@keyframes rowReveal {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.card-medical .divide-y > div { animation: rowReveal 0.3s ease-out both; }
+.card-medical .divide-y > div:nth-child(1) { animation-delay: 0.04s; }
+.card-medical .divide-y > div:nth-child(2) { animation-delay: 0.08s; }
+.card-medical .divide-y > div:nth-child(3) { animation-delay: 0.12s; }
+.card-medical .divide-y > div:nth-child(4) { animation-delay: 0.16s; }
+.card-medical .divide-y > div:nth-child(5) { animation-delay: 0.20s; }
+.card-medical .divide-y > div:nth-child(6) { animation-delay: 0.24s; }
+.card-medical .divide-y > div:nth-child(7) { animation-delay: 0.28s; }
+.card-medical .divide-y > div:nth-child(8) { animation-delay: 0.32s; }
+.card-medical .divide-y > div:nth-child(9) { animation-delay: 0.36s; }
+.card-medical .divide-y > div:nth-child(10) { animation-delay: 0.40s; }
+
+/* ── Clinical alert pulse (single, not infinite) ─────────────────── */
+@keyframes clinicalAlert {
+  0% { box-shadow: 0 0 0 0 rgba(212, 83, 106, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(212, 83, 106, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 83, 106, 0); }
+}
+.badge-danger-pulse { animation: clinicalAlert 1.2s ease-out 0.8s both; }
+
+@keyframes clinicalWarning {
+  0% { box-shadow: 0 0 0 0 rgba(212, 160, 58, 0.3); }
+  70% { box-shadow: 0 0 0 5px rgba(212, 160, 58, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 160, 58, 0); }
+}
+.badge-warning-pulse { animation: clinicalWarning 1.2s ease-out 0.8s both; }
+
+/* ── AI presence indicator ───────────────────────────────────────── */
+@keyframes aiPresence {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(46, 174, 123, 0.15)); }
+  50% { filter: drop-shadow(0 0 8px rgba(46, 174, 123, 0.35)); }
+}
+.ai-active { animation: aiPresence 4s ease-in-out infinite; }
+
+/* ── Header scan line ────────────────────────────────────────────── */
+@keyframes headerScan {
+  0% { left: -30%; opacity: 0; }
+  50% { opacity: 1; }
+  100% { left: 130%; opacity: 0; }
+}
+.header-scan { position: relative; overflow: hidden; }
+.header-scan::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -30%;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(46, 174, 123, 0.03), transparent);
+  animation: headerScan 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Re-analysis progress bar ────────────────────────────────────── */
+.reanalyzing-bar::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #2EAE7B 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  z-index: 50;
+}
+
+/* ── Urgency indicators ──────────────────────────────────────────── */
+@keyframes urgencyPulse {
+  0%, 100% { border-left-color: rgba(212, 83, 106, 0.6); }
+  50% { border-left-color: rgba(212, 83, 106, 0.9); box-shadow: -2px 0 12px rgba(212, 83, 106, 0.15); }
+}
+.urgency-immediate { border-left: 3px solid rgba(212, 83, 106, 0.6); animation: urgencyPulse 3s ease-in-out infinite; }
+
+@keyframes urgencyBreath {
+  0%, 100% { border-left-color: rgba(212, 160, 58, 0.4); }
+  50% { border-left-color: rgba(212, 160, 58, 0.7); }
+}
+.urgency-high { border-left: 3px solid rgba(212, 160, 58, 0.4); animation: urgencyBreath 4s ease-in-out infinite; }
+
+/* ── Vignette overlay ────────────────────────────────────────────── */
+.vignette::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(5, 14, 27, 0.35) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Status-aware card borders ───────────────────────────────────── */
+.card-status-danger {
+  border-color: rgba(212, 83, 106, 0.2) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 0 30px rgba(212, 83, 106, 0.03) !important;
+}
+.card-status-warning {
+  border-color: rgba(212, 160, 58, 0.15) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 0 30px rgba(212, 160, 58, 0.02) !important;
+}
+.card-status-optimal {
+  border-color: rgba(46, 174, 123, 0.15) !important;
+}
+
+/* ── Login orb drift ─────────────────────────────────────────────── */
+@keyframes orbDrift1 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(30px, -20px); }
+  66% { transform: translate(-15px, 15px); }
+}
+@keyframes orbDrift2 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(-25px, 25px); }
+  66% { transform: translate(20px, -10px); }
+}
+.orb-drift-1 { animation: orbDrift1 20s ease-in-out infinite; }
+.orb-drift-2 { animation: orbDrift2 25s ease-in-out infinite; }
 
 /* ── Tarjetas ──────────────────────────────────────────────────── */
 .card-medical {
+  position: relative;
   background: linear-gradient(135deg, rgba(10, 23, 41, 0.95) 0%, rgba(16, 31, 56, 0.9) 100%);
   border: 1px solid rgba(26, 46, 76, 0.6);
   border-radius: 16px;
@@ -164,14 +301,48 @@ body {
     0 4px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.02) inset;
   backdrop-filter: blur(12px);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  overflow: hidden;
+  transition:
+    border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Gold shimmer top edge */
+.card-medical::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.08) 30%, rgba(212,175,55,0.15) 50%, rgba(212,175,55,0.08) 70%, transparent 100%);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Noise texture on all cards */
+.card-medical::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.card-medical > * { position: relative; z-index: 1; }
 
 .card-medical:hover {
   border-color: rgba(46, 174, 123, 0.2);
+  transform: translateY(-1px);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(46, 174, 123, 0.05) inset;
+    0 0 0 1px rgba(46, 174, 123, 0.05) inset,
+    0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 /* ── Glass card variant ────────────────────────────────────────── */
@@ -185,31 +356,35 @@ body {
 
 /* ── Badges de estado ──────────────────────────────────────────── */
 .badge-optimal {
-  background: rgba(46, 174, 123, 0.12);
+  background: linear-gradient(135deg, rgba(46, 174, 123, 0.18) 0%, rgba(46, 174, 123, 0.06) 100%);
   color: #2EAE7B;
   border: 1px solid rgba(46, 174, 123, 0.25);
   backdrop-filter: blur(4px);
+  box-shadow: 0 0 8px rgba(46, 174, 123, 0.06);
 }
 
 .badge-normal {
-  background: rgba(91, 164, 201, 0.12);
+  background: linear-gradient(135deg, rgba(91, 164, 201, 0.18) 0%, rgba(91, 164, 201, 0.06) 100%);
   color: #5BA4C9;
   border: 1px solid rgba(91, 164, 201, 0.25);
   backdrop-filter: blur(4px);
+  box-shadow: 0 0 8px rgba(91, 164, 201, 0.06);
 }
 
 .badge-warning {
-  background: rgba(212, 160, 58, 0.12);
+  background: linear-gradient(135deg, rgba(212, 160, 58, 0.18) 0%, rgba(212, 160, 58, 0.06) 100%);
   color: #D4A03A;
   border: 1px solid rgba(212, 160, 58, 0.25);
   backdrop-filter: blur(4px);
+  box-shadow: 0 0 8px rgba(212, 160, 58, 0.06);
 }
 
 .badge-danger {
-  background: rgba(212, 83, 106, 0.12);
+  background: linear-gradient(135deg, rgba(212, 83, 106, 0.18) 0%, rgba(212, 83, 106, 0.06) 100%);
   color: #D4536A;
   border: 1px solid rgba(212, 83, 106, 0.25);
   backdrop-filter: blur(4px);
+  box-shadow: 0 0 8px rgba(212, 83, 106, 0.06);
 }
 
 /* ── Accent line ───────────────────────────────────────────────── */
@@ -314,15 +489,27 @@ body {
   color: #F5E6B8;
   font-weight: 600;
   border-radius: 12px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(46, 174, 123, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  box-shadow: 0 2px 8px rgba(46, 174, 123, 0.25), 0 0 0 0 rgba(46, 174, 123, 0);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 .btn-primary:hover {
-  box-shadow: 0 4px 16px rgba(46, 174, 123, 0.35);
+  box-shadow: 0 4px 20px rgba(46, 174, 123, 0.35), 0 0 0 1px rgba(46, 174, 123, 0.15);
   transform: translateY(-1px);
 }
+.btn-primary:hover::before { opacity: 1; }
 .btn-primary:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
+  transition-duration: 0.08s;
 }
 
 /* ── Divider with glow ─────────────────────────────────────────── */

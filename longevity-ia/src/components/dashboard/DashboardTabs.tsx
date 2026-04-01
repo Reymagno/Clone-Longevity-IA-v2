@@ -212,12 +212,12 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
 
   // ── Header compartido ───────────────────────────────────────────────────────
   const Header = (
-    <div className="sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border/60">
+    <div className="sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border/60 header-scan">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 shrink-0">
-              <LogoIcon size={32} />
+              <span className={analysis ? 'ai-active' : ''}><LogoIcon size={32} /></span>
               <div className="hidden sm:block">
                 <span className="font-semibold text-foreground text-sm tracking-tight block">Longevity IA</span>
                 <span className="text-[8px] text-muted-foreground/40 leading-none">Derechos reservados - Longevity Clinic SA de CV</span>
@@ -391,7 +391,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
 
   // ── Dashboard completo ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen hero-gradient vignette ${isReanalyzing ? 'reanalyzing-bar' : ''}`}>
       {Header}
 
       {/* Chat flotante — pacientes y médicos */}
@@ -400,7 +400,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
       )}
 
       {/* Contenido */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6" id="dashboard-export">
+      <div key={activeTab} className="max-w-7xl mx-auto px-4 sm:px-6 py-6 animate-reveal-panel" id="dashboard-export">
         {activeTab === 0 && (
           <SummaryTab
             analysis={analysis}

@@ -16,10 +16,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[0px] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-accent/50 focus-visible:outline-offset-2',
           {
             // Variants
-            'bg-accent text-background hover:bg-accent/90 shadow-accent/20 shadow-lg': variant === 'primary',
+            'bg-accent text-background hover:bg-accent/90 shadow-accent/20 shadow-lg hover:shadow-accent/30 hover:shadow-xl': variant === 'primary',
             'bg-muted text-foreground hover:bg-muted/80': variant === 'secondary',
             'hover:bg-muted/40 text-foreground': variant === 'ghost',
             'bg-danger/20 text-danger border border-danger/30 hover:bg-danger/30': variant === 'danger',
