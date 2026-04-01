@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ClipboardList, CheckCircle2, RefreshCw, Brain, Sparkles, Mic } from 'lucide-react'
@@ -252,6 +252,7 @@ function IntakeMedicoVoicePanel({
   const [transcript, setTranscript] = useState('')
   const [manualText, setManualText] = useState('')
   const [savedNotes, setSavedNotes] = useState<VoiceNote[]>([])
+  const audioBlobRef = useRef<{ blob: Blob; duration: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -276,6 +277,13 @@ function IntakeMedicoVoicePanel({
       formData.append('patientId', patientId)
       formData.append('transcript', text.trim())
 
+      // Adjuntar audio si existe
+      if (audioBlobRef.current) {
+        formData.append('audio', audioBlobRef.current.blob, 'voice-note.webm')
+        formData.append('duration', String(audioBlobRef.current.duration))
+        audioBlobRef.current = null
+      }
+
       const res = await fetch('/api/voice-notes', { method: 'POST', body: formData })
       if (!res.ok) throw new Error('Error al guardar')
 
@@ -295,6 +303,10 @@ function IntakeMedicoVoicePanel({
     setTranscript(prev => prev ? `${prev} ${text}` : text)
   }
 
+  function handleAudioBlob(blob: Blob, duration: number) {
+    audioBlobRef.current = { blob, duration }
+  }
+
   const finalText = transcript || manualText
 
   return (
@@ -303,6 +315,7 @@ function IntakeMedicoVoicePanel({
       <div className="card-medical py-10 px-5">
         <VoiceRecorder
           onTranscript={handleVoiceTranscript}
+          onAudioBlob={handleAudioBlob}
           placeholder={`Toca la esfera y describe los padecimientos, recomendaciones y aspectos importantes de ${patientName}`}
           disabled={saving}
         />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
 import {
@@ -323,6 +323,7 @@ function MedicoVoicePanel({
   const [transcript, setTranscript] = useState('')
   const [manualText, setManualText] = useState('')
   const [savedNotes, setSavedNotes] = useState<VoiceNote[]>([])
+  const audioBlobRef = useRef<{ blob: Blob; duration: number } | null>(null)
 
   // Cargar notas existentes
   useEffect(() => {
@@ -348,6 +349,12 @@ function MedicoVoicePanel({
       formData.append('patientId', patientId)
       formData.append('transcript', text.trim())
 
+      // Adjuntar audio si existe
+      if (audioBlobRef.current) {
+        formData.append('audio', audioBlobRef.current.blob, 'voice-note.webm')
+        formData.append('duration', String(audioBlobRef.current.duration))
+      }
+
       const res = await fetch('/api/voice-notes', { method: 'POST', body: formData })
       if (!res.ok) throw new Error('Error al guardar')
 
@@ -355,6 +362,7 @@ function MedicoVoicePanel({
       setSavedNotes(prev => [data.note, ...prev])
       setTranscript('')
       setManualText('')
+      audioBlobRef.current = null
       toast.success('Nota guardada y analizada por IA')
       onNoteSaved()
     } catch {
@@ -367,6 +375,10 @@ function MedicoVoicePanel({
     setTranscript(prev => prev ? `${prev} ${text}` : text)
   }
 
+  function handleAudioBlob(blob: Blob, duration: number) {
+    audioBlobRef.current = { blob, duration }
+  }
+
   const finalText = transcript || manualText
 
   return (
@@ -375,6 +387,7 @@ function MedicoVoicePanel({
       <div className="card-medical py-10 px-5">
         <VoiceRecorder
           onTranscript={handleVoiceTranscript}
+          onAudioBlob={handleAudioBlob}
           placeholder={`Toca la esfera y describe los padecimientos, recomendaciones y aspectos importantes de ${patientName}`}
           disabled={saving}
         />
@@ -473,6 +486,7 @@ function VoiceNotesSection({ patientId }: { patientId: string }) {
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [expandedNote, setExpandedNote] = useState<string | null>(null)
+  const pendingAudioRef = useRef<{ blob: Blob; duration: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -500,6 +514,13 @@ function VoiceNotesSection({ patientId }: { patientId: string }) {
       formData.append('patientId', patientId)
       formData.append('transcript', text)
 
+      // Adjuntar audio si existe
+      if (pendingAudioRef.current) {
+        formData.append('audio', pendingAudioRef.current.blob, 'voice-note.webm')
+        formData.append('duration', String(pendingAudioRef.current.duration))
+        pendingAudioRef.current = null
+      }
+
       const res = await fetch('/api/voice-notes', {
         method: 'POST',
         body: formData,
@@ -516,11 +537,8 @@ function VoiceNotesSection({ patientId }: { patientId: string }) {
     setSaving(false)
   }
 
-  async function handleAudioBlob(blob: Blob, duration: number) {
-    // Audio se guarda junto con la transcripción en el próximo save
-    // Para guardar audio separadamente, se necesitaría una cola
-    void blob
-    void duration
+  function handleAudioBlob(blob: Blob, duration: number) {
+    pendingAudioRef.current = { blob, duration }
   }
 
   async function handleDelete(noteId: string) {
