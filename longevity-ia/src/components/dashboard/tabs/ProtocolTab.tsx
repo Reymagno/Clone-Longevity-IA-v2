@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { AIAnalysis, Patient } from '@/types'
@@ -104,7 +104,7 @@ interface ProtocolTabProps {
 
 export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps) {
   const [showPrescription, setShowPrescription] = useState(false)
-  const [expandedEvidence, setExpandedEvidence] = useState<number | null>(null)
+  const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null)
 
   if (!protocol || protocol.length === 0) {
     return (
@@ -114,21 +114,61 @@ export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps)
     )
   }
 
+  // Agrupar protocolo por categoría con orden definido
+  const CATEGORY_ORDER = [
+    'Farmacológico',
+    'Senolítico/Anti-aging',
+    'Péptido terapéutico',
+    'Hormonal/Endocrino',
+    'Suplementación',
+    'Nutrición terapéutica',
+    'Hepatoprotección',
+    'Neuroprotección',
+    'Microbioma',
+    'Inmunomodulación',
+    'Medicina regenerativa',
+    'Estilo de vida',
+  ]
+
+  const grouped = useMemo(() => {
+    const groups: { category: string; items: typeof protocol }[] = []
+    const seen = new Set<string>()
+
+    // Primero las categorías en orden definido
+    for (const cat of CATEGORY_ORDER) {
+      const items = protocol.filter(p => (p.category ?? '').toLowerCase().includes(cat.toLowerCase()))
+      if (items.length > 0) {
+        groups.push({ category: cat, items })
+        items.forEach(item => seen.add(item.molecule))
+      }
+    }
+
+    // Luego categorías no mapeadas
+    const remaining = protocol.filter(p => !seen.has(p.molecule))
+    if (remaining.length > 0) {
+      // Agrupar por su propia categoría
+      const otherCats = new Map<string, typeof protocol>()
+      for (const item of remaining) {
+        const cat = item.category || 'Otros'
+        if (!otherCats.has(cat)) otherCats.set(cat, [])
+        otherCats.get(cat)!.push(item)
+      }
+      for (const [cat, items] of Array.from(otherCats.entries())) {
+        groups.push({ category: cat, items })
+      }
+    }
+
+    return groups
+  }, [protocol])
+
+  let globalIndex = 0
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {protocol.length} intervenciones basadas en evidencia científica
+          {protocol.length} intervenciones basadas en evidencia científica · {grouped.length} categorías
         </p>
-        {viewerRole === 'medico' && patient && (
-          <button
-            onClick={() => setShowPrescription(true)}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-accent text-background rounded-xl hover:bg-accent/90 transition-all shadow-accent/20 shadow-lg"
-          >
-            <FileDown size={13} />
-            Generar Prescripcion
-          </button>
-        )}
       </div>
 
       {showPrescription && patient && (
@@ -144,13 +184,26 @@ export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps)
         <VerifiedReferences protocol={protocol} />
       )}
 
-      {protocol.map((item, i) => {
+      {grouped.map(group => (
+        <div key={group.category} className="space-y-3">
+          {/* Encabezado de categoría */}
+          <div className="flex items-center gap-2 pt-2">
+            <div className="h-px flex-1 bg-border/40" />
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
+              {group.category}
+            </span>
+            <span className="text-[10px] text-muted-foreground/50">{group.items.length}</span>
+            <div className="h-px flex-1 bg-border/40" />
+          </div>
+
+          {group.items.map((item) => {
+        globalIndex++
         const urgency = item.urgency ?? 'medium'
-        const displayNumber = String(item.number ?? (i + 1)).padStart(2, '0')
+        const displayNumber = String(globalIndex).padStart(2, '0')
         const biomarkers = Array.isArray(item.targetBiomarkers) ? item.targetBiomarkers : []
 
         return (
-          <Card key={i} className="hover:border-accent/30 transition-all">
+          <Card key={`${group.category}-${item.molecule}`} className="hover:border-accent/30 transition-all">
             {/* Header */}
             <div className="flex items-start justify-between p-5 pb-0">
               <div className="flex items-start gap-4">
@@ -207,14 +260,14 @@ export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps)
 
                   {/* Pestaña sutil para más evidencia */}
                   <button
-                    onClick={() => setExpandedEvidence(expandedEvidence === i ? null : i)}
+                    onClick={() => setExpandedEvidence(expandedEvidence === item.molecule ? null : item.molecule)}
                     className="mt-2 flex items-center gap-1 text-[10px] text-accent/50 hover:text-accent transition-colors"
                   >
-                    <ChevronDown size={9} className={`transition-transform ${expandedEvidence === i ? 'rotate-180' : ''}`} />
-                    {expandedEvidence === i ? 'Ocultar evidencia adicional' : 'Ver más evidencia científica'}
+                    <ChevronDown size={9} className={`transition-transform ${expandedEvidence === item.molecule ? 'rotate-180' : ''}`} />
+                    {expandedEvidence === item.molecule ? 'Ocultar evidencia adicional' : 'Ver más evidencia científica'}
                   </button>
 
-                  {expandedEvidence === i && (
+                  {expandedEvidence === item.molecule && (
                     <div className="mt-2.5 space-y-1.5 animate-fade-in border-t border-border/30 pt-2.5">
                       {getEvidenceForMolecule(item.category ?? '', item.molecule ?? '').map((ev, j) => (
                         <div key={j} className="px-2.5 py-1.5 rounded bg-accent/3 border border-accent/8 hover:border-accent/20 transition-colors">
@@ -276,6 +329,21 @@ export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps)
           </Card>
         )
       })}
+        </div>
+      ))}
+
+      {/* Botón de prescripción al final */}
+      {viewerRole === 'medico' && patient && (
+        <div className="flex justify-center pt-4 pb-2">
+          <button
+            onClick={() => setShowPrescription(true)}
+            className="flex items-center gap-2 px-6 py-3 text-sm font-medium bg-accent text-background rounded-xl hover:bg-accent/90 transition-all shadow-accent/20 shadow-lg"
+          >
+            <FileDown size={15} />
+            Generar Prescripción
+          </button>
+        </div>
+      )}
     </div>
   )
 }
