@@ -211,7 +211,7 @@ export async function generateMedicalReport(
   function t(str: string, tx: number, ty: number, align: 'left' | 'center' | 'right' = 'left') {
     pdf.text(str, tx, ty, { align })
   }
-  function guard(needed: number) { if (y + needed > PH - 14) nextPage() }
+  function guard(needed: number) { if (y + needed > PH - 18) nextPage() }
   function skip(delta = 4) { y += delta }
 
   // ── Estructura de página ──────────────────────────────────────
@@ -248,37 +248,41 @@ export async function generateMedicalReport(
   }
 
   // ── Tabla de biomarcadores ─────────────────────────────────────
-  // Columnas: nombre|valor|unidad|ref|óptimo|estado
-  const BC = { name: MG + 2, val: MG + 52, unit: MG + 76, ref: MG + 98, opt: MG + 126, badge: MG + 154 }
+  // Columnas redistribuidas para evitar superposición
+  const BC = { name: MG + 2, val: MG + 46, unit: MG + 68, ref: MG + 88, opt: MG + 114, badge: MG + 144 }
 
   function bmHead() {
     guard(10)
     box(MG, y, CW, 7, C.dark)
-    ink(C.bg); sz(6.8); b()
-    const labels = ['BIOMARCADOR', 'VALOR', 'UNIDAD', 'REF. NORMAL', 'RANGO ÓPTIMO', 'ESTADO']
+    ink(C.bg); sz(6); b()
+    const labels = ['BIOMARCADOR', 'VALOR', 'UNIDAD', 'REF.', 'ÓPTIMO', 'ESTADO']
     const xs = [BC.name, BC.val, BC.unit, BC.ref, BC.opt, BC.badge]
-    labels.forEach((lbl, i) => t(lbl, xs[i], y + 5))
+    labels.forEach((lbl, idx) => t(lbl, xs[idx], y + 5))
     skip(7)
   }
 
   function bmRow(label: string, bm: BiomarkerValue | null | undefined, even: boolean) {
-    const RH = 6.5
+    const RH = 7
     guard(RH + 1)
     box(MG, y, CW, RH, even ? C.bg : C.sheet)
-    ink(C.text); sz(8); n(); t(label, BC.name, y + 4.5)
+    // Truncar nombre si es muy largo
+    const maxNameW = BC.val - BC.name - 2
+    const truncLabel = pdf.getTextWidth(label) > maxNameW ? label.substring(0, 22) + '…' : label
+    ink(C.text); sz(7.5); n(); t(truncLabel, BC.name, y + 5)
     if (bm && bm.value != null) {
-      ink(C.text); sz(8.5); b(); t(bv(bm), BC.val, y + 4.5)
-      ink(C.muted); sz(7.5); n()
-      t(bu(bm), BC.unit, y + 4.5)
-      t(bref(bm), BC.ref, y + 4.5)
-      t(bopt(bm), BC.opt, y + 4.5)
+      ink(C.text); sz(8); b(); t(bv(bm), BC.val, y + 5)
+      ink(C.muted); sz(7); n()
+      t(bu(bm), BC.unit, y + 5)
+      t(bref(bm), BC.ref, y + 5)
+      t(bopt(bm), BC.opt, y + 5)
       // Badge
-      const badgeW = 22
-      box(BC.badge, y + 1, badgeW, 4.5, sbg(bm.status))
-      ink(sc(bm.status)); sz(6.5); b()
-      t(sl(bm.status), BC.badge + badgeW / 2, y + 4.5, 'center')
+      const badgeW = 26
+      const badgeX = MG + CW - badgeW - 2
+      box(badgeX, y + 1.2, badgeW, 4.5, sbg(bm.status))
+      ink(sc(bm.status)); sz(6); b()
+      t(sl(bm.status), badgeX + badgeW / 2, y + 4.8, 'center')
     } else {
-      ink(C.light); sz(7.5); n(); t('Sin dato en estudio', BC.val, y + 4.5)
+      ink(C.light); sz(7); n(); t('Sin dato', BC.val, y + 5)
     }
     hline(y + RH)
     skip(RH)
@@ -286,21 +290,24 @@ export async function generateMedicalReport(
 
   // ── Barra de score ─────────────────────────────────────────────
   function scoreBar(label: string, score: number, even: boolean) {
-    const RH = 8
+    const RH = 9
     guard(RH + 1)
     box(MG, y, CW, RH, even ? C.bg : C.sheet)
-    ink(C.text); sz(8.5); n(); t(label, MG + 3, y + 5.5)
-    const BAR_W = 75, BAR_H = 3.5, BAR_X = MG + CW - BAR_W - 22
-    box(BAR_X, y + 2.5, BAR_W, BAR_H, C.border)
-    box(BAR_X, y + 2.5, (score / 100) * BAR_W, BAR_H, scoreC(score))
-    ink(scoreC(score)); sz(8.5); b()
-    t(`${Math.round(score)}/100`, BAR_X + BAR_W + 3, y + 5.5)
-    // Mini badge
-    const badgeW = 18
-    box(MG + CW - badgeW, y + 1.5, badgeW, 5, scoreBg(score))
-    ink(scoreC(score)); sz(6.5); b()
+    ink(C.text); sz(8); n(); t(label, MG + 3, y + 6)
+    // Barra de progreso — posicionada después del label
+    const BAR_X = MG + 42, BAR_W = 70, BAR_H = 3.5
+    box(BAR_X, y + 3, BAR_W, BAR_H, C.border)
+    box(BAR_X, y + 3, (score / 100) * BAR_W, BAR_H, scoreC(score))
+    // Score numérico
+    ink(scoreC(score)); sz(8); b()
+    t(`${Math.round(score)}`, BAR_X + BAR_W + 3, y + 6)
+    // Badge al final
+    const badgeW = 20
+    const badgeX = MG + CW - badgeW - 1
+    box(badgeX, y + 2, badgeW, 5, scoreBg(score))
+    ink(scoreC(score)); sz(6); b()
     const scoreLabel = score >= 85 ? 'Óptimo' : score >= 65 ? 'Normal' : score >= 40 ? 'Atención' : 'Crítico'
-    t(scoreLabel, MG + CW - badgeW / 2, y + 5.5, 'center')
+    t(scoreLabel, badgeX + badgeW / 2, y + 5.8, 'center')
     hline(y + RH)
     skip(RH)
   }
@@ -554,19 +561,21 @@ export async function generateMedicalReport(
         const impact = normalize(it, ['expectedImpact', 'impact'])
         const prob = normalize(it, ['probability'])
 
-        const detMaxW = CW - (impact ? 55 : 8)
+        const detMaxW = CW - (impact ? 55 : 10)
         const detLines = pdf.splitTextToSize(det, detMaxW) as string[]
-        const eviLines = evi ? pdf.splitTextToSize(evi, CW - 10) as string[] : []
-        const RH = Math.max(14, 7 + detLines.length * 4.2 + (eviLines.length > 0 ? eviLines.length * 3.5 + 2 : 0) + 3)
+        const eviLines = evi ? pdf.splitTextToSize(evi, CW - 12) as string[] : []
+        const DLH = 4.5  // line height para detalle
+        const ELH = 3.8  // line height para evidencia
+        const RH = Math.max(14, 8 + detLines.length * DLH + (eviLines.length > 0 ? eviLines.length * ELH + 3 : 0) + 4)
         guard(RH + 1)
         box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
         box(MG, y, 2, RH, color)
-        ink(C.text); sz(8.5); b()
-        t(lbl, MG + 5, y + 5)
-        ink(C.muted); sz(7.5); n()
-        pdf.text(detLines, MG + 5, y + 10)
+        ink(C.text); sz(8); b()
+        t(lbl.substring(0, 60), MG + 5, y + 5.5)
+        ink(C.muted); sz(7); n()
+        pdf.text(detLines, MG + 5, y + 11)
         if (eviLines.length > 0) {
-          const eviY = y + 10 + detLines.length * 4.2
+          const eviY = y + 11 + detLines.length * DLH + 1
           ink(C.light); sz(6.5); n()
           pdf.text(eviLines, MG + 5, eviY)
         }
@@ -835,58 +844,77 @@ export async function generateMedicalReport(
       item.urgency === 'high'      ? 'ALTO' :
       item.urgency === 'medium'    ? 'MEDIO' : 'BAJO'
 
-    // Layout: top row = number + urgency badge + category
-    // Left column (half width): molecule, dose
-    // Right column (half width): mechanism, expected result, evidence
-    const leftW = CW * 0.42
-    const rightW = CW - leftW - 8
+    // Layout vertical: header → molécula/dosis → mecanismo → evidencia → resultado
+    const contentW = CW - 14
 
-    const mechText = item.mechanism ?? ''
-    const evidText = item.evidence ?? ''
-    const resultText = item.expectedResult ? `→ ${item.expectedResult}` : ''
-    const rightContent = [mechText, evidText, resultText].filter(Boolean).join('\n')
-    const rightLines = pdf.splitTextToSize(rightContent, rightW) as string[]
+    const moleculeLines = pdf.splitTextToSize(item.molecule ?? '', contentW) as string[]
+    const doseLines = pdf.splitTextToSize(item.dose ?? '', contentW) as string[]
+    const mechLines = item.mechanism ? pdf.splitTextToSize(`Mecanismo: ${item.mechanism}`, contentW) as string[] : []
+    const evidLines = item.evidence ? pdf.splitTextToSize(`Evidencia: ${item.evidence}`, contentW) as string[] : []
+    const resultLines = item.expectedResult ? pdf.splitTextToSize(`Resultado esperado: ${item.expectedResult}`, contentW) as string[] : []
+    const actionLines = item.action ? pdf.splitTextToSize(item.action, contentW) as string[] : []
 
-    const moleculeLines = pdf.splitTextToSize(item.molecule ?? '', leftW - 4) as string[]
-    const doseLines = pdf.splitTextToSize(item.dose ?? '', leftW - 4) as string[]
-    const leftHeight = 8 + moleculeLines.length * 4.5 + doseLines.length * 4 + 2
-    const rightHeight = 8 + rightLines.length * 4 + 2
-    const RH = Math.max(20, Math.max(leftHeight, rightHeight) + 2)
+    const LH = 4  // line height
+    const headerH = 9
+    const moleculeH = moleculeLines.length * 5
+    const doseH = doseLines.length * LH
+    const mechH = mechLines.length > 0 ? mechLines.length * LH + 2 : 0
+    const evidH = evidLines.length > 0 ? evidLines.length * LH + 2 : 0
+    const resultH = resultLines.length > 0 ? resultLines.length * LH + 2 : 0
+    const actionH = actionLines.length > 0 ? actionLines.length * LH + 2 : 0
+    const RH = headerH + moleculeH + doseH + mechH + evidH + resultH + actionH + 6
 
     guard(RH + 2)
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
     box(MG, y, 3, RH, urgColor)
 
-    // Number + urgency badge
+    // Header: number + urgency badge + category
     ink(urgColor); sz(7.5); b()
-    t(`${item.number ?? i + 1}`, MG + 7, y + 5.5)
-    box(MG + 13, y + 1.5, 22, 5, sbg(item.urgency ?? 'low'))
-    ink(urgColor); sz(6.5); b()
-    t(urgLabel, MG + 24, y + 5.5, 'center')
+    t(`${item.number ?? i + 1}`, MG + 7, y + 6)
+    box(MG + 13, y + 2, 20, 5, sbg(item.urgency ?? 'low'))
+    ink(urgColor); sz(6); b()
+    t(urgLabel, MG + 23, y + 5.8, 'center')
+    ink(C.light); sz(6); n()
+    t((item.category ?? '').substring(0, 30), MG + 36, y + 6)
 
-    // Category
-    ink(C.light); sz(6.5); n()
-    t(item.category ?? '', MG + 38, y + 5.5)
+    let cy = y + headerH
 
-    // Left column: molecule + dose
-    ink(C.text); sz(9); b()
-    pdf.text(moleculeLines, MG + 7, y + 11)
-    const doseY = y + 11 + moleculeLines.length * 4.5
+    // Molécula
+    ink(C.text); sz(8.5); b()
+    pdf.text(moleculeLines, MG + 7, cy)
+    cy += moleculeH
+
+    // Dosis
     ink(C.muted); sz(7.5); n()
-    pdf.text(doseLines, MG + 7, doseY)
+    pdf.text(doseLines, MG + 7, cy)
+    cy += doseH + 1
 
-    // Action badge — below dose
-    if (item.action) {
-      const actionLines = pdf.splitTextToSize(item.action, leftW - 10) as string[]
-      const actionY = doseY + doseLines.length * 4 + 2
-      ink(urgColor); sz(6.5); b()
-      pdf.text(actionLines, MG + 7, actionY)
+    // Mecanismo
+    if (mechLines.length > 0) {
+      ink(C.muted); sz(7); n()
+      pdf.text(mechLines, MG + 7, cy)
+      cy += mechH
     }
 
-    // Right column: mechanism + evidence + expected result
-    const rightX = MG + leftW + 6
-    ink(C.muted); sz(7.5); n()
-    pdf.text(rightLines, rightX, y + 5.5)
+    // Evidencia
+    if (evidLines.length > 0) {
+      ink(C.light); sz(6.5); n()
+      pdf.text(evidLines, MG + 7, cy)
+      cy += evidH
+    }
+
+    // Resultado esperado
+    if (resultLines.length > 0) {
+      ink(C.accent); sz(7); n()
+      pdf.text(resultLines, MG + 7, cy)
+      cy += resultH
+    }
+
+    // Acción
+    if (actionLines.length > 0) {
+      ink(urgColor); sz(6.5); b()
+      pdf.text(actionLines, MG + 7, cy)
+    }
 
     hline(y + RH)
     skip(RH)
