@@ -109,7 +109,16 @@ export async function POST(request: NextRequest) {
     let speakers: Record<string, string> = {}
     let clinicalInsights = ''  // versión condensada con solo lo clínicamente relevante
 
+    // Validar API key antes de intentar
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('ANTHROPIC_API_KEY no está configurada en el entorno')
+      return NextResponse.json({
+        error: 'ANTHROPIC_API_KEY no configurada. Agrégala en Vercel > Settings > Environment Variables.',
+      }, { status: 500 })
+    }
+
     try {
+      console.log('Iniciando análisis con Claude... transcript length:', transcript.length)
       const analysisResponse = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6-20250514',
         max_tokens: 4000,
@@ -218,8 +227,11 @@ IMPORTANTE:
           clinicalInsights = textBlock.text
         }
       }
-    } catch {
-      // Si falla el análisis, guardar transcripción como fallback
+    } catch (claudeErr) {
+      // LOG del error real para diagnosticar
+      console.error('Claude analysis FAILED:', claudeErr instanceof Error ? claudeErr.message : claudeErr)
+      console.error('Claude full error:', JSON.stringify(claudeErr, null, 2)?.substring(0, 500))
+      // Fallback: guardar transcripción sin análisis
       clinicalInsights = transcript
     }
 
