@@ -113,26 +113,25 @@ export function formatNumber(value: number | null | undefined, decimals = 1): st
   return value.toFixed(decimals)
 }
 
+/** Genera una cadena alfanumérica de longitud fija usando crypto */
+function randomAlphaNum(length: number): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // sin 0/O/1/I para evitar confusión visual
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, b => chars[b % chars.length]).join('')
+}
+
 export function generatePatientCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase()
-  const bytes = new Uint8Array(3)
-  crypto.getRandomValues(bytes)
-  const random = Array.from(bytes, b => b.toString(36)).join('').substring(0, 4).toUpperCase()
-  return `LNG-${timestamp}-${random}`
+  return `LNG-${timestamp}-${randomAlphaNum(4)}`
 }
 
 export function generateMedicoCode(): string {
-  const bytes = new Uint8Array(5)
-  crypto.getRandomValues(bytes)
-  const random = Array.from(bytes, b => b.toString(36)).join('').substring(0, 6).toUpperCase()
-  return `MED-${random}`
+  return `MED-${randomAlphaNum(6)}`
 }
 
 export function generateClinicaCode(): string {
-  const bytes = new Uint8Array(5)
-  crypto.getRandomValues(bytes)
-  const random = Array.from(bytes, b => b.toString(36)).join('').substring(0, 6).toUpperCase()
-  return `CLI-${random}`
+  return `CLI-${randomAlphaNum(6)}`
 }
 
 /** Simple hash for comparing clinical history changes (browser-safe) */
