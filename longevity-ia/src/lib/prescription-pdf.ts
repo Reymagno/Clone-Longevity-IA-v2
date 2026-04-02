@@ -247,7 +247,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
     doc.text('#', MG + 2, y)
     doc.text('MOLECULA / INTERVENCION', MG + 10, y)
     doc.text('DOSIS / POSOLOGIA', MG + 85, y)
-    doc.text('ESTADO', MG + 140, y)
+    doc.text('ESTADO', MG + 148, y)
 
     y += 2
     setDraw(C.border)
@@ -255,16 +255,29 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
     y += 3
 
     items.forEach((item, idx) => {
-      checkPage(16)
-
       const isModified = 'status' in item && item.status === 'modified'
       const isCustom = 'status' in item && item.status === 'custom'
       const hasSupervision = item.requiresSupervision
 
+      // Calculate dose text and wrap it
+      const doseText = item.dose ?? ''
+      doc.setFontSize(7.5)
+      const doseLines = doc.splitTextToSize(doseText, 55) // 55mm column width
+      const modifiedLine = (isModified && 'originalDose' in item && item.originalDose) ? 1 : 0
+      const instrText = ('instructions' in item && item.instructions) ? item.instructions : ''
+      const instrLines = instrText ? doc.splitTextToSize(instrText, CW - 14) : []
+
+      // Calculate row height dynamically
+      const doseHeight = Math.max(doseLines.length, 1) * 3.5
+      const extraHeight = modifiedLine * 3.5 + (instrLines.length > 0 ? instrLines.length * 3 + 2 : 0)
+      const rowHeight = Math.max(12, 6 + doseHeight + extraHeight + (hasSupervision ? 5 : 0))
+
+      checkPage(rowHeight + 2)
+
       // Row background (alternating)
       if (idx % 2 === 0) {
         setFill(C.sheet)
-        doc.rect(MG, y - 2, CW, 12, 'F')
+        doc.rect(MG, y - 2, CW, rowHeight, 'F')
       }
 
       // Number
@@ -276,8 +289,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
       // Molecule name
       doc.setFont('helvetica', 'bold')
       setColor(C.text)
-      const moleculeName = item.molecule
-      doc.text(moleculeName.substring(0, 40), MG + 10, y + 2)
+      doc.text(item.molecule.substring(0, 45), MG + 10, y + 2)
 
       // Category
       if ('category' in item && item.category) {
@@ -287,63 +299,64 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
         doc.text(item.category, MG + 10, y + 6)
       }
 
-      // Dose
-      doc.setFontSize(8)
+      // Dose — full text with word wrap
+      doc.setFontSize(7.5)
       doc.setFont('helvetica', 'normal')
       setColor(C.text)
-      doc.text((item.dose ?? '').substring(0, 30), MG + 85, y + 2)
+      doc.text(doseLines, MG + 85, y + 2)
 
-      // Modified badge
+      // Modified original dose
+      let doseEndY = y + 2 + doseLines.length * 3.5
       if (isModified && 'originalDose' in item && item.originalDose) {
         doc.setFontSize(6)
         setColor(C.orange)
-        doc.text(`(antes: ${item.originalDose})`, MG + 85, y + 6)
+        doc.text(`(antes: ${item.originalDose})`, MG + 85, doseEndY)
+        doseEndY += 3.5
       }
 
       // Status badge
       if (isCustom) {
         setFill(C.blue)
-        doc.roundedRect(MG + 140, y - 0.5, 20, 5, 1, 1, 'F')
+        doc.roundedRect(MG + 148, y - 0.5, 20, 5, 1, 1, 'F')
         doc.setFontSize(6)
         doc.setFont('helvetica', 'bold')
         setColor(C.bg)
-        doc.text('AGREGADA', MG + 142, y + 3)
+        doc.text('AGREGADA', MG + 150, y + 3)
       } else if (isModified) {
         setFill(C.orange)
-        doc.roundedRect(MG + 140, y - 0.5, 22, 5, 1, 1, 'F')
+        doc.roundedRect(MG + 148, y - 0.5, 22, 5, 1, 1, 'F')
         doc.setFontSize(6)
         doc.setFont('helvetica', 'bold')
         setColor(C.bg)
-        doc.text('MODIFICADA', MG + 142, y + 3)
+        doc.text('MODIFICADA', MG + 150, y + 3)
       } else {
         setFill(C.green)
-        doc.roundedRect(MG + 140, y - 0.5, 20, 5, 1, 1, 'F')
+        doc.roundedRect(MG + 148, y - 0.5, 20, 5, 1, 1, 'F')
         doc.setFontSize(6)
         doc.setFont('helvetica', 'bold')
         setColor(C.bg)
-        doc.text('APROBADA', MG + 142, y + 3)
+        doc.text('APROBADA', MG + 150, y + 3)
       }
 
       // Supervision badge
       if (hasSupervision) {
         setFill(C.red)
-        doc.roundedRect(MG + 140, y + 5, 28, 4.5, 1, 1, 'F')
+        doc.roundedRect(MG + 148, y + 5, 22, 4.5, 1, 1, 'F')
         doc.setFontSize(5.5)
         setColor(C.bg)
-        doc.text('SUPERVISION MEDICA', MG + 141.5, y + 8.2)
+        doc.text('SUPERVISION', MG + 149.5, y + 8.2)
       }
 
-      // Instructions
-      if ('instructions' in item && item.instructions) {
-        doc.setFontSize(6)
+      // Instructions — full width below molecule and dose
+      if (instrLines.length > 0) {
+        const instrY = Math.max(doseEndY, y + 8) + 1
+        doc.setFontSize(6.5)
         doc.setFont('helvetica', 'italic')
         setColor(C.muted)
-        const instrLines = doc.splitTextToSize(item.instructions, 70)
-        doc.text(instrLines.slice(0, 2), MG + 10, y + 10)
-        y += instrLines.length > 1 ? 4 : 2
+        doc.text(instrLines, MG + 10, instrY)
       }
 
-      y += 12
+      y += rowHeight
     })
   }
 

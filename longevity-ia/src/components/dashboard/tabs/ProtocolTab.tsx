@@ -336,7 +336,7 @@ export function ProtocolTab({ protocol, viewerRole, patient }: ProtocolTabProps)
       {viewerRole === 'medico' && patient && (
         <div className="flex justify-center pt-4 pb-2">
           <button
-            onClick={() => setShowPrescription(true)}
+            onClick={() => { setShowPrescription(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
             className="flex items-center gap-2 px-6 py-3 text-sm font-medium bg-accent text-background rounded-xl hover:bg-accent/90 transition-all shadow-accent/20 shadow-lg"
           >
             <FileDown size={15} />
