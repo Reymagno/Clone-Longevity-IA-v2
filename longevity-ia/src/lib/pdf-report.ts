@@ -380,14 +380,13 @@ export async function generateMedicalReport(
   function alertBox(text: string, level: 'warning' | 'danger' = 'warning') {
     const color = level === 'danger' ? C.danger : C.warning
     const bgTint: RGB = level === 'danger' ? [255, 245, 245] : [255, 251, 235]
-    const lines = pdf.splitTextToSize(text, CW - 10) as string[]
+    const lines = pdf.splitTextToSize(text, CW - 16) as string[]
     const H = lines.length * 4.5 + 6
     guard(H + 2)
-    // Subtle tinted background with gold border
     boxStroke(MG, y, CW, H, bgTint, C.gold, 0.3)
     box(MG, y, 3, H, color)
-    ink(color); sz(7.5); n()
-    pdf.text(lines, MG + 6, y + 5)
+    ink(color); sz(7); n()
+    pdf.text(lines, MG + 8, y + 5)
     skip(H + 3)
   }
 
@@ -491,7 +490,7 @@ export async function generateMedicalReport(
     ink(C.text); sz(8.5); b(); tSafe(val, MG + CW / 2 + 4, CARD_Y + 23 + i * 10, colW)
   })
 
-  // ── Legal disclaimer at the bottom ────────────────────────────
+  // ── Legal disclaimer ───────────────────────────────────────────
   const LEGAL_Y = CARD_Y + CARD_H + 6
   ink(C.muted); sz(6.5); n()
   const legalLines = pdf.splitTextToSize(
@@ -503,12 +502,13 @@ export async function generateMedicalReport(
   boxStroke(MG, LEGAL_Y, CW, legalH, [250, 251, 253] as RGB, C.border, 0.15)
   pdf.text(legalLines, MG + 5, LEGAL_Y + 4)
 
-  // ── Footer portada ────────────────────────────────────────────
-  dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, PH - 14, PW - MG, PH - 14)
-  ink(C.gold); sz(7); b(); t('Longevity IA', MG, PH - 8)
+  // ── Footer portada (posicionado debajo del disclaimer) ────────
+  const footerY = Math.max(LEGAL_Y + legalH + 8, PH - 16)
+  dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, footerY, PW - MG, footerY)
+  ink(C.gold); sz(7); b(); t('Longevity IA', MG, footerY + 6)
   ink(C.muted); sz(6.5); n()
-  t('Medicina de Precisión · Longevidad · Bienestar', MG + 24, PH - 8)
-  t('Pág. 1', PW - MG, PH - 8, 'right')
+  t('Medicina de Precisión · Longevidad · Bienestar', MG + 24, footerY + 6)
+  t('Pág. 1', PW - MG, footerY + 6, 'right')
 
   // ═══════════════════════════════════════════════════════════════
   // RESUMEN EJECUTIVO
@@ -542,15 +542,19 @@ export async function generateMedicalReport(
 
       const alertColor = level === 'danger' ? C.danger : C.warning
       const alertBgTint: RGB = level === 'danger' ? [255, 245, 245] : [255, 251, 235]
-      const fullText = `${title}${desc ? ': ' + desc : ''}${val ? '  (Actual: ' + val + (target ? ' → Objetivo: ' + target : '') + ')' : ''}`
-      const aLines = pdf.splitTextToSize(fullText, CW - 12) as string[]
-      const AH = aLines.length * 4.5 + 5
-      guard(AH + 2)
+      // Construir texto de alerta con salto de línea para valores largos
+      let fullText = title
+      if (desc) fullText += ': ' + desc
+      if (val) fullText += '\nActual: ' + val + (target ? '  →  Objetivo: ' + target : '')
+      const alertMaxW = CW - 16
+      const aLines = pdf.splitTextToSize(fullText, alertMaxW) as string[]
+      const AH = aLines.length * 4.5 + 6
+      guard(AH + 3)
       boxStroke(MG, y, CW, AH, alertBgTint, C.gold, 0.3)
       box(MG, y, 3, AH, alertColor)
-      ink(alertColor); sz(7.5); n()
-      pdf.text(aLines, MG + 7, y + 4.5)
-      skip(AH + 2)
+      ink(alertColor); sz(7); n()
+      pdf.text(aLines, MG + 8, y + 5)
+      skip(AH + 3)
     })
     skip(2)
   }
@@ -841,10 +845,17 @@ export async function generateMedicalReport(
       const withP = pf.withProtocol ?? '—'
       const justification = pf.medicalJustification ?? ''
 
-      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, CW / 2 - 6) as string[]
-      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, CW / 2 - 6) as string[]
-      const justLines = justification ? pdf.splitTextToSize(justification, CW - 10) as string[] : []
-      const RH = 18 + Math.max(withoutLines.length, withLines.length) * 4 + (justLines.length > 0 ? justLines.length * 3.5 + 2 : 0)
+      const halfCol = CW / 2 - 10
+      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, halfCol) as string[]
+      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, halfCol) as string[]
+      const justLines = justification ? pdf.splitTextToSize(justification, CW - 16) as string[] : []
+
+      // Actual y Óptimo en líneas separadas si son muy largos
+      const currentLines = pdf.splitTextToSize(`Actual: ${current}`, halfCol) as string[]
+      const optimalLines = pdf.splitTextToSize(`Óptimo: ${optimal}`, halfCol) as string[]
+      const valuesH = Math.max(currentLines.length, optimalLines.length) * 4.2
+
+      const RH = 10 + valuesH + 4 + Math.max(withoutLines.length, withLines.length) * 4 + (justLines.length > 0 ? justLines.length * 3.5 + 2 : 0) + 4
 
       guard(RH + 2)
       box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
@@ -854,16 +865,15 @@ export async function generateMedicalReport(
       ink(C.text); sz(8.5); b()
       tSafe(factor, MG + 7, y + 5.5, CW - 14)
 
-      // Current + optimal values on same line
-      const halfW = CW / 2 - 10
-      ink(C.muted); sz(7.5); n()
-      t('Actual: ', MG + 7, y + 11)
-      ink(C.text); b(); tSafe(current, MG + 22, y + 11, halfW - 16)
-      ink(C.muted); n(); t('Óptimo: ', MG + CW / 2, y + 11)
-      ink(C.optimal); b(); tSafe(optimal, MG + CW / 2 + 17, y + 11, halfW - 16)
+      // Current + optimal values — cada uno en su mitad con word wrap
+      const valY = y + 11
+      ink(C.muted); sz(7); n()
+      pdf.text(currentLines, MG + 7, valY)
+      ink(C.optimal); sz(7); n()
+      pdf.text(optimalLines, MG + CW / 2, valY)
 
       // Without / with protocol side by side
-      const projY = y + 16
+      const projY = y + 10 + valuesH + 3
       ink(C.danger); sz(7); n()
       pdf.text(withoutLines, MG + 7, projY)
       ink(C.optimal)
@@ -914,7 +924,7 @@ export async function generateMedicalReport(
     const actionLines = item.action ? pdf.splitTextToSize(item.action, contentW) as string[] : []
 
     const LH = 4  // line height
-    const headerH = 9
+    const headerH = 12  // más espacio entre header y molécula
     const moleculeH = moleculeLines.length * 5
     const doseH = doseLines.length * LH
     const mechH = mechLines.length > 0 ? mechLines.length * LH + 2 : 0
