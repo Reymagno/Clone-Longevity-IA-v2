@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -116,9 +116,21 @@ const PLANS: {
 // Page
 // ─────────────────────────────────────────────────────────────────
 
+/** Scroll automático a planes cuando viene de /login?registro=true */
+function RegistroScroll() {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('registro') === 'true') {
+      setTimeout(() => {
+        document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+    }
+  }, [searchParams])
+  return null
+}
+
 export default function LandingPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [modalRole, setModalRole] = useState<RoleType | null>(null)
 
   useEffect(() => {
@@ -127,17 +139,9 @@ export default function LandingPage() {
     })
   }, [router])
 
-  // Si viene de /login con ?registro=true, hacer scroll a los planes
-  useEffect(() => {
-    if (searchParams.get('registro') === 'true') {
-      setTimeout(() => {
-        document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })
-      }, 300)
-    }
-  }, [searchParams])
-
   return (
     <div className="min-h-screen hero-gradient relative overflow-hidden">
+      <Suspense fallback={null}><RegistroScroll /></Suspense>
       {/* Ambient background orbs */}
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-accent/[0.03] blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-info/[0.03] blur-[100px] pointer-events-none" />
