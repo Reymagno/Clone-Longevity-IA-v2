@@ -211,7 +211,16 @@ export async function generateMedicalReport(
   function t(str: string, tx: number, ty: number, align: 'left' | 'center' | 'right' = 'left') {
     pdf.text(str, tx, ty, { align })
   }
-  function guard(needed: number) { if (y + needed > PH - 18) nextPage() }
+  /** Dibuja texto truncado para que no exceda maxW mm */
+  function tSafe(str: string, tx: number, ty: number, maxW: number, align: 'left' | 'center' | 'right' = 'left') {
+    if (!str) return
+    let s = str
+    while (pdf.getTextWidth(s) > maxW && s.length > 3) {
+      s = s.slice(0, -2) + '…'
+    }
+    pdf.text(s, tx, ty, { align })
+  }
+  function guard(needed: number) { if (y + needed > PH - 20) nextPage() }
   function skip(delta = 4) { y += delta }
 
   // ── Estructura de página ──────────────────────────────────────
@@ -242,8 +251,9 @@ export async function generateMedicalReport(
     box(MG, y, CW, 9, C.section)
     box(MG, y, 3, 9, C.green)
     ink(C.text); sz(9.5); b()
-    t(title, MG + 7, y + 6.5)
-    if (sub) { ink(C.muted); sz(7.5); n(); t(sub, MG + 7 + pdf.getTextWidth(title) + 3, y + 6.5) }
+    const titleMaxW = sub ? CW * 0.55 : CW - 10
+    tSafe(title, MG + 7, y + 6.5, titleMaxW)
+    if (sub) { ink(C.muted); sz(7.5); n(); tSafe(sub, MG + CW - 2, y + 6.5, CW * 0.4, 'right') }
     skip(13)
   }
 
@@ -270,11 +280,11 @@ export async function generateMedicalReport(
     const truncLabel = pdf.getTextWidth(label) > maxNameW ? label.substring(0, 22) + '…' : label
     ink(C.text); sz(7.5); n(); t(truncLabel, BC.name, y + 5)
     if (bm && bm.value != null) {
-      ink(C.text); sz(8); b(); t(bv(bm), BC.val, y + 5)
+      ink(C.text); sz(8); b(); tSafe(bv(bm), BC.val, y + 5, BC.unit - BC.val - 1)
       ink(C.muted); sz(7); n()
-      t(bu(bm), BC.unit, y + 5)
-      t(bref(bm), BC.ref, y + 5)
-      t(bopt(bm), BC.opt, y + 5)
+      tSafe(bu(bm), BC.unit, y + 5, BC.ref - BC.unit - 1)
+      tSafe(bref(bm), BC.ref, y + 5, BC.opt - BC.ref - 1)
+      tSafe(bopt(bm), BC.opt, y + 5, BC.badge - BC.opt - 1)
       // Badge
       const badgeW = 26
       const badgeX = MG + CW - badgeW - 2
@@ -360,7 +370,7 @@ export async function generateMedicalReport(
   t('REPORTE MÉDICO', MG, 33)
   t('COMPLETO', MG, 43)
   ink(C.light); sz(7.5); n()
-  t('Análisis de biomarcadores · Protocolo personalizado · Proyección de longevidad', MG, 49)
+  tSafe('Análisis de biomarcadores · Protocolo personalizado · Proyección de longevidad', MG, 49, CW)
 
   y = 62
 
@@ -388,13 +398,14 @@ export async function generateMedicalReport(
   hline(y + 10, C.border, 0.2)
 
   const col1 = pInfo.slice(0, 4), col2 = pInfo.slice(4)
+  const colW = CW / 2 - 10
   col1.forEach(([lbl, val], i) => {
     ink(C.muted); sz(7); n(); t(lbl + ':', MG + 7, y + 18 + i * 10)
-    ink(C.text); sz(9); b(); t(val, MG + 7, y + 23 + i * 10)
+    ink(C.text); sz(9); b(); tSafe(val, MG + 7, y + 23 + i * 10, colW)
   })
   col2.forEach(([lbl, val], i) => {
     ink(C.muted); sz(7); n(); t(lbl + ':', MG + 7 + CW / 2, y + 18 + i * 10)
-    ink(C.text); sz(9); b(); t(val, MG + 7 + CW / 2, y + 23 + i * 10)
+    ink(C.text); sz(9); b(); tSafe(val, MG + 7 + CW / 2, y + 23 + i * 10, colW)
   })
   skip(blockH + 6)
 
@@ -416,21 +427,22 @@ export async function generateMedicalReport(
   t('LONGEVIDAD', SBOX_X + 23, y + 35, 'center')
   t('/100', SBOX_X + 23, y + 40, 'center')
 
+  const leftAreaW = CW - 55 // espacio a la izquierda del score box
   ink(ovC); sz(10); b()
-  t('Resultado del Análisis', MG + 8, y + 12)
+  tSafe('Resultado del Análisis', MG + 8, y + 12, leftAreaW)
   ink(C.text); sz(8.5); n()
   t('Edad biológica:', MG + 8, y + 22)
   ink(ovC); b()
-  t(`${analysis.longevity_age} años`, MG + 8 + 28, y + 22)
+  tSafe(`${analysis.longevity_age ?? patient.age} años`, MG + 8 + 28, y + 22, leftAreaW - 30)
   ink(C.muted); sz(7.5); n()
   const diffTxt = ageDiff > 0 ? `${ageDiff} años más joven que su edad cronológica` :
     ageDiff < 0 ? `${Math.abs(ageDiff)} años mayor que su edad cronológica` : 'Igual a su edad cronológica'
-  t(diffTxt, MG + 8, y + 28)
+  tSafe(diffTxt, MG + 8, y + 28, leftAreaW)
   ink(C.text); sz(8); n()
   t('Score global de longevidad', MG + 8, y + 38)
   ink(ovC); sz(8.5); b()
   const ovLabel = ov >= 85 ? 'Excelente' : ov >= 70 ? 'Bueno' : ov >= 55 ? 'Regular' : 'Requiere intervención'
-  t(ovLabel, MG + 8 + 40, y + 38)
+  tSafe(ovLabel, MG + 8 + 40, y + 38, leftAreaW - 42)
   skip(54)
 
   // Nota legal
@@ -572,7 +584,7 @@ export async function generateMedicalReport(
         box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
         box(MG, y, 2, RH, color)
         ink(C.text); sz(8); b()
-        t(lbl.substring(0, 60), MG + 5, y + 5.5)
+        tSafe(lbl, MG + 5, y + 5.5, CW - (impact || prob ? 55 : 10))
         ink(C.muted); sz(7); n()
         pdf.text(detLines, MG + 5, y + 11)
         if (eviLines.length > 0) {
@@ -582,10 +594,10 @@ export async function generateMedicalReport(
         }
         if (impact) {
           ink(color); sz(6.5); b()
-          t(impact, MG + CW - 2, y + 5, 'right')
+          tSafe(impact, MG + CW - 2, y + 5.5, 48, 'right')
         } else if (prob) {
           ink(color); sz(6.5); b()
-          t(prob, MG + CW - 2, y + 5, 'right')
+          tSafe(prob, MG + CW - 2, y + 5.5, 48, 'right')
         }
         hline(y + RH)
         skip(RH)
@@ -747,9 +759,9 @@ export async function generateMedicalReport(
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
     box(MG, y, 3, RH, rColor)
 
-    // Disease name
+    // Disease name — truncar para no solapar con barra de probabilidad
     ink(C.text); sz(8.5); b()
-    t(disease, MG + 6, y + 5.5)
+    tSafe(disease, MG + 6, y + 5.5, CW - 70)
 
     // Drivers — below disease name
     ink(C.muted); sz(7); n()
@@ -795,14 +807,15 @@ export async function generateMedicalReport(
 
       // Factor name
       ink(C.text); sz(8.5); b()
-      t(factor, MG + 7, y + 5.5)
+      tSafe(factor, MG + 7, y + 5.5, CW - 14)
 
       // Current + optimal values on same line
+      const halfW = CW / 2 - 10
       ink(C.muted); sz(7.5); n()
-      t(`Actual: `, MG + 7, y + 11)
-      ink(C.text); b(); t(current, MG + 22, y + 11)
-      ink(C.muted); n(); t(`Óptimo: `, MG + CW / 2, y + 11)
-      ink(C.optimal); b(); t(optimal, MG + CW / 2 + 17, y + 11)
+      t('Actual: ', MG + 7, y + 11)
+      ink(C.text); b(); tSafe(current, MG + 22, y + 11, halfW - 16)
+      ink(C.muted); n(); t('Óptimo: ', MG + CW / 2, y + 11)
+      ink(C.optimal); b(); tSafe(optimal, MG + CW / 2 + 17, y + 11, halfW - 16)
 
       // Without / with protocol side by side
       const projY = y + 16
@@ -876,7 +889,7 @@ export async function generateMedicalReport(
     ink(urgColor); sz(6); b()
     t(urgLabel, MG + 23, y + 5.8, 'center')
     ink(C.light); sz(6); n()
-    t((item.category ?? '').substring(0, 30), MG + 36, y + 6)
+    tSafe(item.category ?? '', MG + 36, y + 6, CW - 40)
 
     let cy = y + headerH
 
@@ -938,9 +951,9 @@ export async function generateMedicalReport(
   box(MG, y, CW, 10, sbg(stem.indication === 'Preventivo / Optimización' ? 'optimal' : stem.indication === 'Terapéutico Moderado' ? 'normal' : 'warning'))
   box(MG, y, 3, 10, indColor)
   ink(indColor); sz(8.5); b()
-  t(`INDICACIÓN: ${stem.indication.toUpperCase()}`, MG + 8, y + 7)
+  tSafe(`INDICACIÓN: ${stem.indication.toUpperCase()}`, MG + 8, y + 7, CW * 0.55)
   ink(C.muted); sz(7.5); n()
-  t(`Factor compuesto total: ${tfSign}${tfPct}%  (×${stem.totalFactor.toFixed(3)})`, MG + CW - 2, y + 7, 'right')
+  tSafe(`Factor: ${tfSign}${tfPct}% (×${stem.totalFactor.toFixed(3)})`, MG + CW - 2, y + 7, CW * 0.4, 'right')
   skip(14)
 
   // Dosis principales — 2 columnas
@@ -956,8 +969,8 @@ export async function generateMedicalReport(
   t(`${stem.mscDose}`, MG + 8, y + 20)
   ink(C.muted); sz(8); n()
   t('× 10⁶ células mesenquimales', MG + 8, y + 26)
-  ink(C.text); sz(7.5); n()
-  t(`Base: ${patient.weight ?? 70} kg × 1×10⁶/kg  |  Ajuste clínico: ${tfSign}${tfPct}%`, MG + 8, y + 32)
+  ink(C.text); sz(7); n()
+  tSafe(`Base: ${patient.weight ?? 70}kg × 1×10⁶/kg | Ajuste: ${tfSign}${tfPct}%`, MG + 8, y + 32, colHalf - 14)
 
   // Exosomas
   const EX = MG + colHalf + 4
@@ -969,8 +982,8 @@ export async function generateMedicalReport(
   t(`${stem.exosome.toFixed(1)}`, EX + 8, y + 20)
   ink(C.muted); sz(8); n()
   t('× 10¹⁰ partículas IV', EX + 8, y + 26)
-  ink(C.text); sz(7.5); n()
-  t('Marcadores: CD9 / CD63 / CD81  |  30–150 nm', EX + 8, y + 32)
+  ink(C.text); sz(7); n()
+  tSafe('Marcadores: CD9/CD63/CD81 | 30–150 nm', EX + 8, y + 32, colHalf - 14)
   skip(40)
 
   // Ruta + Sesiones + Calendario
@@ -984,9 +997,10 @@ export async function generateMedicalReport(
   adminBoxes.forEach(([title, sub, val], i) => {
     const bx = MG + i * thirdW
     boxStroke(bx, y, thirdW - 2, 16, C.sheet, C.border)
-    ink(C.muted); sz(6.5); n(); t(sub, bx + 4, y + 5)
-    ink(C.text); sz(7.5); b(); t(title, bx + 4, y + 9.5)
-    ink(C.accent); sz(8); n(); t(val, bx + 4, y + 14)
+    const cellW = thirdW - 10
+    ink(C.muted); sz(6.5); n(); tSafe(sub, bx + 4, y + 5, cellW)
+    ink(C.text); sz(7); b(); tSafe(title, bx + 4, y + 9.5, cellW)
+    ink(C.accent); sz(7); n(); tSafe(val, bx + 4, y + 14, cellW)
   })
   skip(20)
 
@@ -995,10 +1009,10 @@ export async function generateMedicalReport(
   box(MG, y, CW, 7, C.dark)
   ink(C.bg); sz(6.8); b()
   t('FACTOR CLÍNICO', MG + 3, y + 5)
-  t('VALOR', MG + 60, y + 5)
+  t('VALOR', MG + 56, y + 5)
   t('ESTADO', MG + 100, y + 5)
-  t('MULTIPLICADOR', MG + 130, y + 5)
-  t('JUSTIFICACIÓN', MG + 162, y + 5)
+  t('MULT.', MG + 130, y + 5)
+  t('JUSTIFICACIÓN', MG + 148, y + 5)
   skip(7)
 
   const stemFactors: [string, string, string, number][] = [
@@ -1045,12 +1059,11 @@ export async function generateMedicalReport(
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
 
     // Factor name (wider column)
-    ink(C.text); sz(7.5); b(); t(factor, MG + 3, y + 6)
+    ink(C.text); sz(7.5); b(); tSafe(factor, MG + 3, y + 6, 50)
 
     // Value
     ink(C.muted); sz(7); n()
-    const valText = value.length > 26 ? value.slice(0, 24) + '…' : value
-    t(valText, MG + 56, y + 6)
+    tSafe(value, MG + 56, y + 6, 40)
 
     // Status badge
     box(MG + 100, y + 2, 24, 5, sbg(status))
@@ -1064,7 +1077,7 @@ export async function generateMedicalReport(
 
     // Justification
     ink(C.muted); sz(6.5); n()
-    t(justMap[status] ?? '—', MG + 152, y + 6)
+    tSafe(justMap[status] ?? '—', MG + 148, y + 6, CW - 150)
 
     hline(y + RH)
     skip(RH)
@@ -1120,8 +1133,8 @@ export async function generateMedicalReport(
   refs.forEach((ref, i) => {
     guard(7)
     box(MG, y, CW, 6, i % 2 === 0 ? C.bg : C.sheet)
-    ink(C.muted); sz(7); n()
-    t(`[${i + 1}]  ${ref}`, MG + 3, y + 4.5)
+    ink(C.muted); sz(6.5); n()
+    tSafe(`[${i + 1}]  ${ref}`, MG + 3, y + 4.5, CW - 6)
     skip(6)
   })
   skip(4)
