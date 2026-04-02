@@ -396,3 +396,49 @@ export interface DashboardProps {
   patient: Patient
   result: LabResult
 }
+
+// ============================================================
+// CLÍNICA
+// ============================================================
+
+export interface Clinica {
+  id: string
+  user_id: string
+  clinic_name: string
+  rfc: string
+  contact_email: string
+  phone: string
+  address: string
+  director_name: string
+  logo_url: string | null
+  created_at: string
+}
+
+export interface Medico {
+  id: string
+  user_id: string
+  clinica_id: string | null
+  code: string
+  full_name: string
+  specialty: string
+  license_number: string
+  email: string
+  created_at: string
+  patient_count?: number
+}
+
+export interface ClinicBranding {
+  clinic_name: string
+  logo_url?: string
+  contact_email: string
+  phone: string
+  address: string
+  director_name: string
+}
+
+export interface ClinicStats {
+  total_medicos: number
+  total_patients: number
+  analyses_this_month: number
+  pending_alerts: number
+}

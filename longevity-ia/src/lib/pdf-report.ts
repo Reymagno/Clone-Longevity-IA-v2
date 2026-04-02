@@ -4,7 +4,7 @@
  * Produce un documento clínico completo, bien organizado y con código de colores.
  */
 
-import type { Patient, ParsedData, AIAnalysis, BiomarkerValue } from '@/types'
+import type { Patient, ParsedData, AIAnalysis, BiomarkerValue, ClinicBranding } from '@/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTES
@@ -184,7 +184,8 @@ export async function generateMedicalReport(
   patient: Patient,
   parsedData: ParsedData,
   analysis: AIAnalysis,
-  resultDate: string
+  resultDate: string,
+  branding?: ClinicBranding
 ): Promise<void> {
   const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
@@ -228,7 +229,7 @@ export async function generateMedicalReport(
   function drawHeader() {
     box(0, 0, PW, 10, C.dark)
     ink(C.gold); sz(7); b()
-    t('LONGEVITY IA', MG, 6.5)
+    t(branding?.clinic_name ?? 'LONGEVITY IA', MG, 6.5)
     // Gold dot separator
     pdf.setFillColor(C.gold[0], C.gold[1], C.gold[2])
     pdf.circle(MG + 28, 5.5, 0.6, 'F')
@@ -245,10 +246,16 @@ export async function generateMedicalReport(
     // Thin gold line across top of footer area
     dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, PH - 12, PW - MG, PH - 12)
     // Footer content
+    const footerName = branding?.clinic_name ?? 'Longevity IA'
     ink(C.gold); sz(6.5); b()
-    t('Longevity IA', MG, PH - 7)
+    t(footerName, MG, PH - 7)
     ink(C.muted); sz(6); n()
-    t('Reporte confidencial · Solo para uso médico', MG + 24, PH - 7)
+    if (branding) {
+      const contactParts = [branding.contact_email, branding.phone].filter(Boolean).join(' · ')
+      t(contactParts || 'Reporte confidencial · Solo para uso médico', MG + pdf.getTextWidth(footerName) + 4, PH - 7)
+    } else {
+      t('Reporte confidencial · Solo para uso médico', MG + 24, PH - 7)
+    }
     t(new Date().toLocaleDateString('es-MX'), PW - MG, PH - 7, 'right')
   }
 
@@ -418,7 +425,7 @@ export async function generateMedicalReport(
   // ── Branding ──────────────────────────────────────────────────
   ink(C.gold); sz(12); b()
   // Wide tracking simulation via character spacing
-  t('L O N G E V I T Y   I A', MG, 28)
+  t(branding ? branding.clinic_name.toUpperCase() : 'L O N G E V I T Y   I A', MG, 28)
   ink(C.bg); sz(22); b()
   t('REPORTE MÉDICO INTEGRAL', MG, 52)
   ink(C.light); sz(8); n()

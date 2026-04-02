@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Download, Printer, Image, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { generateMedicalReport } from '@/lib/pdf-report'
-import type { Patient, ParsedData, AIAnalysis } from '@/types'
+import type { Patient, ParsedData, AIAnalysis, ClinicBranding } from '@/types'
 
 interface ExportButtonsProps {
   patientName: string
@@ -14,6 +14,7 @@ interface ExportButtonsProps {
   parsedData: ParsedData
   analysis: AIAnalysis
   resultDate: string
+  branding?: ClinicBranding
 }
 
 // CSS de tema claro — texto negro, fondos con contraste, cards con sombra
@@ -364,14 +365,14 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
   }
 }
 
-export function ExportButtons({ patientName, activeTab, patient, parsedData, analysis, resultDate }: ExportButtonsProps) {
+export function ExportButtons({ patientName, activeTab, patient, parsedData, analysis, resultDate, branding }: ExportButtonsProps) {
   const [exporting, setExporting] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
 
   async function exportFullReport() {
     setGeneratingReport(true)
     try {
-      await generateMedicalReport(patient, parsedData, analysis, resultDate)
+      await generateMedicalReport(patient, parsedData, analysis, resultDate, branding)
       toast.success('Reporte médico completo generado')
     } catch (err) {
       console.error('ExportButtons — exportFullReport error:', err)

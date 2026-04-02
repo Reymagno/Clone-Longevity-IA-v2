@@ -1,50 +1,128 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import {
-  Building2, Users, BarChart2, Stethoscope, FileText, Settings, Clock,
-} from 'lucide-react'
+import { Building2 } from 'lucide-react'
+import type { Clinica, Medico, ClinicStats, Patient } from '@/types'
+import { ResumenTab } from './tabs/ResumenTab'
+import { MedicosTab } from './tabs/MedicosTab'
+import { PacientesTab } from './tabs/PacientesTab'
+import { EstadisticasTab } from './tabs/EstadisticasTab'
 
-interface ClinicaInfo {
-  clinic_name: string
-  rfc: string
-  contact_email: string
-  phone: string
-  address: string
-  director_name: string
-}
+type TabKey = 'resumen' | 'medicos' | 'pacientes' | 'estadisticas'
 
-const UPCOMING_FEATURES = [
-  { icon: Stethoscope, title: 'Gestion de Medicos', desc: 'Administra los medicos de tu clinica y sus pacientes vinculados' },
-  { icon: Users, title: 'Panel de Pacientes', desc: 'Vista consolidada de todos los pacientes atendidos en la clinica' },
-  { icon: BarChart2, title: 'Estadisticas', desc: 'Metricas de uso, analisis realizados, y tendencias de salud' },
-  { icon: FileText, title: 'Reportes Institucionales', desc: 'Reportes con marca de la clinica para entrega profesional' },
-  { icon: Settings, title: 'Configuracion', desc: 'Logo, colores, datos fiscales y preferencias de la clinica' },
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'resumen', label: 'Resumen' },
+  { key: 'medicos', label: 'Medicos' },
+  { key: 'pacientes', label: 'Pacientes' },
+  { key: 'estadisticas', label: 'Estadisticas' },
 ]
 
 export function ClinicaDashboard() {
-  const [clinica, setClinica] = useState<ClinicaInfo | null>(null)
+  const [clinica, setClinica] = useState<Clinica | null>(null)
+  const [stats, setStats] = useState<ClinicStats>({
+    total_medicos: 0,
+    total_patients: 0,
+    analyses_this_month: 0,
+    pending_alerts: 0,
+  })
+  const [medicos, setMedicos] = useState<Medico[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [activeTab, setActiveTab] = useState<TabKey>('resumen')
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      supabase
-        .from('clinicas')
-        .select('clinic_name, rfc, contact_email, phone, address, director_name')
-        .eq('user_id', user.id)
-        .maybeSingle()
-        .then(({ data }) => setClinica(data as ClinicaInfo | null))
-    })
+  const loadClinica = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('clinicas')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (data) setClinica(data as Clinica)
   }, [])
 
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/clinica/stats')
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+      }
+    } catch { /* silent */ }
+  }, [])
+
+  const loadMedicos = useCallback(async () => {
+    try {
+      const res = await fetch('/api/clinica/medicos')
+      if (res.ok) {
+        const data = await res.json()
+        setMedicos(data.medicos ?? data ?? [])
+      }
+    } catch { /* silent */ }
+  }, [])
+
+  const loadPatients = useCallback(async () => {
+    try {
+      const res = await fetch('/api/clinica/patients')
+      if (res.ok) {
+        const data = await res.json()
+        setPatients(data.patients ?? data ?? [])
+      }
+    } catch { /* silent */ }
+  }, [])
+
+  const loadAll = useCallback(async () => {
+    setLoading(true)
+    await Promise.all([loadClinica(), loadStats(), loadMedicos(), loadPatients()])
+    setLoading(false)
+  }, [loadClinica, loadStats, loadMedicos, loadPatients])
+
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
+
+  const handleRefreshMedicos = useCallback(() => {
+    loadMedicos()
+    loadStats()
+  }, [loadMedicos, loadStats])
+
+  const handleRefreshPatients = useCallback(() => {
+    loadPatients()
+    loadStats()
+  }, [loadPatients, loadStats])
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="card-medical p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl shimmer" />
+            <div className="space-y-2">
+              <div className="h-5 w-40 shimmer rounded" />
+              <div className="h-3 w-28 shimmer rounded" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card-medical p-5">
+              <div className="h-8 w-16 shimmer rounded mb-2" />
+              <div className="h-3 w-24 shimmer rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Clinica header card */}
-      <div className="card-medical p-6 border-t-2 border-t-purple-400/60">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header card */}
+      <div className="card-medical p-6 border-t-2 border-t-amber-400/60">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center">
-            <Building2 size={26} className="text-purple-400" />
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+            <Building2 size={26} className="text-amber-400" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">
@@ -73,30 +151,39 @@ export function ClinicaDashboard() {
         )}
       </div>
 
-      {/* Coming soon features */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Clock size={16} className="text-muted-foreground" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Proximamente</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {UPCOMING_FEATURES.map((feat, i) => {
-            const Icon = feat.icon
-            return (
-              <div
-                key={i}
-                className="card-medical p-5 opacity-60 cursor-default"
-              >
-                <div className="w-10 h-10 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-center mb-3">
-                  <Icon size={18} className="text-muted-foreground" />
-                </div>
-                <h4 className="text-sm font-semibold text-foreground mb-1">{feat.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{feat.desc}</p>
-              </div>
-            )
-          })}
-        </div>
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-border/40">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
+              activeTab === tab.key
+                ? 'text-amber-400'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+            {activeTab === tab.key && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400 rounded-t" />
+            )}
+          </button>
+        ))}
       </div>
+
+      {/* Tab content */}
+      {activeTab === 'resumen' && (
+        <ResumenTab stats={stats} medicos={medicos} recentPatients={patients.slice(0, 5)} />
+      )}
+      {activeTab === 'medicos' && (
+        <MedicosTab medicos={medicos} onRefresh={handleRefreshMedicos} />
+      )}
+      {activeTab === 'pacientes' && (
+        <PacientesTab patients={patients} medicos={medicos} onRefresh={handleRefreshPatients} />
+      )}
+      {activeTab === 'estadisticas' && (
+        <EstadisticasTab stats={stats} medicos={medicos} />
+      )}
     </div>
   )
 }
