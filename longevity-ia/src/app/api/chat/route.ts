@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           const stream = client.messages.stream({
-            model: 'claude-sonnet-4-6',
+            model: 'claude-sonnet-4-20250514',
             max_tokens: 1024,
             system: systemPrompt,
             messages: apiMessages,

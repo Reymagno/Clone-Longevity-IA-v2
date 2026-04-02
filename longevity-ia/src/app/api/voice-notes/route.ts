@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     let aiSummary: string | null = null
     try {
       const analysisResponse = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6-20250514',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
         system: `Eres un asistente médico clínico de longevidad. Analiza la siguiente nota de voz transcrita de un paciente o médico y extrae:
 
