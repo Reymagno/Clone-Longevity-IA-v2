@@ -177,22 +177,23 @@ export async function PATCH(request: NextRequest) {
   if (!link) return NextResponse.json({ error: 'Invitacion no encontrada' }, { status: 404 })
 
   if (action === 'accept') {
-    // Update link status
-    const { error: linkError } = await supabase
+    const admin = getSupabaseAdmin()
+
+    // Update link status (admin: RLS bloquea cross-user writes)
+    const { error: linkError } = await admin
       .from('clinica_medico_links')
       .update({ status: 'active', confirmed_at: new Date().toISOString() })
       .eq('id', invitation_id)
 
     if (linkError) return NextResponse.json({ error: linkError.message }, { status: 500 })
 
-    // Also update medicos.clinica_id
-    const { error: medicoError } = await supabase
+    // Update medicos.clinica_id (admin: la clínica no es user_id del médico)
+    const { error: medicoError } = await admin
       .from('medicos')
       .update({ clinica_id: clinica.id })
       .eq('user_id', link.medico_user_id)
 
     if (medicoError) {
-      // Non-blocking — log but don't fail
       console.error('Error updating medicos.clinica_id:', medicoError.message)
     }
   } else {
