@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Mic, Square, Loader2 } from 'lucide-react'
 
 interface VoiceRecorderProps {
@@ -21,173 +21,6 @@ function getSpeechRecognition(): (new () => SpeechRecognition) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
-/* ── CSS Keyframes injected once ────────────────────────────────────────── */
-const KEYFRAMES_ID = 'voice-recorder-keyframes'
-
-function injectKeyframes() {
-  if (typeof document === 'undefined') return
-  if (document.getElementById(KEYFRAMES_ID)) return
-
-  const style = document.createElement('style')
-  style.id = KEYFRAMES_ID
-  style.textContent = `
-    @keyframes vr-breathe {
-      0%, 100% { transform: scale(1); opacity: 0.6; }
-      50% { transform: scale(1.06); opacity: 1; }
-    }
-    @keyframes vr-ring-spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    @keyframes vr-ring-spin-reverse {
-      0% { transform: rotate(360deg); }
-      100% { transform: rotate(0deg); }
-    }
-    @keyframes vr-ring-pulse {
-      0%, 100% { opacity: 0.3; transform: rotate(0deg) scale(1); }
-      50% { opacity: 0.7; transform: rotate(180deg) scale(1.08); }
-    }
-    @keyframes vr-expand {
-      0% { transform: scale(0.8); opacity: 0.6; }
-      100% { transform: scale(2.2); opacity: 0; }
-    }
-    @keyframes vr-orbit {
-      0% { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
-      100% { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
-    }
-    @keyframes vr-scan {
-      0% { transform: translateY(-50%); opacity: 0; }
-      50% { opacity: 0.15; }
-      100% { transform: translateY(50%); opacity: 0; }
-    }
-    @keyframes vr-wave-bar {
-      0%, 100% { transform: scaleY(0.3); }
-      50% { transform: scaleY(1); }
-    }
-    @keyframes vr-float-particle {
-      0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
-      50% { transform: translateY(-6px) scale(1.3); opacity: 0.8; }
-    }
-    @keyframes vr-transcribe-orbit {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    @keyframes vr-hud-blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    @keyframes vr-gradient-shift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    @keyframes vr-sphere-idle-glow {
-      0%, 100% { box-shadow: 0 0 40px rgba(139,92,246,0.3), 0 0 120px rgba(139,92,246,0.1), inset 0 0 50px rgba(139,92,246,0.2); }
-      50% { box-shadow: 0 0 60px rgba(139,92,246,0.5), 0 0 160px rgba(139,92,246,0.2), inset 0 0 60px rgba(139,92,246,0.3); }
-    }
-    @keyframes vr-sphere-recording-glow {
-      0%, 100% { box-shadow: 0 0 60px rgba(139,92,246,0.7), 0 0 150px rgba(56,189,248,0.3), 0 0 220px rgba(139,92,246,0.15), inset 0 0 50px rgba(139,92,246,0.3); }
-      50% { box-shadow: 0 0 90px rgba(139,92,246,0.9), 0 0 180px rgba(56,189,248,0.45), 0 0 260px rgba(139,92,246,0.25), inset 0 0 70px rgba(139,92,246,0.4); }
-    }
-  `
-  document.head.appendChild(style)
-}
-
-/* ── Orbital particles ──────────────────────────────────────────────────── */
-function OrbitParticles({ count, radius, duration, color, size = 3, reverse = false }: {
-  count: number; radius: number; duration: number; color: string; size?: number; reverse?: boolean
-}) {
-  const particles = useMemo(() =>
-    Array.from({ length: count }, (_, i) => ({
-      delay: -(duration / count) * i,
-      startAngle: (360 / count) * i,
-    })),
-    [count, duration]
-  )
-
-  return (
-    <div className="absolute inset-0 pointer-events-none" style={{ width: radius * 2, height: radius * 2, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-      {particles.map((p, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            width: size,
-            height: size,
-            background: color,
-            boxShadow: `0 0 ${size * 2}px ${color}`,
-            top: '50%',
-            left: '50%',
-            marginTop: -size / 2,
-            marginLeft: -size / 2,
-            ['--orbit-radius' as string]: `${radius}px`,
-            animation: `vr-orbit ${duration}s linear infinite ${reverse ? 'reverse' : 'normal'}`,
-            animationDelay: `${p.delay}s`,
-            transformOrigin: '0 0',
-            transform: `rotate(${p.startAngle}deg) translateX(${radius}px)`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-/* ── Sound wave bars ────────────────────────────────────────────────────── */
-function SoundWave({ bars = 24, radius = 62 }: { bars?: number; radius?: number }) {
-  const barData = useMemo(() =>
-    Array.from({ length: bars }, (_, i) => ({
-      angle: (360 / bars) * i,
-      delay: Math.random() * 0.8,
-      height: 12 + Math.random() * 16,
-      duration: 0.4 + Math.random() * 0.5,
-    })),
-    [bars]
-  )
-
-  return (
-    <div className="absolute inset-0 pointer-events-none" style={{ width: radius * 2, height: radius * 2, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-      {barData.map((bar, i) => (
-        <div
-          key={i}
-          className="absolute"
-          style={{
-            width: 2,
-            height: bar.height,
-            background: 'linear-gradient(to top, rgba(139,92,246,0.8), rgba(56,189,248,0.6))',
-            borderRadius: 1,
-            top: '50%',
-            left: '50%',
-            transformOrigin: `0 ${radius}px`,
-            transform: `rotate(${bar.angle}deg) translateY(-${radius}px)`,
-            animation: `vr-wave-bar ${bar.duration}s ease-in-out infinite`,
-            animationDelay: `${bar.delay}s`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-/* ── Concentric ring ────────────────────────────────────────────────────── */
-function ConcentricRing({ radius, borderColor, duration, reverse = false, dashed = false, opacity = 0.3 }: {
-  radius: number; borderColor: string; duration: number; reverse?: boolean; dashed?: boolean; opacity?: number
-}) {
-  return (
-    <div
-      className="absolute rounded-full pointer-events-none"
-      style={{
-        width: radius * 2,
-        height: radius * 2,
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        border: `1px ${dashed ? 'dashed' : 'solid'} ${borderColor}`,
-        opacity,
-        animation: `${reverse ? 'vr-ring-spin-reverse' : 'vr-ring-spin'} ${duration}s linear infinite`,
-      }}
-    />
-  )
-}
-
 /* ════════════════════════════════════════════════════════════════════════ */
 /*  VoiceRecorder                                                          */
 /* ════════════════════════════════════════════════════════════════════════ */
@@ -197,7 +30,7 @@ export function VoiceRecorder({
   onAudioBlob,
   compact = false,
   lang = 'es-MX',
-  placeholder = 'Toca la esfera y dicta tu nota cl\u00ednica',
+  placeholder = 'Toca el botón y dicta tu nota clínica',
   className = '',
   disabled = false,
 }: VoiceRecorderProps) {
@@ -215,7 +48,6 @@ export function VoiceRecorder({
   const fullTranscriptRef = useRef('')
 
   useEffect(() => {
-    injectKeyframes()
     const SR = getSpeechRecognition()
     if (!SR) {
       setSupported(false)
@@ -275,7 +107,7 @@ export function VoiceRecorder({
     formData.append('audio', blob, 'recording.webm')
     formData.append('language', lang.split('-')[0])
     const res = await fetch('/api/transcribe', { method: 'POST', body: formData })
-    if (!res.ok) throw new Error('Error en transcripci\u00f3n')
+    if (!res.ok) throw new Error('Error en transcripción')
     const data = await res.json()
     return data.text || ''
   }, [lang])
@@ -346,11 +178,8 @@ export function VoiceRecorder({
     setInterim('')
   }, [state, useWhisper, stopTimer, stopMediaRecorder, transcribeWithWhisper, onTranscript, onAudioBlob])
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60).toString().padStart(2, '0')
-    const sec = (s % 60).toString().padStart(2, '0')
-    return `${m}:${sec}`
-  }
+  const mins = Math.floor(elapsed / 60)
+  const secs = elapsed % 60
 
   if (!supported && !useWhisper) return null
 
@@ -360,7 +189,7 @@ export function VoiceRecorder({
       <button
         onClick={state === 'idle' ? startRecording : stopRecording}
         disabled={disabled || state === 'transcribing'}
-        title={state === 'recording' ? 'Detener grabaci\u00f3n' : 'Dictar por voz'}
+        title={state === 'recording' ? 'Detener grabación' : 'Dictar por voz'}
         className={`relative p-2 rounded-xl transition-all ${
           state === 'recording'
             ? 'bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30'
@@ -379,323 +208,98 @@ export function VoiceRecorder({
     )
   }
 
-  /* ── Floating sphere (main mode) ──────────────────────────────────────── */
-  const isRecording = state === 'recording'
-  const isTranscribing = state === 'transcribing'
-  const isIdle = state === 'idle'
-
-  return (
-    <div className={`flex flex-col items-center select-none ${className}`}>
-
-      {/* ── Sci-fi grid backdrop ──────────────────────────────────────────── */}
-      <div className="relative flex items-center justify-center" style={{ width: 340, height: 340 }}>
-
-        {/* Scan line effect */}
-        <div
-          className="absolute pointer-events-none overflow-hidden rounded-full"
-          style={{ width: 280, height: 280, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+  /* ── IDLE: Circular button ───────────────────────────────────────────── */
+  if (state === 'idle') {
+    return (
+      <div className={`flex flex-col items-center gap-5 animate-fade-in ${className}`}>
+        <button
+          onClick={startRecording}
+          disabled={disabled}
+          className="
+            group relative w-44 h-44 rounded-full
+            bg-gradient-to-br from-accent/20 via-accent/10 to-transparent
+            border-2 border-accent/30
+            flex flex-col items-center justify-center gap-3
+            transition-all duration-300
+            hover:border-accent/50 hover:from-accent/25 hover:via-accent/15
+            hover:shadow-[0_0_40px_rgba(46,174,123,0.15)]
+            hover:scale-[1.03]
+            active:scale-[0.98]
+            disabled:opacity-40 disabled:cursor-not-allowed
+            cursor-pointer
+          "
         >
-          <div
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: 2,
-              background: isRecording
-                ? 'linear-gradient(90deg, transparent, rgba(139,92,246,0.6), transparent)'
-                : 'linear-gradient(90deg, transparent, rgba(139,92,246,0.25), transparent)',
-              animation: 'vr-scan 3s ease-in-out infinite',
-            }}
-          />
+          <div className="absolute inset-0 rounded-full border border-accent/10 animate-pulse-glow" />
+          <Mic size={36} className="text-accent group-hover:text-accent transition-colors" />
+          <span className="text-sm font-bold text-accent tracking-wide">Iniciar Nota</span>
+        </button>
+
+        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
+          {placeholder}
+        </p>
+      </div>
+    )
+  }
+
+  /* ── RECORDING: Circular button (danger style) ──────────────────────── */
+  if (state === 'recording') {
+    return (
+      <div className={`flex flex-col items-center gap-5 animate-fade-in ${className}`}>
+        <button
+          onClick={stopRecording}
+          className="
+            group relative w-44 h-44 rounded-full
+            bg-gradient-to-br from-danger/20 via-danger/10 to-transparent
+            border-2 border-danger/40
+            flex flex-col items-center justify-center gap-3
+            transition-all duration-300
+            hover:border-danger/60 hover:from-danger/25 hover:via-danger/15
+            hover:shadow-[0_0_40px_rgba(220,60,60,0.2)]
+            hover:scale-[1.03]
+            active:scale-[0.98]
+            cursor-pointer
+          "
+        >
+          <div className="absolute inset-0 rounded-full border border-danger/20 animate-pulse-glow" />
+          <Square size={28} className="text-danger fill-danger/80" />
+          <span className="text-sm font-bold text-danger tracking-wide">Detener</span>
+        </button>
+
+        {/* Timer */}
+        <div className="font-mono text-4xl font-bold text-foreground tabular-nums tracking-wider" style={{ textShadow: '0 0 20px rgba(220,60,60,0.3)' }}>
+          {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
         </div>
 
-        {/* ── Energy expansion rings (recording) ─────────────────────────── */}
-        {isRecording && (
-          <>
-            <div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: 140, height: 140,
-                left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-                border: '1px solid rgba(139,92,246,0.5)',
-                animation: 'vr-expand 2s ease-out infinite',
-              }}
-            />
-            <div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: 140, height: 140,
-                left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-                border: '1px solid rgba(56,189,248,0.4)',
-                animation: 'vr-expand 2s ease-out infinite 0.7s',
-              }}
-            />
-            <div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: 140, height: 140,
-                left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-                border: '1px solid rgba(139,92,246,0.3)',
-                animation: 'vr-expand 2s ease-out infinite 1.4s',
-              }}
-            />
-          </>
-        )}
-
-        {/* ── Concentric rotating rings ──────────────────────────────────── */}
-        {isRecording && (
-          <>
-            <ConcentricRing radius={85} borderColor="rgba(139,92,246,0.35)" duration={8} opacity={0.5} />
-            <ConcentricRing radius={105} borderColor="rgba(56,189,248,0.25)" duration={12} reverse dashed />
-            <ConcentricRing radius={130} borderColor="rgba(139,92,246,0.15)" duration={18} opacity={0.25} />
-          </>
-        )}
-
-        {isTranscribing && (
-          <>
-            <ConcentricRing radius={85} borderColor="rgba(46,174,123,0.4)" duration={4} opacity={0.5} />
-            <ConcentricRing radius={105} borderColor="rgba(46,174,123,0.25)" duration={6} reverse dashed />
-            <ConcentricRing radius={130} borderColor="rgba(46,174,123,0.15)" duration={10} opacity={0.3} />
-          </>
-        )}
-
-        {isIdle && (
-          <>
-            <ConcentricRing radius={90} borderColor="rgba(139,92,246,0.08)" duration={30} opacity={0.15} />
-            <ConcentricRing radius={115} borderColor="rgba(139,92,246,0.05)" duration={40} reverse dashed opacity={0.1} />
-          </>
-        )}
-
-        {/* ── Orbital particles ──────────────────────────────────────────── */}
-        {isRecording && (
-          <>
-            <OrbitParticles count={12} radius={90} duration={4} color="rgba(139,92,246,0.9)" size={4} />
-            <OrbitParticles count={8} radius={110} duration={7} color="rgba(56,189,248,0.7)" size={3} reverse />
-            <OrbitParticles count={6} radius={135} duration={10} color="rgba(139,92,246,0.5)" size={3} />
-          </>
-        )}
-
-        {isTranscribing && (
-          <OrbitParticles count={6} radius={90} duration={3} color="rgba(46,174,123,0.8)" size={4} />
-        )}
-
-        {isIdle && (
-          <OrbitParticles count={4} radius={95} duration={16} color="rgba(139,92,246,0.3)" size={3} />
-        )}
-
-        {/* ── Sound wave visualization (recording) ──────────────────────── */}
-        {isRecording && <SoundWave bars={36} radius={82} />}
-
-        {/* ── Ambient glow behind sphere ─────────────────────────────────── */}
-        <div
-          className="absolute rounded-full pointer-events-none transition-all duration-700"
-          style={{
-            width: 200, height: 200,
-            left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-            background: isRecording
-              ? 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, rgba(56,189,248,0.12) 40%, transparent 70%)'
-              : isTranscribing
-                ? 'radial-gradient(circle, rgba(46,174,123,0.25) 0%, rgba(46,174,123,0.08) 40%, transparent 70%)'
-                : 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 60%)',
-            animation: 'vr-breathe 3s ease-in-out infinite',
-          }}
-        />
-
-        {/* ── THE SPHERE ─────────────────────────────────────────────────── */}
-        <button
-          onClick={isIdle ? startRecording : stopRecording}
-          disabled={disabled || isTranscribing}
-          aria-label={isRecording ? 'Detener grabaci\u00f3n' : isTranscribing ? 'Procesando' : 'Iniciar grabaci\u00f3n de voz'}
-          className="relative z-10 group focus:outline-none"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {/* Outer glass shell */}
-          <div
-            className="relative rounded-full flex items-center justify-center transition-all duration-700 ease-out"
-            style={{
-              width: isRecording ? 150 : 130,
-              height: isRecording ? 150 : 130,
-
-              /* Glass morphism background */
-              background: isRecording
-                ? 'linear-gradient(135deg, rgba(139,92,246,0.45) 0%, rgba(56,189,248,0.2) 50%, rgba(139,92,246,0.5) 100%)'
-                : isTranscribing
-                  ? 'linear-gradient(135deg, rgba(46,174,123,0.4) 0%, rgba(46,174,123,0.15) 50%, rgba(46,174,123,0.45) 100%)'
-                  : 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(139,92,246,0.08) 50%, rgba(139,92,246,0.25) 100%)',
-
-              /* Frosted glass border */
-              border: isRecording
-                ? '1.5px solid rgba(167,139,250,0.5)'
-                : isTranscribing
-                  ? '1.5px solid rgba(74,222,128,0.4)'
-                  : '1.5px solid rgba(139,92,246,0.2)',
-
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-
-              /* State-based glow animation */
-              animation: isRecording
-                ? 'vr-sphere-recording-glow 2s ease-in-out infinite'
-                : isTranscribing
-                  ? 'none'
-                  : 'vr-sphere-idle-glow 4s ease-in-out infinite',
-
-              boxShadow: isTranscribing
-                ? '0 0 40px rgba(46,174,123,0.4), 0 0 80px rgba(46,174,123,0.15), inset 0 0 30px rgba(46,174,123,0.15)'
-                : undefined,
-
-              cursor: isTranscribing ? 'default' : 'pointer',
-            }}
-          >
-            {/* Inner specular highlight (top-left) */}
-            <div
-              className="absolute pointer-events-none rounded-full"
-              style={{
-                width: '60%',
-                height: '35%',
-                top: '8%',
-                left: '12%',
-                background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.25), transparent)',
-                filter: 'blur(3px)',
-              }}
-            />
-
-            {/* Inner sphere core (darker center for depth) */}
-            <div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: '70%',
-                height: '70%',
-                background: isRecording
-                  ? 'radial-gradient(circle at 40% 40%, rgba(167,139,250,0.3), rgba(109,40,217,0.15), transparent)'
-                  : isTranscribing
-                    ? 'radial-gradient(circle at 40% 40%, rgba(74,222,128,0.25), rgba(46,174,123,0.1), transparent)'
-                    : 'radial-gradient(circle at 40% 40%, rgba(139,92,246,0.15), transparent)',
-              }}
-            />
-
-            {/* Bottom edge reflection */}
-            <div
-              className="absolute pointer-events-none rounded-full"
-              style={{
-                width: '55%',
-                height: '18%',
-                bottom: '10%',
-                left: '22%',
-                background: isRecording
-                  ? 'radial-gradient(ellipse, rgba(56,189,248,0.18), transparent)'
-                  : 'radial-gradient(ellipse, rgba(139,92,246,0.1), transparent)',
-                filter: 'blur(4px)',
-              }}
-            />
-
-            {/* Icon */}
-            <div className="relative z-10 flex items-center justify-center">
-              {isTranscribing ? (
-                <Loader2
-                  size={38}
-                  className="text-white/90"
-                  strokeWidth={1.5}
-                  style={{ animation: 'vr-ring-spin 1.5s linear infinite' }}
-                />
-              ) : isRecording ? (
-                <Square
-                  size={28}
-                  className="text-white drop-shadow-lg"
-                  strokeWidth={2}
-                  style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' }}
-                />
-              ) : (
-                <Mic
-                  size={38}
-                  className="text-white/80 group-hover:text-white transition-colors duration-300 drop-shadow-lg"
-                  strokeWidth={1.5}
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(139,92,246,0.6))' }}
-                />
-              )}
+        {/* Real-time transcript */}
+        {interim && (
+          <div className="w-full max-w-lg">
+            <div className="px-4 py-3 text-sm italic leading-relaxed text-center rounded-xl bg-muted/50 border border-border text-muted-foreground">
+              &ldquo;{interim}&rdquo;
             </div>
           </div>
-        </button>
-      </div>
+        )}
 
-      {/* ── HUD Timer (recording) ───────────────────────────────────────── */}
-      <div
-        className="flex items-center justify-center gap-4 transition-all duration-500"
-        style={{
-          height: isRecording ? 40 : 0,
-          opacity: isRecording ? 1 : 0,
-          marginTop: isRecording ? 10 : 0,
-          overflow: 'hidden',
-        }}
+        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
+          Grabando nota de voz...
+        </p>
+      </div>
+    )
+  }
+
+  /* ── TRANSCRIBING: Circular button (accent style with spinner) ──────── */
+  return (
+    <div className={`flex flex-col items-center gap-5 animate-fade-in ${className}`}>
+      <div className="relative w-44 h-44 rounded-full
+        bg-gradient-to-br from-accent/20 via-accent/10 to-transparent
+        border-2 border-accent/30
+        flex flex-col items-center justify-center gap-3"
       >
-        <span
-          className="w-2.5 h-2.5 rounded-full"
-          style={{
-            background: '#8b5cf6',
-            boxShadow: '0 0 12px rgba(139,92,246,0.9), 0 0 24px rgba(139,92,246,0.4)',
-            animation: 'vr-hud-blink 1.5s ease-in-out infinite',
-          }}
-        />
-        <span
-          className="font-mono text-base tracking-[0.35em] uppercase"
-          style={{
-            color: 'rgba(167,139,250,0.95)',
-            textShadow: '0 0 14px rgba(139,92,246,0.6), 0 0 28px rgba(139,92,246,0.2)',
-            letterSpacing: '0.35em',
-          }}
-        >
-          rec {formatTime(elapsed)}
+        <div className="absolute inset-0 rounded-full border border-accent/10 animate-pulse-glow" />
+        <Loader2 size={36} className="text-accent animate-spin" />
+        <span className="text-xs font-bold text-accent tracking-wide text-center px-4">
+          Transcribiendo...
         </span>
-        <span
-          className="w-2.5 h-2.5 rounded-full"
-          style={{
-            background: '#8b5cf6',
-            boxShadow: '0 0 12px rgba(139,92,246,0.9), 0 0 24px rgba(139,92,246,0.4)',
-            animation: 'vr-hud-blink 1.5s ease-in-out infinite 0.75s',
-          }}
-        />
       </div>
-
-      {/* ── Status text ─────────────────────────────────────────────────── */}
-      <p
-        className="text-center text-[15px] leading-relaxed max-w-sm transition-all duration-500 mt-3"
-        style={{
-          color: isRecording
-            ? 'rgba(167,139,250,0.8)'
-            : isTranscribing
-              ? 'rgba(46,174,123,0.8)'
-              : 'rgba(107,102,96,0.9)',
-          letterSpacing: '0.02em',
-        }}
-      >
-        {isTranscribing
-          ? 'Analizando audio...'
-          : isRecording
-            ? 'Escuchando -- toca la esfera para finalizar'
-            : placeholder}
-      </p>
-
-      {/* ── Real-time transcript ────────────────────────────────────────── */}
-      <div
-        className="w-full max-w-lg transition-all duration-500 overflow-hidden"
-        style={{
-          maxHeight: (isRecording && interim) ? 120 : 0,
-          opacity: (isRecording && interim) ? 1 : 0,
-          marginTop: (isRecording && interim) ? 16 : 0,
-        }}
-      >
-        <div
-          className="px-6 py-4 text-sm italic leading-relaxed text-center rounded-2xl"
-          style={{
-            color: 'rgba(226,223,214,0.6)',
-            background: 'linear-gradient(135deg, rgba(10,23,41,0.6), rgba(16,31,56,0.4))',
-            border: '1px solid rgba(139,92,246,0.15)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          &ldquo;{interim}&rdquo;
-        </div>
-      </div>
-
     </div>
   )
 }

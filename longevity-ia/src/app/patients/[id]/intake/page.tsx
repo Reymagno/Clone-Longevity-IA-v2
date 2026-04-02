@@ -311,12 +311,12 @@ function IntakeMedicoVoicePanel({
 
   return (
     <div className="space-y-6">
-      {/* Esfera protagonista */}
+      {/* Botón de grabación */}
       <div className="card-medical py-10 px-5">
         <VoiceRecorder
           onTranscript={handleVoiceTranscript}
           onAudioBlob={handleAudioBlob}
-          placeholder={`Toca la esfera y describe los padecimientos, recomendaciones y aspectos importantes de ${patientName}`}
+          placeholder={`Toca el botón y describe los padecimientos, recomendaciones y aspectos importantes de ${patientName}`}
           disabled={saving}
         />
       </div>
