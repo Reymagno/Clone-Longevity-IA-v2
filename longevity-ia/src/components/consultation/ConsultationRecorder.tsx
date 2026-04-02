@@ -1,13 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Mic, Loader2, Square, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Consultation } from '@/types'
-
-const StarScene = lazy(() =>
-  import('./StarScene').then(m => ({ default: m.StarScene }))
-)
 
 interface ConsultationRecorderProps {
   patientId: string
@@ -134,9 +130,7 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
     }
   }, [patientId, onSaved])
 
-  const isRecording = phase === 'recording'
   const isProcessing = phase === 'transcribing' || phase === 'analyzing'
-  const showScene = phase !== 'idle' && phase !== 'error'
   const mins = Math.floor(elapsed / 60)
   const secs = elapsed % 60
 
@@ -190,70 +184,70 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
     )
   }
 
-  // ── RECORDING / PROCESSING / DONE: 3D Scene ────────────────
-  return (
-    <div className="flex flex-col items-center gap-6 animate-fade-in">
-      {/* 3D Voice Recorder Scene */}
-      {showScene && (
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center" style={{ width: 420, height: 420 }}>
-              <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
-                <Mic size={28} className="text-accent/40" />
-              </div>
-            </div>
-          }
-        >
-          <StarScene
-            phase={phase}
-            onClick={isRecording ? stopAndProcess : () => {}}
-            disabled={!isRecording}
-          />
-        </Suspense>
-      )}
-
-      {/* Timer */}
-      {isRecording && (
-        <div className="font-mono text-4xl font-bold text-foreground tabular-nums tracking-wider" style={{ textShadow: '0 0 20px rgba(230,140,38,0.4)' }}>
-          {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
-        </div>
-      )}
-
-      {/* Stop button while recording */}
-      {isRecording && (
+  // ── RECORDING: Same circular button style ───────────────────
+  if (phase === 'recording') {
+    return (
+      <div className="flex flex-col items-center gap-5 animate-fade-in">
         <button
           onClick={stopAndProcess}
           className="
-            flex items-center gap-2.5 px-6 py-3
-            bg-danger/15 border border-danger/30 rounded-xl
-            text-danger text-sm font-semibold
-            hover:bg-danger/25 hover:border-danger/50
-            transition-all duration-200
-            animate-pulse
+            group relative w-44 h-44 rounded-full
+            bg-gradient-to-br from-danger/20 via-danger/10 to-transparent
+            border-2 border-danger/40
+            flex flex-col items-center justify-center gap-3
+            transition-all duration-300
+            hover:border-danger/60 hover:from-danger/25 hover:via-danger/15
+            hover:shadow-[0_0_40px_rgba(220,60,60,0.2)]
+            hover:scale-[1.03]
+            active:scale-[0.98]
+            cursor-pointer
           "
         >
-          <Square size={14} className="fill-current" />
-          Detener y procesar
+          {/* Pulsing ring – recording */}
+          <div className="absolute inset-0 rounded-full border border-danger/20 animate-pulse-glow" />
+
+          <Square size={28} className="text-danger fill-danger/80" />
+          <span className="text-sm font-bold text-danger tracking-wide">Detener</span>
         </button>
-      )}
 
-      {/* Processing indicator */}
-      {isProcessing && (
-        <div className="flex items-center gap-3 text-info bg-info/[0.06] border border-info/15 rounded-xl px-5 py-3 backdrop-blur-sm">
-          <Loader2 size={16} className="animate-spin" />
-          <span className="text-sm font-medium">
-            {phase === 'transcribing' ? 'Transcribiendo audio...' : 'Generando nota SOAP...'}
-          </span>
+        {/* Timer */}
+        <div className="font-mono text-4xl font-bold text-foreground tabular-nums tracking-wider" style={{ textShadow: '0 0 20px rgba(220,60,60,0.3)' }}>
+          {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
         </div>
-      )}
 
-      {/* Done indicator */}
-      {phase === 'done' && (
-        <div className="flex items-center gap-3 text-accent bg-accent/[0.06] border border-accent/15 rounded-xl px-5 py-3 backdrop-blur-sm">
-          <CheckCircle2 size={16} />
-          <span className="text-sm font-semibold">Consulta guardada</span>
-        </div>
-      )}
+        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
+          Grabando consulta...
+        </p>
+      </div>
+    )
+  }
+
+  // ── PROCESSING / DONE ──────────────────────────────────────
+  return (
+    <div className="flex flex-col items-center gap-5 animate-fade-in">
+      <div className="relative w-44 h-44 rounded-full
+        bg-gradient-to-br from-accent/20 via-accent/10 to-transparent
+        border-2 border-accent/30
+        flex flex-col items-center justify-center gap-3"
+      >
+        <div className="absolute inset-0 rounded-full border border-accent/10 animate-pulse-glow" />
+
+        {isProcessing && (
+          <>
+            <Loader2 size={36} className="text-accent animate-spin" />
+            <span className="text-xs font-bold text-accent tracking-wide text-center px-4">
+              {phase === 'transcribing' ? 'Transcribiendo...' : 'Generando SOAP...'}
+            </span>
+          </>
+        )}
+
+        {phase === 'done' && (
+          <>
+            <CheckCircle2 size={36} className="text-accent" />
+            <span className="text-sm font-bold text-accent tracking-wide">Guardada</span>
+          </>
+        )}
+      </div>
     </div>
   )
 }
