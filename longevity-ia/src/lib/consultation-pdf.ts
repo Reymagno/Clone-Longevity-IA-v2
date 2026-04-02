@@ -221,10 +221,105 @@ export async function generateConsultationPDF(
     }
   }
 
-  // ═══ TRANSCRIPCIÓN ═══════════════════════════════════════════
+  // ═══ HALLAZGOS, MEDICAMENTOS, ESTUDIOS, ALERTAS ═══════════════
+
+  const soapExt = (consultation.ai_soap || {}) as Record<string, unknown>
+
+  // Alerts
+  const alerts = soapExt.alerts as string[] | undefined
+  if (alerts && alerts.length > 0) {
+    sectionTitle('ALERTAS CLINICAS', C.red)
+    for (const a of alerts) {
+      checkPage(8)
+      setFill([252, 225, 225])
+      const aLines = doc.splitTextToSize(a, CW - 12)
+      const aH = aLines.length * 3.5 + 4
+      doc.roundedRect(MG, y - 2, CW, aH, 1.5, 1.5, 'F')
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'bold')
+      setColor(C.red)
+      doc.text(aLines, MG + 5, y + 1)
+      y += aH + 2
+    }
+  }
+
+  // Key Findings
+  const keyFindings = soapExt.key_findings as string[] | undefined
+  if (keyFindings && keyFindings.length > 0) {
+    sectionTitle('HALLAZGOS CLAVE', C.blue)
+    for (const f of keyFindings) {
+      checkPage(8)
+      setFill(C.blue)
+      doc.circle(MG + 3, y + 1.5, 1, 'F')
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      setColor(C.text)
+      const fLines = doc.splitTextToSize(f, CW - 10)
+      doc.text(fLines, MG + 7, y + 2)
+      y += fLines.length * 3.5 + 2
+    }
+    y += 2
+  }
+
+  // Medications
+  const medications = soapExt.medications as Array<{ name: string; dose?: string; instructions?: string }> | undefined
+  if (medications && medications.length > 0) {
+    sectionTitle('MEDICAMENTOS INDICADOS', C.accent)
+
+    // Table header
+    setFill([230, 248, 240])
+    doc.roundedRect(MG, y - 1, CW, 6, 1, 1, 'F')
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    setColor(C.accent)
+    doc.text('Medicamento', MG + 4, y + 3)
+    doc.text('Dosis', MG + 65, y + 3)
+    doc.text('Indicaciones', MG + 105, y + 3)
+    y += 8
+
+    for (const m of medications) {
+      checkPage(8)
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'bold')
+      setColor(C.text)
+      doc.text(m.name, MG + 4, y + 2)
+      doc.setFont('helvetica', 'normal')
+      setColor(C.muted)
+      if (m.dose) {
+        const doseLines = doc.splitTextToSize(m.dose, 35)
+        doc.text(doseLines, MG + 65, y + 2)
+      }
+      if (m.instructions) {
+        const instrLines = doc.splitTextToSize(m.instructions, 60)
+        doc.text(instrLines, MG + 105, y + 2)
+      }
+      y += 6
+    }
+    y += 2
+  }
+
+  // Pending Studies
+  const pendingStudies = soapExt.pending_studies as string[] | undefined
+  if (pendingStudies && pendingStudies.length > 0) {
+    sectionTitle('ESTUDIOS PENDIENTES', C.orange)
+    for (const s of pendingStudies) {
+      checkPage(8)
+      setFill(C.orange)
+      doc.circle(MG + 3, y + 1.5, 1, 'F')
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      setColor(C.text)
+      const sLines = doc.splitTextToSize(s, CW - 10)
+      doc.text(sLines, MG + 7, y + 2)
+      y += sLines.length * 3.5 + 2
+    }
+    y += 2
+  }
+
+  // ═══ INSIGHTS CLINICOS ═══════════════════════════════════════
 
   if (consultation.transcript) {
-    sectionTitle('TRANSCRIPCION COMPLETA', C.navy)
+    sectionTitle('INSIGHTS CLINICOS', C.navy)
 
     const speakerMap = (consultation.speakers || {}) as Record<string, string>
 
