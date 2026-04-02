@@ -40,8 +40,15 @@ async function getServerData(
       const admin = getSupabaseAdmin()
       const { data: clinic } = await supabase.from('clinicas').select('id').eq('user_id', user.id).maybeSingle()
       if (clinic) {
-        const { data: medicos } = await admin.from('medicos').select('user_id').eq('clinica_id', clinic.id)
-        const medicoIds = (medicos ?? []).map(m => m.user_id)
+        // Médicos por clinica_id directo + invitaciones activas
+        const [directM, linkedM] = await Promise.all([
+          admin.from('medicos').select('user_id').eq('clinica_id', clinic.id),
+          admin.from('clinica_medico_links').select('medico_user_id').eq('clinica_id', clinic.id).eq('status', 'active'),
+        ])
+        const idSet = new Set<string>()
+        for (const m of directM.data ?? []) idSet.add(m.user_id)
+        for (const l of linkedM.data ?? []) idSet.add(l.medico_user_id)
+        const medicoIds = Array.from(idSet)
         const { data: pat } = await admin.from('patients').select('user_id').eq('id', patientId).maybeSingle()
         if (!pat || !medicoIds.includes(pat.user_id)) {
           return { patient: null, result: null, allResults: [], viewerRole }

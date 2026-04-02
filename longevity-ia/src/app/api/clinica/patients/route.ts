@@ -29,13 +29,16 @@ export async function GET(request: NextRequest) {
 
   const admin = getSupabaseAdmin()
 
-  // Obtener médicos vinculados a esta clínica
-  const { data: medicos } = await admin
-    .from('medicos')
-    .select('user_id')
-    .eq('clinica_id', clinic.id)
+  // Obtener médicos vinculados: por clinica_id directo + por invitaciones activas
+  const [directMedicos, linkedMedicos] = await Promise.all([
+    admin.from('medicos').select('user_id').eq('clinica_id', clinic.id),
+    admin.from('clinica_medico_links').select('medico_user_id').eq('clinica_id', clinic.id).eq('status', 'active'),
+  ])
 
-  const medicoUserIds = (medicos ?? []).map(m => m.user_id)
+  const allMedicoIds = new Set<string>()
+  for (const m of directMedicos.data ?? []) allMedicoIds.add(m.user_id)
+  for (const l of linkedMedicos.data ?? []) allMedicoIds.add(l.medico_user_id)
+  const medicoUserIds = Array.from(allMedicoIds)
 
   // Buscar pacientes: con clinica_id O cuyos user_id sea un médico de la clínica
   const medicoFilter = request.nextUrl.searchParams.get('medico_user_id')

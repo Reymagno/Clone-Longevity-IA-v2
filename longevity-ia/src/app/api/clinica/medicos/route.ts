@@ -31,13 +31,37 @@ export async function GET(request: NextRequest) {
   // Usar admin para leer médicos cross-user (RLS bloquea)
   const admin = getSupabaseAdmin()
 
-  const { data: medicos, error } = await admin
+  // Obtener médicos: por clinica_id directo + por invitaciones activas
+  const { data: linkedIds } = await admin
+    .from('clinica_medico_links')
+    .select('medico_user_id')
+    .eq('clinica_id', clinic.id)
+    .eq('status', 'active')
+
+  const allMedicoUserIds = new Set<string>()
+  const { data: directMedicos } = await admin
     .from('medicos')
     .select('*')
     .eq('clinica_id', clinic.id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  for (const m of directMedicos ?? []) allMedicoUserIds.add(m.user_id)
+  for (const l of linkedIds ?? []) {
+    if (l.medico_user_id) allMedicoUserIds.add(l.medico_user_id)
+  }
+
+  // Buscar médicos que no están en directMedicos (vinculados solo por invitación)
+  const directUserIds = new Set((directMedicos ?? []).map(m => m.user_id))
+  const linkedOnlyIds = Array.from(allMedicoUserIds).filter(id => !directUserIds.has(id))
+
+  let linkedMedicos: Record<string, unknown>[] = []
+  if (linkedOnlyIds.length > 0) {
+    const { data } = await admin.from('medicos').select('*').in('user_id', linkedOnlyIds)
+    linkedMedicos = data ?? []
+  }
+
+  const medicos = [...(directMedicos ?? []), ...linkedMedicos]
+  const error = null
 
   // Enriquecer con conteo de pacientes por médico
   const medicoUserIds = (medicos ?? []).map(m => m.user_id)

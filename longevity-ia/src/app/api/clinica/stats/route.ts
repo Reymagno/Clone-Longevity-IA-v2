@@ -29,12 +29,15 @@ export async function GET(request: NextRequest) {
 
   const admin = getSupabaseAdmin()
 
-  // Obtener médicos vinculados
-  const { data: medicos } = await admin
-    .from('medicos')
-    .select('user_id')
-    .eq('clinica_id', clinic.id)
-  const medicoUserIds = (medicos ?? []).map(m => m.user_id)
+  // Obtener médicos: por clinica_id directo + por invitaciones activas
+  const [directMedicos, linkedMedicos] = await Promise.all([
+    admin.from('medicos').select('user_id').eq('clinica_id', clinic.id),
+    admin.from('clinica_medico_links').select('medico_user_id').eq('clinica_id', clinic.id).eq('status', 'active'),
+  ])
+  const allIds = new Set<string>()
+  for (const m of directMedicos.data ?? []) allIds.add(m.user_id)
+  for (const l of linkedMedicos.data ?? []) allIds.add(l.medico_user_id)
+  const medicoUserIds = Array.from(allIds)
 
   // Inicio del mes actual
   const now = new Date()
