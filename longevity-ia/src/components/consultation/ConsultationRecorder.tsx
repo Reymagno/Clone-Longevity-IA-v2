@@ -159,11 +159,11 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
   const secs = elapsed % 60
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-6">
       {/* 3D Star */}
       <Suspense
         fallback={
-          <div className="flex items-center justify-center" style={{ width: 280, height: 280 }}>
+          <div className="flex items-center justify-center" style={{ width: 420, height: 420 }}>
             <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
               <Mic size={28} className="text-accent/40" />
             </div>
@@ -179,14 +179,14 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
 
       {/* Timer */}
       {isRecording && (
-        <div className="font-mono text-3xl font-bold text-foreground tabular-nums tracking-wider">
+        <div className="font-mono text-4xl font-bold text-foreground tabular-nums tracking-wider" style={{ textShadow: '0 0 20px rgba(212,83,106,0.4)' }}>
           {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
         </div>
       )}
 
       {/* Processing indicator */}
       {isProcessing && (
-        <div className="flex items-center gap-2 text-info">
+        <div className="flex items-center gap-3 text-info bg-info/[0.06] border border-info/15 rounded-xl px-5 py-3 backdrop-blur-sm">
           <Loader2 size={16} className="animate-spin" />
           <span className="text-sm font-medium">{PHASE_LABELS[phase]}</span>
         </div>
@@ -194,26 +194,26 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
 
       {/* Phase label */}
       {!isProcessing && (
-        <p className={`text-sm text-center ${phase === 'error' ? 'text-danger' : phase === 'done' ? 'text-accent font-medium' : 'text-muted-foreground'}`}>
+        <p className={`text-sm text-center ${phase === 'error' ? 'text-danger' : phase === 'done' ? 'text-accent font-medium' : phase === 'idle' ? 'text-muted-foreground bg-muted/40 rounded-lg px-4 py-2' : 'text-muted-foreground'}`}>
           {errorMsg || PHASE_LABELS[phase]}
         </p>
       )}
 
       {/* Hints */}
       {phase === 'idle' && (
-        <p className="text-xs text-muted-foreground/50 text-center max-w-xs">
+        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
           El audio sera transcrito y analizado automaticamente al finalizar
         </p>
       )}
       {isRecording && (
-        <p className="text-xs text-danger/70 text-center animate-pulse">
+        <p className="text-xs text-danger/70 text-center animate-pulse" style={{ textShadow: '0 0 10px rgba(212,83,106,0.3)' }}>
           Toca la estrella para detener y procesar
         </p>
       )}
 
       {/* Error retry */}
       {phase === 'error' && (
-        <Button variant="outline" size="sm" onClick={() => { setPhase('idle'); setErrorMsg('') }}>
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => { setPhase('idle'); setErrorMsg('') }}>
           Intentar de nuevo
         </Button>
       )}
