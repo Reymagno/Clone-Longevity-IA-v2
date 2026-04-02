@@ -81,6 +81,26 @@ const LIGHT_CSS = `
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     filter: none !important;
+    /* Evitar desbordamiento de texto */
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+  }
+  /* Forzar que el contenido respete el ancho del contenedor */
+  #dashboard-export {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  #dashboard-export table,
+  #dashboard-export pre,
+  #dashboard-export code {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    word-break: break-all !important;
+  }
+  /* Grids: forzar que no excedan el contenedor */
+  #dashboard-export [class*="grid"] {
+    max-width: 100% !important;
+    overflow: hidden !important;
   }
 
   /* Ocultar pseudo-elementos problemáticos para html2canvas */
@@ -301,7 +321,13 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
     }
   }
 
-  // 3. Forzar que animaciones estén resueltas (evitar capturar mid-blur)
+  // 3. Forzar ancho fijo y animaciones resueltas
+  const origWidth = element.style.width
+  const origMaxWidth = element.style.maxWidth
+  const origPadding = element.style.padding
+  element.style.width = '800px'
+  element.style.maxWidth = '800px'
+  element.style.padding = '0 16px'
   element.style.animation = 'none'
   element.style.opacity = '1'
   element.style.transform = 'none'
@@ -311,17 +337,19 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
   const restoreAll = patchAllComputedStyles(element)
 
   try {
-    // Usar window.devicePixelRatio para determinar escala óptima (máx 2)
     const scale = Math.min(2, window.devicePixelRatio || 1)
     return await html2canvas(element, {
       backgroundColor: '#ffffff',
       scale,
       useCORS: true,
-      allowTaint: true,   // Permitir taint para evitar fallos por CORS en imágenes externas
+      allowTaint: true,
       logging: false,
     })
   } finally {
     // 5. Restaurar todo al tema original
+    element.style.width = origWidth
+    element.style.maxWidth = origMaxWidth
+    element.style.padding = origPadding
     element.style.animation = ''
     element.style.opacity = ''
     element.style.transform = ''
@@ -365,29 +393,16 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const pageW = 210
       const pageH = 297
-      const margin = 6
+      const margin = 8
       const usableW = pageW - margin * 2
       const usableH = pageH - margin * 2
 
-      // Obtener los hijos directos del contenedor como bloques
-      const children = Array.from(element.children) as HTMLElement[]
-      if (children.length === 0) {
-        // Fallback: capturar todo como una sola imagen
-        const canvas = await captureLight(element)
-        const imgData = canvas.toDataURL('image/png')
-        const imgH = (canvas.height * pageW) / canvas.width
-        pdf.addImage(imgData, 'PNG', 0, 0, pageW, imgH)
-        pdf.save(`Longevity-IA_${patientName.replace(/\s+/g, '_')}.pdf`)
-        return
-      }
-
-      // Inyectar CSS de tema claro
+      // ── Preparar el DOM para captura ──────────────────────────────
       const styleEl = document.createElement('style')
       styleEl.id = '__longevity-export-pdf-style__'
       styleEl.innerHTML = LIGHT_CSS
       document.head.appendChild(styleEl)
 
-      // Desactivar clases problemáticas en el padre
       const parent = element.parentElement
       const parentClasses: string[] = []
       if (parent) {
@@ -399,7 +414,13 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
         }
       }
 
-      // Forzar animaciones resueltas
+      // Forzar ancho fijo para que el contenido se ajuste a proporciones A4
+      const origWidth = element.style.width
+      const origMaxWidth = element.style.maxWidth
+      const origPadding = element.style.padding
+      element.style.width = '800px'
+      element.style.maxWidth = '800px'
+      element.style.padding = '0 16px'
       element.style.animation = 'none'
       element.style.opacity = '1'
       element.style.transform = 'none'
@@ -407,14 +428,34 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
 
       const restoreAll = patchAllComputedStyles(element)
 
+      // ── Recolectar bloques atómicos para evitar cortes ────────────
+      // Busca hijos y nietos como unidades de page-break
+      const collectBlocks = (container: HTMLElement): HTMLElement[] => {
+        const direct = Array.from(container.children) as HTMLElement[]
+        if (direct.length === 0) return [container]
+        const blocks: HTMLElement[] = []
+        for (const child of direct) {
+          const style = window.getComputedStyle(child)
+          const isContainer = (style.display === 'grid' || style.display === 'flex') && child.children.length > 1
+          const childH = child.getBoundingClientRect().height
+          if (childH > 900 && isContainer) {
+            blocks.push(...collectBlocks(child))
+          } else {
+            blocks.push(child)
+          }
+        }
+        return blocks
+      }
+
+      const blocks = collectBlocks(element)
+
       let currentY = margin
-      let isFirstPage = true
 
       try {
-        for (const child of children) {
-          // Capturar cada bloque hijo como imagen
-          const scale = Math.min(2, window.devicePixelRatio || 1)
-          const canvas = await html2canvas(child, {
+        const scale = Math.min(2, window.devicePixelRatio || 1)
+
+        for (const block of blocks) {
+          const canvas = await html2canvas(block, {
             backgroundColor: '#ffffff',
             scale,
             useCORS: true,
@@ -422,69 +463,68 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
             logging: false,
           })
 
-          const imgData = canvas.toDataURL('image/png')
+          if (canvas.width === 0 || canvas.height === 0) continue
+
           const blockH = (canvas.height * usableW) / canvas.width
 
-          // Si el bloque cabe en la página actual
+          // Si el bloque cabe en el espacio restante → colocarlo
           if (currentY + blockH <= pageH - margin) {
-            pdf.addImage(imgData, 'PNG', margin, currentY, usableW, blockH)
-            currentY += blockH + 2
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, currentY, usableW, blockH)
+            currentY += blockH + 1.5
           } else if (blockH <= usableH) {
-            // El bloque cabe en una página completa pero no en el espacio restante → nueva página
-            if (!isFirstPage || currentY > margin + 10) {
-              pdf.addPage()
-            }
+            // El bloque cabe en una página pero no en el espacio restante → nueva página
+            pdf.addPage()
             currentY = margin
-            pdf.addImage(imgData, 'PNG', margin, currentY, usableW, blockH)
-            currentY += blockH + 2
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, currentY, usableW, blockH)
+            currentY += blockH + 1.5
           } else {
-            // El bloque es más grande que una página → dividirlo con cortes limpios
-            if (currentY > margin + 10) {
+            // Bloque más grande que una página → cortar con margen de seguridad
+            if (currentY > margin + 5) {
               pdf.addPage()
               currentY = margin
             }
 
-            const totalImgH = canvas.height
+            const totalH = canvas.height
             const pxPerMm = canvas.width / usableW
             let srcY = 0
 
-            while (srcY < totalImgH) {
+            while (srcY < totalH) {
               const remainMm = pageH - margin - currentY
-              const sliceHpx = Math.min(remainMm * pxPerMm, totalImgH - srcY)
+              // Dejar 4mm de margen inferior para evitar corte pegado al borde
+              const maxSliceMm = remainMm - 4
+              const sliceHpx = Math.min(maxSliceMm * pxPerMm, totalH - srcY)
               const sliceHmm = sliceHpx / pxPerMm
 
-              // Crear canvas recortado para esta porción
               const sliceCanvas = document.createElement('canvas')
               sliceCanvas.width = canvas.width
               sliceCanvas.height = Math.ceil(sliceHpx)
               const ctx = sliceCanvas.getContext('2d')
               if (ctx) {
-                ctx.drawImage(canvas, 0, srcY, canvas.width, sliceHpx, 0, 0, canvas.width, sliceHpx)
-                const sliceData = sliceCanvas.toDataURL('image/png')
-                pdf.addImage(sliceData, 'PNG', margin, currentY, usableW, sliceHmm)
+                ctx.drawImage(canvas, 0, srcY, canvas.width, sliceHpx, 0, 0, canvas.width, Math.ceil(sliceHpx))
+                pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', margin, currentY, usableW, sliceHmm)
               }
 
               srcY += sliceHpx
               currentY += sliceHmm
 
-              if (srcY < totalImgH) {
+              if (srcY < totalH) {
                 pdf.addPage()
                 currentY = margin
               }
             }
-            currentY += 2
+            currentY += 1.5
           }
-          isFirstPage = false
         }
       } finally {
+        element.style.width = origWidth
+        element.style.maxWidth = origMaxWidth
+        element.style.padding = origPadding
         element.style.animation = ''
         element.style.opacity = ''
         element.style.transform = ''
         element.style.filter = ''
         if (parent) {
-          for (const cls of parentClasses) {
-            parent.classList.add(cls)
-          }
+          for (const cls of parentClasses) parent.classList.add(cls)
         }
         styleEl.remove()
         restoreAll()
