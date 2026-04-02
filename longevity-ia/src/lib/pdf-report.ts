@@ -143,11 +143,11 @@ function computeStemCell(patient: Patient, parsedData: ParsedData, analysis: AIA
   const metabFactor =
     worstMetab === 'danger' ? 1.2 : worstMetab === 'warning' ? 1.1 : 1.0
 
-  const immuneAvg = (analysis.systemScores.immune + analysis.systemScores.hematologic) / 2
+  const immuneAvg = ((analysis.systemScores?.immune ?? 50) + (analysis.systemScores?.hematologic ?? 50)) / 2
   const immuneFactor =
     immuneAvg >= 85 ? 0.95 : immuneAvg >= 65 ? 1.0 : immuneAvg >= 40 ? 1.15 : 1.3
 
-  const overall = analysis.overallScore
+  const overall = analysis.overallScore ?? 50
   const globalFactor =
     overall >= 85 ? 0.9 : overall >= 65 ? 1.0 : overall >= 40 ? 1.2 : 1.4
 
@@ -399,9 +399,9 @@ export async function generateMedicalReport(
   skip(blockH + 6)
 
   // Score global
-  const ov = analysis.overallScore
+  const ov = analysis.overallScore ?? 50
   const ovC = scoreC(ov)
-  const ageDiff = patient.age - analysis.longevity_age
+  const ageDiff = patient.age - (analysis.longevity_age ?? patient.age)
 
   boxStroke(MG, y, CW, 48, C.bg, C.border)
   box(MG, y, 3, 48, ovC)
@@ -509,15 +509,16 @@ export async function generateMedicalReport(
   t('SCORE', MG + CW - 18, y + 5, 'right')
   skip(7)
 
+  const ss = analysis.systemScores ?? {} as Record<string, number>
   const systems: [string, number][] = [
-    ['Cardiovascular',  analysis.systemScores.cardiovascular],
-    ['Metabólico',      analysis.systemScores.metabolic],
-    ['Hepático',        analysis.systemScores.hepatic],
-    ['Renal',           analysis.systemScores.renal],
-    ['Inmunológico',    analysis.systemScores.immune],
-    ['Hematológico',    analysis.systemScores.hematologic],
-    ['Inflamatorio',    analysis.systemScores.inflammatory],
-    ['Vitaminas',       analysis.systemScores.vitamins],
+    ['Cardiovascular',  ss.cardiovascular ?? 0],
+    ['Metabólico',      ss.metabolic ?? 0],
+    ['Hepático',        ss.hepatic ?? 0],
+    ['Renal',           ss.renal ?? 0],
+    ['Inmunológico',    ss.immune ?? 0],
+    ['Hematológico',    ss.hematologic ?? 0],
+    ['Inflamatorio',    ss.inflammatory ?? 0],
+    ['Vitaminas',       ss.vitamins ?? 0],
   ]
   systems.forEach(([lbl, score], i) => scoreBar(lbl, score, i % 2 === 0))
   skip(4)
@@ -1020,12 +1021,12 @@ export async function generateMedicalReport(
       [parsedData.metabolic?.glucose?.value, parsedData.hormones?.hba1c?.value].filter(v => v != null).map(v => `${v}`).join(' | ') || 'Sin dato',
       parsedData.metabolic?.glucose?.status ?? 'unavailable',
       parsedData.metabolic?.glucose?.status === 'danger' ? 1.2 : parsedData.metabolic?.glucose?.status === 'warning' ? 1.1 : 1.0],
-    ['Score Inmunológico', `${((analysis.systemScores.immune + analysis.systemScores.hematologic) / 2).toFixed(0)}/100`,
-      analysis.systemScores.immune >= 85 ? 'optimal' : analysis.systemScores.immune >= 65 ? 'normal' : analysis.systemScores.immune >= 40 ? 'warning' : 'danger',
-      analysis.systemScores.immune >= 85 ? 0.95 : analysis.systemScores.immune >= 65 ? 1.0 : analysis.systemScores.immune >= 40 ? 1.15 : 1.3],
-    ['Score Global de Salud', `${analysis.overallScore.toFixed(0)}/100`,
-      analysis.overallScore >= 85 ? 'optimal' : analysis.overallScore >= 65 ? 'normal' : analysis.overallScore >= 40 ? 'warning' : 'danger',
-      analysis.overallScore >= 85 ? 0.9 : analysis.overallScore >= 65 ? 1.0 : analysis.overallScore >= 40 ? 1.2 : 1.4],
+    ['Score Inmunológico', `${(((ss.immune ?? 0) + (ss.hematologic ?? 0)) / 2).toFixed(0)}/100`,
+      (ss.immune ?? 0) >= 85 ? 'optimal' : (ss.immune ?? 0) >= 65 ? 'normal' : (ss.immune ?? 0) >= 40 ? 'warning' : 'danger',
+      (ss.immune ?? 0) >= 85 ? 0.95 : (ss.immune ?? 0) >= 65 ? 1.0 : (ss.immune ?? 0) >= 40 ? 1.15 : 1.3],
+    ['Score Global de Salud', `${ov.toFixed(0)}/100`,
+      ov >= 85 ? 'optimal' : ov >= 65 ? 'normal' : ov >= 40 ? 'warning' : 'danger',
+      ov >= 85 ? 0.9 : ov >= 65 ? 1.0 : ov >= 40 ? 1.2 : 1.4],
     ['IMC', bmi, patient.weight && patient.height && (patient.weight / Math.pow((patient.height)/100,2)) <= 24.9 ? 'optimal' : 'normal',
       patient.weight && patient.height && (patient.weight / Math.pow((patient.height)/100,2)) > 35 ? 1.15 : 1.0],
   ]

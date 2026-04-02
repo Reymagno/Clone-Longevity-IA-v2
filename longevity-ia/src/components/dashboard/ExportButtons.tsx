@@ -311,11 +311,13 @@ async function captureLight(element: HTMLElement): Promise<HTMLCanvasElement> {
   const restoreAll = patchAllComputedStyles(element)
 
   try {
+    // Usar window.devicePixelRatio para determinar escala óptima (máx 2)
+    const scale = Math.min(2, window.devicePixelRatio || 1)
     return await html2canvas(element, {
       backgroundColor: '#ffffff',
-      scale: 2,
+      scale,
       useCORS: true,
-      allowTaint: false,
+      allowTaint: true,   // Permitir taint para evitar fallos por CORS en imágenes externas
       logging: false,
     })
   } finally {
@@ -344,7 +346,8 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       await generateMedicalReport(patient, parsedData, analysis, resultDate)
       toast.success('Reporte médico completo generado')
     } catch (err) {
-      toast.error('Error al generar el reporte')
+      console.error('ExportButtons — exportFullReport error:', err)
+      toast.error(err instanceof Error ? `Error: ${err.message}` : 'Error al generar el reporte')
     } finally {
       setGeneratingReport(false)
     }
@@ -410,11 +413,12 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       try {
         for (const child of children) {
           // Capturar cada bloque hijo como imagen
+          const scale = Math.min(2, window.devicePixelRatio || 1)
           const canvas = await html2canvas(child, {
             backgroundColor: '#ffffff',
-            scale: 2,
+            scale,
             useCORS: true,
-            allowTaint: false,
+            allowTaint: true,
             logging: false,
           })
 
@@ -489,7 +493,8 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
       pdf.save(`Longevity-IA_${patientName.replace(/\s+/g, '_')}.pdf`)
       toast.success('PDF exportado correctamente')
     } catch (err) {
-      toast.error('Error al exportar PDF')
+      console.error('ExportButtons — exportPDF error:', err)
+      toast.error(err instanceof Error ? `Error: ${err.message}` : 'Error al exportar PDF')
     } finally {
       setExporting(false)
     }
@@ -503,13 +508,23 @@ export function ExportButtons({ patientName, activeTab, patient, parsedData, ana
 
       const canvas = await captureLight(element)
 
+      // Usar toBlob + createObjectURL en lugar de toDataURL para evitar
+      // exceder el límite de tamaño de URL del navegador en dashboards grandes
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo generar la imagen')), 'image/png')
+      })
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.download = `Longevity-IA_Tab${activeTab + 1}_${patientName.replace(/\s+/g, '_')}.png`
-      link.href = canvas.toDataURL('image/png')
+      link.href = url
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
       toast.success('Imagen exportada correctamente')
     } catch (err) {
-      toast.error('Error al exportar imagen')
+      console.error('ExportButtons — exportPNG error:', err)
+      toast.error(err instanceof Error ? `Error: ${err.message}` : 'Error al exportar imagen')
     } finally {
       setExporting(false)
     }
