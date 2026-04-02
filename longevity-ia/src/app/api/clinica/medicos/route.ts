@@ -28,8 +28,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Clínica no encontrada' }, { status: 404 })
   }
 
-  // Obtener médicos de esta clínica
-  const { data: medicos, error } = await supabase
+  // Usar admin para leer médicos cross-user (RLS bloquea)
+  const admin = getSupabaseAdmin()
+
+  const { data: medicos, error } = await admin
     .from('medicos')
     .select('*')
     .eq('clinica_id', clinic.id)
@@ -39,10 +41,10 @@ export async function GET(request: NextRequest) {
 
   // Enriquecer con conteo de pacientes por médico
   const medicoUserIds = (medicos ?? []).map(m => m.user_id)
-  let patientCounts: Record<string, number> = {}
+  const patientCounts: Record<string, number> = {}
 
   if (medicoUserIds.length > 0) {
-    const { data: patients } = await supabase
+    const { data: patients } = await admin
       .from('patients')
       .select('user_id')
       .in('user_id', medicoUserIds)

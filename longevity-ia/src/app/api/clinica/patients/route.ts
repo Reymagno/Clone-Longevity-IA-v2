@@ -27,23 +27,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Clínica no encontrada' }, { status: 404 })
   }
 
-  // Filtro opcional por médico
-  const medicoUserId = request.nextUrl.searchParams.get('medico_user_id')
+  const admin = getSupabaseAdmin()
 
-  let query = supabase
-    .from('patients')
-    .select('*')
+  // Obtener médicos vinculados a esta clínica
+  const { data: medicos } = await admin
+    .from('medicos')
+    .select('user_id')
     .eq('clinica_id', clinic.id)
-    .order('created_at', { ascending: false })
 
-  if (medicoUserId) {
-    query = query.eq('user_id', medicoUserId)
+  const medicoUserIds = (medicos ?? []).map(m => m.user_id)
+
+  // Buscar pacientes: con clinica_id O cuyos user_id sea un médico de la clínica
+  const medicoFilter = request.nextUrl.searchParams.get('medico_user_id')
+  let patients: Record<string, unknown>[] = []
+
+  if (medicoFilter) {
+    // Filtrar por un médico específico (verificar que pertenece a la clínica)
+    if (!medicoUserIds.includes(medicoFilter)) {
+      return NextResponse.json({ error: 'Médico no pertenece a esta clínica' }, { status: 403 })
+    }
+    const { data } = await admin
+      .from('patients')
+      .select('*')
+      .eq('user_id', medicoFilter)
+      .order('created_at', { ascending: false })
+    patients = data ?? []
+  } else if (medicoUserIds.length > 0) {
+    // Todos los pacientes de todos los médicos de la clínica
+    const { data } = await admin
+      .from('patients')
+      .select('*')
+      .in('user_id', medicoUserIds)
+      .order('created_at', { ascending: false })
+    patients = data ?? []
   }
 
-  const { data: patients, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ patients: patients ?? [] })
+  return NextResponse.json({ patients })
 }
 
 // POST /api/clinica/patients — crear paciente asignado a un médico de la clínica

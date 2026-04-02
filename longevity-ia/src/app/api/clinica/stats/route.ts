@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import type { ClinicStats } from '@/types'
 
 // GET /api/clinica/stats — estadísticas generales de la clínica
@@ -26,45 +27,61 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Clínica no encontrada' }, { status: 404 })
   }
 
-  // Inicio del mes actual (UTC)
+  const admin = getSupabaseAdmin()
+
+  // Obtener médicos vinculados
+  const { data: medicos } = await admin
+    .from('medicos')
+    .select('user_id')
+    .eq('clinica_id', clinic.id)
+  const medicoUserIds = (medicos ?? []).map(m => m.user_id)
+
+  // Inicio del mes actual
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-  // Ejecutar conteos en paralelo
-  const [medicosRes, patientsRes, analysesRes, alertsRes] = await Promise.all([
-    // Total de médicos
-    supabase
-      .from('medicos')
-      .select('id', { count: 'exact', head: true })
-      .eq('clinica_id', clinic.id),
+  let totalPatients = 0
+  let analysesThisMonth = 0
+  let pendingAlerts = 0
 
-    // Total de pacientes
-    supabase
+  if (medicoUserIds.length > 0) {
+    // Total pacientes de los médicos de la clínica
+    const { count: pCount } = await admin
       .from('patients')
       .select('id', { count: 'exact', head: true })
-      .eq('clinica_id', clinic.id),
+      .in('user_id', medicoUserIds)
+    totalPatients = pCount ?? 0
 
-    // Análisis (lab_results) este mes — unir via patients de la clínica
-    supabase
-      .from('lab_results')
-      .select('id, patients!inner(clinica_id)', { count: 'exact', head: true })
-      .eq('patients.clinica_id', clinic.id)
-      .gte('created_at', monthStart),
+    // Obtener IDs de pacientes para queries de lab_results y alerts
+    const { data: patientRows } = await admin
+      .from('patients')
+      .select('id')
+      .in('user_id', medicoUserIds)
+    const patientIds = (patientRows ?? []).map(p => p.id)
 
-    // Alertas pendientes (no leídas, no descartadas) de médicos de la clínica
-    supabase
-      .from('medico_alerts')
-      .select('id, medicos!inner(clinica_id)', { count: 'exact', head: true })
-      .eq('medicos.clinica_id', clinic.id)
-      .eq('read', false)
-      .eq('dismissed', false),
-  ])
+    if (patientIds.length > 0) {
+      const { count: aCount } = await admin
+        .from('lab_results')
+        .select('id', { count: 'exact', head: true })
+        .in('patient_id', patientIds)
+        .gte('created_at', monthStart)
+      analysesThisMonth = aCount ?? 0
+
+      const { count: alertCount } = await admin
+        .from('medico_alerts')
+        .select('id', { count: 'exact', head: true })
+        .in('medico_user_id', medicoUserIds)
+        .eq('read', false)
+        .eq('dismissed', false)
+      pendingAlerts = alertCount ?? 0
+    }
+  }
 
   const stats: ClinicStats = {
-    total_medicos: medicosRes.count ?? 0,
-    total_patients: patientsRes.count ?? 0,
-    analyses_this_month: analysesRes.count ?? 0,
-    pending_alerts: alertsRes.count ?? 0,
+    total_medicos: medicoUserIds.length,
+    total_patients: totalPatients,
+    analyses_this_month: analysesThisMonth,
+    pending_alerts: pendingAlerts,
   }
 
   return NextResponse.json({ stats })

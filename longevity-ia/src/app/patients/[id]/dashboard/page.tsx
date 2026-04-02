@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import type { Patient, LabResult } from '@/types'
 import Link from 'next/link'
@@ -29,12 +30,31 @@ async function getServerData(
     if (!user) return { patient: null, result: null, allResults: [], viewerRole: 'paciente' }
     const viewerRole = user?.user_metadata?.role ?? 'paciente'
 
-    // RLS de Supabase filtra por user_id automáticamente
+    // Para clínicas: usar admin client (RLS bloquea cross-user reads)
+    // Para pacientes/médicos: usar supabase con RLS normal
+    const isClinica = viewerRole === 'clinica'
+    let db = supabase
+
+    if (isClinica) {
+      // Verificar que el paciente pertenece a un médico de esta clínica
+      const admin = getSupabaseAdmin()
+      const { data: clinic } = await supabase.from('clinicas').select('id').eq('user_id', user.id).maybeSingle()
+      if (clinic) {
+        const { data: medicos } = await admin.from('medicos').select('user_id').eq('clinica_id', clinic.id)
+        const medicoIds = (medicos ?? []).map(m => m.user_id)
+        const { data: pat } = await admin.from('patients').select('user_id').eq('id', patientId).maybeSingle()
+        if (!pat || !medicoIds.includes(pat.user_id)) {
+          return { patient: null, result: null, allResults: [], viewerRole }
+        }
+      }
+      db = admin as typeof supabase
+    }
+
     const [patientRes, resultsRes, allResultsRes] = await Promise.all([
-      supabase.from('patients').select('*').eq('id', patientId).maybeSingle(),
+      db.from('patients').select('*').eq('id', patientId).maybeSingle(),
       resultId
-        ? supabase.from('lab_results').select('*').eq('id', resultId).maybeSingle()
-        : supabase
+        ? db.from('lab_results').select('*').eq('id', resultId).maybeSingle()
+        : db
             .from('lab_results')
             .select('*')
             .eq('patient_id', patientId)
@@ -42,7 +62,7 @@ async function getServerData(
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
-      supabase
+      db
         .from('lab_results')
         .select('id, result_date, created_at')
         .eq('patient_id', patientId)
