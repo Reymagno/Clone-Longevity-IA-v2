@@ -29,15 +29,7 @@ async function getServerData(
     if (!user) return { patient: null, result: null, allResults: [], viewerRole: 'paciente' }
     const viewerRole = user?.user_metadata?.role ?? 'paciente'
 
-    // Verificar ownership o vínculo médico
-    const { data: ownPatient } = await supabase
-      .from('patients').select('id').eq('id', patientId).eq('user_id', user.id).maybeSingle()
-    if (!ownPatient) {
-      const { data: linked } = await supabase
-        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
-      if (!linked) return { patient: null, result: null, allResults: [], viewerRole }
-    }
-
+    // RLS de Supabase filtra por user_id automáticamente
     const [patientRes, resultsRes, allResultsRes] = await Promise.all([
       supabase.from('patients').select('*').eq('id', patientId).maybeSingle(),
       resultId

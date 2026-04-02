@@ -26,13 +26,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'patientId requerido' }, { status: 400 })
     }
 
-    // Verificar ownership del paciente
+    // Verificar que el paciente existe y el usuario tiene acceso (RLS filtra por user_id)
     const { data: ownPatient } = await supabase
-      .from('patients').select('id').eq('id', patientId).eq('user_id', user.id).maybeSingle()
+      .from('patients').select('id').eq('id', patientId).maybeSingle()
     if (!ownPatient) {
-      const { data: linked } = await supabase
-        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
-      if (!linked) return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
+      return NextResponse.json({ error: 'Paciente no encontrado o no autorizado' }, { status: 403 })
     }
 
     const { data, error } = await supabase
@@ -80,13 +78,6 @@ export async function POST(request: NextRequest) {
 
     if (!patient) {
       return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
-    }
-
-    // Verificar ownership o vínculo médico
-    if (patient.user_id !== user.id) {
-      const { data: linked } = await supabase
-        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
-      if (!linked) return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
     }
 
     // Subir audio si existe
