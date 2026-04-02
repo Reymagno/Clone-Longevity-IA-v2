@@ -16,12 +16,12 @@ interface StarSceneProps {
 // ── Phase-based colors ────────────────────────────────────────
 function phaseColor(phase: Phase): THREE.Color {
   switch (phase) {
-    case 'recording':    return new THREE.Color(0.83, 0.33, 0.42)  // #D4536A
-    case 'transcribing': return new THREE.Color(0.36, 0.64, 0.79)  // #5BA4C9
-    case 'analyzing':    return new THREE.Color(0.18, 0.68, 0.48)  // #2EAE7B
-    case 'done':         return new THREE.Color(0.18, 0.68, 0.48)  // #2EAE7B
-    case 'error':        return new THREE.Color(0.83, 0.33, 0.42)  // #D4536A
-    default:             return new THREE.Color(0.83, 0.69, 0.22)  // #D4AF37 gold
+    case 'recording':    return new THREE.Color(0.83, 0.33, 0.42)
+    case 'transcribing': return new THREE.Color(0.36, 0.64, 0.79)
+    case 'analyzing':    return new THREE.Color(0.18, 0.68, 0.48)
+    case 'done':         return new THREE.Color(0.18, 0.68, 0.48)
+    case 'error':        return new THREE.Color(0.83, 0.33, 0.42)
+    default:             return new THREE.Color(0.83, 0.69, 0.22)
   }
 }
 
@@ -36,12 +36,21 @@ function phaseCSS(phase: Phase): string {
   }
 }
 
-// ── 3D Microphone Body ────────────────────────────────────────
-// Capsule shape with emissive glow, wireframe shell, and inner light
-function MicrophoneBody({ phase }: { phase: Phase }) {
-  const capsuleRef = useRef<THREE.Mesh>(null!)
-  const wireRef = useRef<THREE.Mesh>(null!)
-  const innerRef = useRef<THREE.Mesh>(null!)
+function phaseLabel(phase: Phase): string {
+  switch (phase) {
+    case 'recording':    return 'RECORDING'
+    case 'transcribing': return 'TRANSCRIBING'
+    case 'analyzing':    return 'ANALYZING'
+    case 'done':         return 'DONE'
+    default:             return ''
+  }
+}
+
+// ── Central Orb ───────────────────────────────────────────────
+// Smooth breathing sphere — the visual anchor
+function CentralOrb({ phase }: { phase: Phase }) {
+  const meshRef = useRef<THREE.Mesh>(null!)
+  const glowRef = useRef<THREE.Mesh>(null!)
   const lightRef = useRef<THREE.PointLight>(null!)
   const targetColor = useRef(phaseColor(phase))
   const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
@@ -49,224 +58,103 @@ function MicrophoneBody({ phase }: { phase: Phase }) {
   useFrame((state) => {
     const t = state.clock.elapsedTime
     targetColor.current = phaseColor(phase)
-    currentColor.current.lerp(targetColor.current, 0.03)
+    currentColor.current.lerp(targetColor.current, 0.025)
 
-    const pulseSpeed = phase === 'recording' ? 3.0 : phase === 'idle' ? 1.0 : 1.8
-    const pulseAmp = phase === 'recording' ? 0.06 : 0.025
+    // Gentle breathing — slow sine
+    const breatheSpeed = phase === 'recording' ? 1.6 : 0.8
+    const breatheAmp = phase === 'recording' ? 0.08 : 0.04
+    const s = 1 + Math.sin(t * breatheSpeed) * breatheAmp
+    meshRef.current.scale.setScalar(s)
 
-    // Capsule body subtle pulse
-    const s = 1 + Math.sin(t * pulseSpeed) * pulseAmp
-    capsuleRef.current.scale.set(s, s, s)
+    // Slow rotation
+    meshRef.current.rotation.y += 0.002
+    meshRef.current.rotation.x = Math.sin(t * 0.15) * 0.05
 
-    const mat = capsuleRef.current.material as THREE.MeshStandardMaterial
+    const mat = meshRef.current.material as THREE.MeshStandardMaterial
     mat.color.copy(currentColor.current)
     mat.emissive.copy(currentColor.current)
-    mat.emissiveIntensity = 0.3 + Math.sin(t * pulseSpeed) * 0.15
+    mat.emissiveIntensity = 0.5 + Math.sin(t * breatheSpeed) * 0.2
 
-    // Wireframe shell rotates slowly
-    wireRef.current.rotation.y += 0.004
-    wireRef.current.rotation.x = Math.sin(t * 0.3) * 0.1
-    const wireMat = wireRef.current.material as THREE.MeshBasicMaterial
-    wireMat.color.copy(currentColor.current)
-    wireMat.opacity = 0.1 + Math.sin(t * 1.5) * 0.04
+    // Outer glow shell
+    const glowS = s * 1.4 + Math.sin(t * breatheSpeed * 0.6) * 0.04
+    glowRef.current.scale.setScalar(glowS)
+    const glowMat = glowRef.current.material as THREE.MeshBasicMaterial
+    glowMat.color.copy(currentColor.current)
+    glowMat.opacity = 0.06 + Math.sin(t * breatheSpeed) * 0.03
 
-    // Inner glow sphere
-    const innerMat = innerRef.current.material as THREE.MeshBasicMaterial
-    innerMat.color.copy(currentColor.current)
-    innerMat.opacity = 0.15 + Math.sin(t * pulseSpeed) * 0.08
-    const innerS = 0.95 + Math.sin(t * pulseSpeed * 1.2) * 0.03
-    innerRef.current.scale.setScalar(innerS)
-
-    // Point light
+    // Light
     lightRef.current.color.copy(currentColor.current)
-    const baseIntensity = phase === 'recording' ? 4.0 : phase === 'idle' ? 1.5 : 2.5
-    lightRef.current.intensity = baseIntensity + Math.sin(t * pulseSpeed) * 1.0
+    const baseI = phase === 'recording' ? 3.0 : 1.5
+    lightRef.current.intensity = baseI + Math.sin(t * breatheSpeed) * 0.8
   })
 
   return (
-    <group position={[0, 0.35, 0]}>
-      {/* Inner glow */}
-      <mesh ref={innerRef}>
-        <sphereGeometry args={[0.38, 24, 24]} />
-        <meshBasicMaterial
-          color={new THREE.Color(0.83, 0.69, 0.22)}
-          transparent
-          opacity={0.15}
-          toneMapped={false}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Solid capsule (mic head) */}
-      <mesh ref={capsuleRef}>
-        <capsuleGeometry args={[0.4, 0.5, 16, 24]} />
+    <>
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.55, 48, 48]} />
         <meshStandardMaterial
           color={new THREE.Color(0.83, 0.69, 0.22)}
           emissive={new THREE.Color(0.83, 0.69, 0.22)}
-          emissiveIntensity={0.4}
-          roughness={0.15}
+          emissiveIntensity={0.6}
+          roughness={0.12}
           metalness={0.9}
-          transparent
-          opacity={0.85}
           toneMapped={false}
         />
       </mesh>
-
-      {/* Wireframe shell around mic head */}
-      <mesh ref={wireRef}>
-        <capsuleGeometry args={[0.48, 0.55, 8, 16]} />
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.7, 32, 32]} />
         <meshBasicMaterial
           color={new THREE.Color(0.83, 0.69, 0.22)}
-          wireframe
-          transparent
-          opacity={0.12}
-          toneMapped={false}
-          depthWrite={false}
+          transparent opacity={0.07} toneMapped={false} depthWrite={false}
         />
       </mesh>
-
-      {/* Center point light */}
-      <pointLight ref={lightRef} intensity={2} distance={8} decay={2} />
-    </group>
-  )
-}
-
-// ── Mic Stand ─────────────────────────────────────────────────
-function MicStand({ phase }: { phase: Phase }) {
-  const standRef = useRef<THREE.Mesh>(null!)
-  const baseRef = useRef<THREE.Mesh>(null!)
-  const arcRef = useRef<THREE.Line>(null!)
-  const targetColor = useRef(phaseColor(phase))
-  const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
-
-  // Half-circle arc geometry
-  const arcGeo = useMemo(() => {
-    const pts: THREE.Vector3[] = []
-    for (let i = 0; i <= 32; i++) {
-      const angle = Math.PI + (Math.PI * i) / 32
-      pts.push(new THREE.Vector3(
-        Math.cos(angle) * 0.45,
-        Math.sin(angle) * 0.3 + 0.1,
-        0
-      ))
-    }
-    return new THREE.BufferGeometry().setFromPoints(pts)
-  }, [])
-
-  const arcLine = useMemo(() => {
-    return new THREE.Line(
-      arcGeo,
-      new THREE.LineBasicMaterial({
-        color: new THREE.Color(0.83, 0.69, 0.22),
-        transparent: true,
-        opacity: 0.2,
-      })
-    )
-  }, [arcGeo])
-
-  useFrame(() => {
-    targetColor.current = phaseColor(phase)
-    currentColor.current.lerp(targetColor.current, 0.03)
-
-    const standMat = standRef.current.material as THREE.MeshStandardMaterial
-    standMat.color.copy(currentColor.current)
-    standMat.emissive.copy(currentColor.current)
-
-    const baseMat = baseRef.current.material as THREE.MeshStandardMaterial
-    baseMat.color.copy(currentColor.current)
-    baseMat.emissive.copy(currentColor.current)
-
-    if (arcRef.current) {
-      const arcMat = arcRef.current.material as THREE.LineBasicMaterial
-      arcMat.color.copy(currentColor.current)
-    }
-  })
-
-  return (
-    <group>
-      {/* Vertical stand */}
-      <mesh ref={standRef} position={[0, -0.35, 0]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.6, 12]} />
-        <meshStandardMaterial
-          color={new THREE.Color(0.83, 0.69, 0.22)}
-          emissive={new THREE.Color(0.83, 0.69, 0.22)}
-          emissiveIntensity={0.15}
-          roughness={0.3}
-          metalness={0.8}
-          transparent
-          opacity={0.6}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* Base disk */}
-      <mesh ref={baseRef} position={[0, -0.68, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.25, 24]} />
-        <meshStandardMaterial
-          color={new THREE.Color(0.83, 0.69, 0.22)}
-          emissive={new THREE.Color(0.83, 0.69, 0.22)}
-          emissiveIntensity={0.1}
-          roughness={0.4}
-          metalness={0.7}
-          transparent
-          opacity={0.4}
-          toneMapped={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Arc cradle */}
-      <primitive ref={arcRef} object={arcLine} />
-    </group>
+      <pointLight ref={lightRef} intensity={2} distance={10} decay={2} />
+    </>
   )
 }
 
 // ── Sound Wave Rings ──────────────────────────────────────────
-// Concentric rings that expand outward from the mic — voice wave effect
+// Concentric torus rings that expand smoothly outward
 function SoundWaves({ phase }: { phase: Phase }) {
   const ringsRef = useRef<THREE.Group>(null!)
   const targetColor = useRef(phaseColor(phase))
   const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
 
-  const RING_COUNT = 5
+  const RING_COUNT = 6
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
     targetColor.current = phaseColor(phase)
-    currentColor.current.lerp(targetColor.current, 0.03)
+    currentColor.current.lerp(targetColor.current, 0.025)
 
     const isRecording = phase === 'recording'
-    const speed = isRecording ? 1.2 : 0.4
-    const maxScale = isRecording ? 4.0 : 2.5
-    const baseOpacity = isRecording ? 0.2 : 0.08
+    const speed = isRecording ? 0.8 : 0.3
+    const maxScale = isRecording ? 5.0 : 3.0
+    const baseOpacity = isRecording ? 0.18 : 0.06
 
     ringsRef.current.children.forEach((child, i) => {
       const mesh = child as THREE.Mesh
       const mat = mesh.material as THREE.MeshBasicMaterial
       mat.color.copy(currentColor.current)
 
-      // Each ring has a staggered phase in the expansion cycle
       const progress = ((t * speed + i * (1.0 / RING_COUNT)) % 1)
-      const scale = 0.6 + progress * maxScale
+      // Ease-out for smooth deceleration
+      const eased = 1 - Math.pow(1 - progress, 2)
+      const scale = 0.8 + eased * maxScale
       mesh.scale.set(scale, scale, 1)
-
-      // Fade out as it expands
-      mat.opacity = baseOpacity * (1 - progress * 0.9)
+      mat.opacity = baseOpacity * (1 - eased * 0.95)
     })
   })
 
   return (
-    <group ref={ringsRef} position={[0, 0.35, 0]}>
+    <group ref={ringsRef}>
       {Array.from({ length: RING_COUNT }).map((_, i) => (
-        <mesh key={i} rotation={[0, 0, 0]}>
-          <torusGeometry args={[0.5, 0.01, 8, 64]} />
+        <mesh key={i}>
+          <torusGeometry args={[0.5, 0.008, 8, 80]} />
           <meshBasicMaterial
             color={new THREE.Color(0.83, 0.69, 0.22)}
-            transparent
-            opacity={0.1}
-            toneMapped={false}
-            depthWrite={false}
-            side={THREE.DoubleSide}
+            transparent opacity={0.1}
+            toneMapped={false} depthWrite={false} side={THREE.DoubleSide}
           />
         </mesh>
       ))}
@@ -274,127 +162,55 @@ function SoundWaves({ phase }: { phase: Phase }) {
   )
 }
 
-// ── Audio Waveform Bars ───────────────────────────────────────
-// Vertical bars around the mic that react like a waveform/equalizer
-function WaveformBars({ phase }: { phase: Phase }) {
-  const barsRef = useRef<THREE.Group>(null!)
-  const targetColor = useRef(phaseColor(phase))
-  const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
-
-  const BAR_COUNT = 28
-  const RADIUS = 1.3
-
-  const barData = useMemo(() => {
-    return Array.from({ length: BAR_COUNT }, (_, i) => ({
-      angle: (i / BAR_COUNT) * Math.PI * 2,
-      speed: 1.5 + Math.random() * 2.5,
-      offset: Math.random() * Math.PI * 2,
-      baseHeight: 0.1 + Math.random() * 0.15,
-    }))
-  }, [])
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime
-    targetColor.current = phaseColor(phase)
-    currentColor.current.lerp(targetColor.current, 0.03)
-
-    const isRecording = phase === 'recording'
-    const isProcessing = phase === 'transcribing' || phase === 'analyzing'
-    const heightMult = isRecording ? 3.5 : isProcessing ? 2.0 : 0.8
-    const speedMult = isRecording ? 1.5 : isProcessing ? 1.0 : 0.4
-
-    barsRef.current.children.forEach((child, i) => {
-      const mesh = child as THREE.Mesh
-      const mat = mesh.material as THREE.MeshBasicMaterial
-      mat.color.copy(currentColor.current)
-
-      const bar = barData[i]
-      const wave = Math.abs(Math.sin(t * bar.speed * speedMult + bar.offset))
-      const height = bar.baseHeight + wave * 0.4 * heightMult
-
-      mesh.scale.y = height
-      mesh.position.y = 0.35 // Center on mic head
-
-      // Opacity based on height
-      mat.opacity = 0.15 + wave * 0.25
-    })
-  })
-
-  return (
-    <group ref={barsRef}>
-      {barData.map((bar, i) => (
-        <mesh
-          key={i}
-          position={[
-            Math.cos(bar.angle) * RADIUS,
-            0.35,
-            Math.sin(bar.angle) * RADIUS,
-          ]}
-          rotation={[0, -bar.angle + Math.PI / 2, 0]}
-        >
-          <boxGeometry args={[0.04, 1, 0.02]} />
-          <meshBasicMaterial
-            color={new THREE.Color(0.83, 0.69, 0.22)}
-            transparent
-            opacity={0.2}
-            toneMapped={false}
-            depthWrite={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
-// ── Floating Audio Particles ──────────────────────────────────
-// Small particles that float upward from the mic like sound being captured
-function AudioParticles({ phase, count = 200 }: { phase: Phase; count?: number }) {
+// ── Floating Particles ────────────────────────────────────────
+// Gentle particles orbiting around the orb
+function FloatingParticles({ phase, count = 300 }: { phase: Phase; count?: number }) {
   const pointsRef = useRef<THREE.Points>(null!)
   const targetColor = useRef(phaseColor(phase))
   const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
 
-  const { positions, speeds, offsets } = useMemo(() => {
+  const { positions, speeds, radii, offsets } = useMemo(() => {
     const pos = new Float32Array(count * 3)
     const spd = new Float32Array(count)
+    const rad = new Float32Array(count)
     const off = new Float32Array(count)
     for (let i = 0; i < count; i++) {
-      // Start near mic head
-      const angle = Math.random() * Math.PI * 2
-      const r = 0.3 + Math.random() * 0.8
-      pos[i * 3] = Math.cos(angle) * r
-      pos[i * 3 + 1] = Math.random() * 3.0 - 0.5
-      pos[i * 3 + 2] = Math.sin(angle) * r
-      spd[i] = 0.3 + Math.random() * 0.8
+      const r = 1.0 + Math.random() * 2.5
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta)
+      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
+      pos[i * 3 + 2] = r * Math.cos(phi)
+      spd[i] = 0.05 + Math.random() * 0.2
+      rad[i] = r
       off[i] = Math.random() * Math.PI * 2
     }
-    return { positions: pos, speeds: spd, offsets: off }
+    return { positions: pos, speeds: spd, radii: rad, offsets: off }
   }, [count])
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
     targetColor.current = phaseColor(phase)
-    currentColor.current.lerp(targetColor.current, 0.03)
+    currentColor.current.lerp(targetColor.current, 0.025)
 
-    const isRecording = phase === 'recording'
-    const speedMult = isRecording ? 1.5 : 0.3
-
+    const speedMult = phase === 'recording' ? 1.2 : 0.4
     const posAttr = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute
     const arr = posAttr.array as Float32Array
 
     for (let i = 0; i < count; i++) {
-      const angle = offsets[i] + t * 0.2
-      const r = 0.3 + Math.sin(t * 0.5 + offsets[i]) * 0.5
-      // Particles rise upward and loop
-      const yProgress = ((t * speeds[i] * speedMult + offsets[i]) % 3.0)
-      arr[i * 3] = Math.cos(angle) * (r + yProgress * 0.3)
-      arr[i * 3 + 1] = yProgress - 0.5
-      arr[i * 3 + 2] = Math.sin(angle) * (r + yProgress * 0.3)
+      const r = radii[i] + Math.sin(t * 0.3 + offsets[i]) * 0.2
+      const speed = speeds[i] * speedMult
+      const angle = t * speed + offsets[i]
+      const phi = Math.acos(2 * ((i / count + t * 0.01 * speeds[i]) % 1) - 1)
+      arr[i * 3] = r * Math.sin(phi) * Math.cos(angle)
+      arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(angle)
+      arr[i * 3 + 2] = r * Math.cos(phi)
     }
     posAttr.needsUpdate = true
 
     const mat = pointsRef.current.material as THREE.PointsMaterial
     mat.color.copy(currentColor.current)
-    mat.opacity = isRecording ? 0.7 : 0.35
+    mat.opacity = phase === 'recording' ? 0.6 : 0.35
   })
 
   return (
@@ -410,58 +226,89 @@ function AudioParticles({ phase, count = 200 }: { phase: Phase; count?: number }
       <pointsMaterial
         transparent
         color={new THREE.Color(0.83, 0.69, 0.22)}
-        size={0.02}
+        size={0.015}
         sizeAttenuation
         depthWrite={false}
         toneMapped={false}
-        opacity={0.5}
+        opacity={0.45}
       />
     </points>
   )
 }
 
-// ── Glow Layers (bloom effect around mic) ─────────────────────
-function GlowLayers({ phase }: { phase: Phase }) {
-  const layer1Ref = useRef<THREE.Mesh>(null!)
-  const layer2Ref = useRef<THREE.Mesh>(null!)
+// ── Orbiting Ring ─────────────────────────────────────────────
+// A single elegant ring orbiting the orb
+function OrbitRing({ phase }: { phase: Phase }) {
+  const ringRef = useRef<THREE.Mesh>(null!)
   const targetColor = useRef(phaseColor(phase))
   const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
     targetColor.current = phaseColor(phase)
-    currentColor.current.lerp(targetColor.current, 0.03)
+    currentColor.current.lerp(targetColor.current, 0.025)
 
-    const pulseSpeed = phase === 'recording' ? 3.0 : 1.0
-    const pulseAmp = phase === 'recording' ? 0.12 : 0.04
+    ringRef.current.rotation.x = t * 0.15 + 0.4
+    ringRef.current.rotation.y = t * 0.1
+    ringRef.current.rotation.z = Math.sin(t * 0.2) * 0.3
 
-    const s1 = 1.8 + Math.sin(t * pulseSpeed) * pulseAmp
-    layer1Ref.current.scale.setScalar(s1)
-    const m1 = layer1Ref.current.material as THREE.MeshBasicMaterial
+    const mat = ringRef.current.material as THREE.MeshBasicMaterial
+    mat.color.copy(currentColor.current)
+    mat.opacity = 0.08 + Math.sin(t * 0.8) * 0.03
+  })
+
+  return (
+    <mesh ref={ringRef}>
+      <torusGeometry args={[1.5, 0.006, 8, 100]} />
+      <meshBasicMaterial
+        color={new THREE.Color(0.83, 0.69, 0.22)}
+        transparent opacity={0.1}
+        toneMapped={false} depthWrite={false}
+      />
+    </mesh>
+  )
+}
+
+// ── Glow Layers ───────────────────────────────────────────────
+function GlowLayers({ phase }: { phase: Phase }) {
+  const l1Ref = useRef<THREE.Mesh>(null!)
+  const l2Ref = useRef<THREE.Mesh>(null!)
+  const targetColor = useRef(phaseColor(phase))
+  const currentColor = useRef(new THREE.Color(0.83, 0.69, 0.22))
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    targetColor.current = phaseColor(phase)
+    currentColor.current.lerp(targetColor.current, 0.025)
+
+    const speed = phase === 'recording' ? 1.6 : 0.8
+    const amp = phase === 'recording' ? 0.08 : 0.03
+
+    l1Ref.current.scale.setScalar(2.0 + Math.sin(t * speed) * amp)
+    const m1 = l1Ref.current.material as THREE.MeshBasicMaterial
     m1.color.copy(currentColor.current)
-    m1.opacity = 0.04 + Math.sin(t * pulseSpeed) * 0.02
+    m1.opacity = 0.035 + Math.sin(t * speed) * 0.015
 
-    const s2 = 2.8 + Math.sin(t * pulseSpeed * 0.7 + 0.5) * pulseAmp * 1.3
-    layer2Ref.current.scale.setScalar(s2)
-    const m2 = layer2Ref.current.material as THREE.MeshBasicMaterial
+    l2Ref.current.scale.setScalar(3.0 + Math.sin(t * speed * 0.6 + 0.5) * amp * 1.5)
+    const m2 = l2Ref.current.material as THREE.MeshBasicMaterial
     m2.color.copy(currentColor.current)
-    m2.opacity = 0.02 + Math.sin(t * pulseSpeed * 0.7 + 0.5) * 0.01
+    m2.opacity = 0.015 + Math.sin(t * speed * 0.6 + 0.5) * 0.008
   })
 
   return (
     <>
-      <mesh ref={layer1Ref} position={[0, 0.2, 0]}>
+      <mesh ref={l1Ref}>
         <sphereGeometry args={[1, 20, 20]} />
         <meshBasicMaterial
           color={new THREE.Color(0.83, 0.69, 0.22)}
-          transparent opacity={0.04} toneMapped={false} depthWrite={false}
+          transparent opacity={0.035} toneMapped={false} depthWrite={false}
         />
       </mesh>
-      <mesh ref={layer2Ref} position={[0, 0.2, 0]}>
+      <mesh ref={l2Ref}>
         <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial
           color={new THREE.Color(0.83, 0.69, 0.22)}
-          transparent opacity={0.02} toneMapped={false} depthWrite={false}
+          transparent opacity={0.015} toneMapped={false} depthWrite={false}
         />
       </mesh>
     </>
@@ -480,6 +327,7 @@ export function StarScene({ phase, onClick, disabled }: StarSceneProps) {
 
   const c = phaseCSS(phase)
   const isRecording = phase === 'recording'
+  const label = phaseLabel(phase)
 
   return (
     <div
@@ -491,7 +339,7 @@ export function StarScene({ phase, onClick, disabled }: StarSceneProps) {
       onKeyDown={handleKeyDown}
     >
       <Canvas
-        camera={{ position: [0, 0, 4.5], fov: 50 }}
+        camera={{ position: [0, 0, 5], fov: 45 }}
         gl={{
           alpha: true,
           antialias: true,
@@ -500,39 +348,53 @@ export function StarScene({ phase, onClick, disabled }: StarSceneProps) {
         }}
         style={{ background: 'transparent' }}
       >
-        <ambientLight intensity={0.1} />
-        <MicrophoneBody phase={phase} />
-        <MicStand phase={phase} />
+        <ambientLight intensity={0.08} />
+        <CentralOrb phase={phase} />
         <SoundWaves phase={phase} />
-        <WaveformBars phase={phase} />
-        <AudioParticles phase={phase} />
+        <FloatingParticles phase={phase} />
+        <OrbitRing phase={phase} />
         <GlowLayers phase={phase} />
       </Canvas>
+
+      {/* Phase label overlay */}
+      {label && (
+        <div className="absolute inset-0 flex items-end justify-center pointer-events-none pb-16">
+          <span
+            className="text-xs font-bold tracking-[0.35em] uppercase animate-breathe"
+            style={{
+              color: `rgba(${c},0.7)`,
+              textShadow: `0 0 12px rgba(${c},0.3)`,
+            }}
+          >
+            {label}
+          </span>
+        </div>
+      )}
 
       {/* Radial glow */}
       <div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
-          background: `radial-gradient(circle, rgba(${c},${isRecording ? 0.12 : 0.07}) 0%, rgba(${c},0.02) 40%, transparent 70%)`,
+          background: `radial-gradient(circle, rgba(${c},${isRecording ? 0.1 : 0.05}) 0%, rgba(${c},0.01) 45%, transparent 70%)`,
           filter: 'blur(25px)',
         }}
       />
 
-      {/* Pulsing ring border */}
+      {/* Subtle ring */}
       <div
-        className="absolute inset-2 rounded-full pointer-events-none"
+        className="absolute inset-4 rounded-full pointer-events-none"
         style={{
-          border: `1px solid rgba(${c},${isRecording ? 0.15 : 0.06})`,
+          border: `1px solid rgba(${c},${isRecording ? 0.12 : 0.04})`,
           animation: isRecording
-            ? 'voiceRecorderPulse 1.5s ease-in-out infinite'
-            : 'voiceRecorderPulse 4s ease-in-out infinite',
+            ? 'voiceRecorderPulse 2s ease-in-out infinite'
+            : 'voiceRecorderPulse 5s ease-in-out infinite',
         }}
       />
 
       <style>{`
         @keyframes voiceRecorderPulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.02); opacity: 1; }
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.015); opacity: 1; }
         }
       `}</style>
     </div>
