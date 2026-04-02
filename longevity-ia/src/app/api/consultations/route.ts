@@ -4,7 +4,14 @@ import Anthropic from '@anthropic-ai/sdk'
 
 export const maxDuration = 120
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+// Lazy init — evita crash si ANTHROPIC_API_KEY no está en el env durante build
+let _anthropic: Anthropic | null = null
+function getAnthropic() {
+  if (!_anthropic) {
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  }
+  return _anthropic
+}
 
 // ─── GET: Listar consultas de un paciente ──────────────────────────────────
 
@@ -32,7 +39,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ consultations: data || [] })
   } catch (err) {
+    console.error('Consultation GET error:', err)
     const message = err instanceof Error ? err.message : 'Error al obtener consultas'
+    // Si la tabla no existe, retornar lista vacía en vez de error
+    if (message.includes('relation') || message.includes('does not exist')) {
+      return NextResponse.json({ consultations: [] })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
@@ -71,17 +83,22 @@ export async function POST(request: NextRequest) {
     // Subir audio si existe
     let audioUrl: string | null = null
     if (audioBlob) {
-      const timestamp = Date.now()
-      const filePath = `${patientId}/${timestamp}-consultation.webm`
-      const { error: uploadError } = await supabase.storage
-        .from('consultation-audio')
-        .upload(filePath, audioBlob, { contentType: 'audio/webm' })
-
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
+      try {
+        const timestamp = Date.now()
+        const filePath = `${patientId}/${timestamp}-consultation.webm`
+        const { error: uploadError } = await supabase.storage
           .from('consultation-audio')
-          .getPublicUrl(filePath)
-        audioUrl = urlData.publicUrl
+          .upload(filePath, audioBlob, { contentType: 'audio/webm' })
+
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('consultation-audio')
+            .getPublicUrl(filePath)
+          audioUrl = urlData.publicUrl
+        }
+        // Si falla el upload (bucket no existe, etc.), continuamos sin audio
+      } catch {
+        // Storage no disponible — continuar sin audio
       }
     }
 
@@ -92,7 +109,7 @@ export async function POST(request: NextRequest) {
     let speakers: Record<string, string> = {}
 
     try {
-      const analysisResponse = await anthropic.messages.create({
+      const analysisResponse = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6-20250514',
         max_tokens: 3000,
         system: `Eres un asistente medico clinico especializado en medicina de longevidad. Analiza la siguiente transcripcion de consulta medica entre un doctor y un paciente.
@@ -156,10 +173,19 @@ Responde en espanol. Si la transcripcion es muy corta o no tiene contenido medic
       .select()
       .single()
 
-    if (insertError) throw insertError
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      const hint = insertError.message?.includes('relation') || insertError.message?.includes('does not exist')
+        ? ' — Ejecuta la migracion 20260401_consultations.sql en Supabase.'
+        : ''
+      return NextResponse.json({
+        error: `Error al insertar consulta: ${insertError.message}${hint}`,
+      }, { status: 500 })
+    }
 
     return NextResponse.json({ consultation })
   } catch (err) {
+    console.error('Consultation POST error:', err)
     const message = err instanceof Error ? err.message : 'Error al guardar consulta'
     return NextResponse.json({ error: message }, { status: 500 })
   }
