@@ -16,7 +16,7 @@ interface StarSceneProps {
 // ── Phase-based colors ────────────────────────────────────────
 function phaseColor(phase: Phase): THREE.Color {
   switch (phase) {
-    case 'recording':    return new THREE.Color(0.83, 0.33, 0.42)
+    case 'recording':    return new THREE.Color(0.90, 0.55, 0.15)  // warm amber/orange
     case 'transcribing': return new THREE.Color(0.36, 0.64, 0.79)
     case 'analyzing':    return new THREE.Color(0.18, 0.68, 0.48)
     case 'done':         return new THREE.Color(0.18, 0.68, 0.48)
@@ -27,7 +27,7 @@ function phaseColor(phase: Phase): THREE.Color {
 
 function phaseCSS(phase: Phase): string {
   switch (phase) {
-    case 'recording':    return '212,83,106'
+    case 'recording':    return '230,140,38'
     case 'transcribing': return '91,164,201'
     case 'analyzing':
     case 'done':         return '46,174,123'
@@ -60,32 +60,32 @@ function CentralOrb({ phase }: { phase: Phase }) {
     targetColor.current = phaseColor(phase)
     currentColor.current.lerp(targetColor.current, 0.025)
 
-    // Gentle breathing — slow sine
-    const breatheSpeed = phase === 'recording' ? 1.6 : 0.8
-    const breatheAmp = phase === 'recording' ? 0.08 : 0.04
+    // Deep slow breathing — like transcription pulse
+    const breatheSpeed = phase === 'recording' ? 0.5 : 0.4
+    const breatheAmp = phase === 'recording' ? 0.06 : 0.03
     const s = 1 + Math.sin(t * breatheSpeed) * breatheAmp
     meshRef.current.scale.setScalar(s)
 
-    // Slow rotation
-    meshRef.current.rotation.y += 0.002
-    meshRef.current.rotation.x = Math.sin(t * 0.15) * 0.05
+    // Very slow rotation
+    meshRef.current.rotation.y += 0.001
+    meshRef.current.rotation.x = Math.sin(t * 0.08) * 0.03
 
     const mat = meshRef.current.material as THREE.MeshStandardMaterial
     mat.color.copy(currentColor.current)
     mat.emissive.copy(currentColor.current)
-    mat.emissiveIntensity = 0.5 + Math.sin(t * breatheSpeed) * 0.2
+    mat.emissiveIntensity = 0.4 + Math.sin(t * breatheSpeed) * 0.15
 
-    // Outer glow shell
-    const glowS = s * 1.4 + Math.sin(t * breatheSpeed * 0.6) * 0.04
+    // Outer glow shell — synced slow breathing
+    const glowS = s * 1.4 + Math.sin(t * breatheSpeed * 0.8) * 0.03
     glowRef.current.scale.setScalar(glowS)
     const glowMat = glowRef.current.material as THREE.MeshBasicMaterial
     glowMat.color.copy(currentColor.current)
-    glowMat.opacity = 0.06 + Math.sin(t * breatheSpeed) * 0.03
+    glowMat.opacity = 0.05 + Math.sin(t * breatheSpeed) * 0.025
 
-    // Light
+    // Light — gentle warmth
     lightRef.current.color.copy(currentColor.current)
-    const baseI = phase === 'recording' ? 3.0 : 1.5
-    lightRef.current.intensity = baseI + Math.sin(t * breatheSpeed) * 0.8
+    const baseI = phase === 'recording' ? 2.2 : 1.2
+    lightRef.current.intensity = baseI + Math.sin(t * breatheSpeed) * 0.5
   })
 
   return (
@@ -128,9 +128,9 @@ function SoundWaves({ phase }: { phase: Phase }) {
     currentColor.current.lerp(targetColor.current, 0.025)
 
     const isRecording = phase === 'recording'
-    const speed = isRecording ? 0.8 : 0.3
+    const speed = isRecording ? 0.35 : 0.2
     const maxScale = isRecording ? 5.0 : 3.0
-    const baseOpacity = isRecording ? 0.18 : 0.06
+    const baseOpacity = isRecording ? 0.14 : 0.05
 
     ringsRef.current.children.forEach((child, i) => {
       const mesh = child as THREE.Mesh
@@ -193,7 +193,7 @@ function FloatingParticles({ phase, count = 300 }: { phase: Phase; count?: numbe
     targetColor.current = phaseColor(phase)
     currentColor.current.lerp(targetColor.current, 0.025)
 
-    const speedMult = phase === 'recording' ? 1.2 : 0.4
+    const speedMult = phase === 'recording' ? 0.5 : 0.2
     const posAttr = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute
     const arr = posAttr.array as Float32Array
 
@@ -281,8 +281,8 @@ function GlowLayers({ phase }: { phase: Phase }) {
     targetColor.current = phaseColor(phase)
     currentColor.current.lerp(targetColor.current, 0.025)
 
-    const speed = phase === 'recording' ? 1.6 : 0.8
-    const amp = phase === 'recording' ? 0.08 : 0.03
+    const speed = phase === 'recording' ? 0.5 : 0.4
+    const amp = phase === 'recording' ? 0.05 : 0.025
 
     l1Ref.current.scale.setScalar(2.0 + Math.sin(t * speed) * amp)
     const m1 = l1Ref.current.material as THREE.MeshBasicMaterial
@@ -386,8 +386,8 @@ export function StarScene({ phase, onClick, disabled }: StarSceneProps) {
         style={{
           border: `1px solid rgba(${c},${isRecording ? 0.12 : 0.04})`,
           animation: isRecording
-            ? 'voiceRecorderPulse 2s ease-in-out infinite'
-            : 'voiceRecorderPulse 5s ease-in-out infinite',
+            ? 'voiceRecorderPulse 4s ease-in-out infinite'
+            : 'voiceRecorderPulse 6s ease-in-out infinite',
         }}
       />
 

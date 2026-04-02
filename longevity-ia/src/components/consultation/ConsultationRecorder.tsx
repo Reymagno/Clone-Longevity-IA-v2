@@ -214,7 +214,7 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
 
       {/* Timer */}
       {isRecording && (
-        <div className="font-mono text-4xl font-bold text-foreground tabular-nums tracking-wider" style={{ textShadow: '0 0 20px rgba(212,83,106,0.4)' }}>
+        <div className="font-mono text-4xl font-bold text-foreground tabular-nums tracking-wider" style={{ textShadow: '0 0 20px rgba(230,140,38,0.4)' }}>
           {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
         </div>
       )}
