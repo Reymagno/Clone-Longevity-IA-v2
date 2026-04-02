@@ -1,7 +1,7 @@
 # LONGEVITY IA — Manual Ejecutivo
 
 **Plataforma de Inteligencia Artificial para Medicina de Longevidad**
-Versión 3.3 | Marzo 2026
+Versión 4.0 | Abril 2026
 
 ---
 
@@ -60,6 +60,13 @@ Longevity IA es una plataforma SaaS de analisis medico impulsada por inteligenci
 - Evidencia científica expandible en cada intervención del protocolo
 - Deduplicación automática de protocolo (código + prompt)
 - Metodología transparente con pie de página en cada sección del dashboard
+- Motor de clínica completo: gestión de médicos y pacientes desde panel institucional
+- QR único por paciente para acceso rápido en consulta presencial
+- Timeline clínico interactivo: cronología visual de laboratorios, consultas y notas de voz
+- Reportes PDF con marca institucional (nombre de clínica en portada, header y footer)
+- Diseño premium de reporte PDF: portada con score circular, paleta gold, badges redondeados
+- Consulta médica por voz: grabación, transcripción automática y análisis SOAP con IA
+- Auditoría de seguridad: ownership checks, file size limits, crypto codes, middleware hardening
 
 ---
 
@@ -122,11 +129,15 @@ El mercado global de software de analisis clinicos esta valuado en USD 3.2B (202
 
 #### Plan Clinica
 - Todo lo del Plan Medico incluido
-- Panel de administracion de medicos
-- Estadisticas de la clinica
-- Marca personalizada en reportes
+- Crear cuentas de medicos directamente desde el panel
+- Crear pacientes y asignarlos a medicos del staff
+- Dashboard institucional con 4 tabs (Resumen, Medicos, Pacientes, Estadisticas)
+- KPIs en tiempo real: pacientes activos, analisis del mes, alertas, medicos
+- QR unico por paciente para acceso rapido en consulta
+- Timeline clinico interactivo por paciente
+- Reportes PDF con marca de la clinica (nombre, contacto, logo)
+- Configuracion institucional (RFC, datos fiscales, logo)
 - Soporte prioritario
-- Integracion con sistemas hospitalarios
 
 ### 3.2 Metricas Clave del Modelo
 
@@ -439,11 +450,142 @@ En el tab Protocolo, cada intervención tiene un enlace sutil "Ver más evidenci
 
 #### 4.3.1 Registro
 1. En la pagina principal, hacer clic en "Ingresar" debajo de "Clinica"
-2. Completar: nombre de clinica, RFC, correo, contrasena, telefono, direccion, director
+2. Completar: nombre de clinica, RFC, correo, contrasena, telefono, direccion, director medico
+3. Se crea la cuenta institucional con acceso al panel de administracion
 
-#### 4.3.2 Panel de Clinica
-- Panel placeholder con informacion de la clinica
-- Funciones proximamente: gestion de medicos, pacientes, estadisticas, reportes, configuracion
+#### 4.3.2 Panel de Clinica — Dashboard Institucional
+
+El dashboard de clinica tiene 4 pestanas con diseno premium (acento dorado):
+
+| Pestana | Contenido |
+|---------|-----------|
+| Resumen | 4 KPIs (pacientes, analisis del mes, alertas, medicos), lista del staff, actividad reciente |
+| Medicos | Grid de medicos del staff con busqueda, crear nuevo medico |
+| Pacientes | Lista de todos los pacientes de la clinica con filtros por medico, crear nuevo paciente |
+| Estadisticas | Distribucion de pacientes por medico, metricas de actividad |
+
+#### 4.3.3 Crear Medicos del Staff
+
+La clinica puede crear cuentas de medico directamente desde el panel:
+
+1. Ir a la pestana "Medicos"
+2. Hacer clic en "Nuevo Medico"
+3. Completar: nombre completo, email, contrasena, especialidad (8 opciones), cedula profesional
+4. El sistema crea automaticamente:
+   - Cuenta de autenticacion con rol "medico"
+   - Perfil en tabla `medicos` con `clinica_id` vinculado
+   - Codigo unico de medico (MED-XXXXXX)
+5. El medico puede iniciar sesion inmediatamente con sus credenciales
+
+**Especialidades disponibles:** Medicina General, Cardiologia, Endocrinologia, Medicina Interna, Geriatria, Medicina Deportiva, Nutriologia, Otra.
+
+#### 4.3.4 Crear Pacientes
+
+La clinica puede crear pacientes y asignarlos a un medico del staff:
+
+1. Ir a la pestana "Pacientes"
+2. Hacer clic en "Nuevo Paciente"
+3. Completar: nombre, edad, genero, peso, estatura, notas
+4. Seleccionar el medico responsable del dropdown (solo medicos del staff)
+5. El paciente queda vinculado a la clinica y al medico seleccionado
+6. El medico asignado puede ver y gestionar al paciente desde su cuenta
+
+#### 4.3.5 KPIs del Panel de Resumen
+
+| KPI | Descripcion | Color |
+|-----|-------------|-------|
+| Pacientes Activos | Total de pacientes creados por la clinica | Verde |
+| Analisis este Mes | Estudios de laboratorio procesados en el mes actual | Azul |
+| Alertas Pendientes | Alertas no leidas de todos los pacientes | Ambar |
+| Medicos del Staff | Total de medicos vinculados a la clinica | Morado |
+
+#### 4.3.6 QR de Acceso Rapido al Paciente
+
+Cada paciente tiene un codigo QR unico que apunta directamente a su dashboard:
+
+1. En la lista de pacientes, cada paciente tiene un icono de QR
+2. El QR codifica la URL: `/patients/{id}/dashboard`
+3. Se puede descargar como imagen PNG con el nombre del paciente
+4. Util para consulta presencial: el medico escanea y accede al dashboard instantaneamente
+
+#### 4.3.7 Timeline Clinico del Paciente
+
+Vista cronologica interactiva que combina todas las actividades del paciente:
+
+| Tipo | Icono | Color | Datos mostrados |
+|------|-------|-------|-----------------|
+| Laboratorio | BarChart2 | Verde | Fecha, score general, resumen clinico |
+| Consulta | Stethoscope | Azul | Fecha, resumen SOAP, duracion |
+| Nota de voz | Mic | Ambar | Fecha, transcripcion, analisis IA |
+
+- Eventos ordenados cronologicamente (mas recientes primero)
+- Tarjetas expandibles para ver detalles
+- Score de longevidad visible en eventos de laboratorio
+
+#### 4.3.8 Reportes con Marca Institucional
+
+Los reportes PDF generados desde el dashboard pueden incluir la marca de la clinica:
+
+- **Portada:** Nombre de la clinica en lugar de "Longevity IA"
+- **Header de pagina:** Nombre de la clinica con separador dorado
+- **Footer de pagina:** Nombre de la clinica + email de contacto + telefono
+
+Para activar: la clinica sube su informacion en configuracion. Los reportes de pacientes de la clinica incluyen automaticamente el branding.
+
+#### 4.3.9 Configuracion de la Clinica
+
+Endpoint PATCH `/api/clinica/settings` permite actualizar:
+- Nombre de la clinica
+- RFC
+- Email de contacto
+- Telefono
+- Direccion
+- Director medico
+- Logo (URL de imagen)
+
+#### 4.3.10 Permisos de la Clinica
+
+| Funcion | Clinica | Medico del staff | Paciente |
+|---------|:-------:|:----------------:|:--------:|
+| Ver panel de administracion | Si | No | No |
+| Crear medicos | Si | No | No |
+| Crear pacientes | Si | No | No |
+| Ver todos los pacientes | Si | Solo asignados | Solo propio |
+| Ver todos los medicos | Si | No | No |
+| KPIs y estadisticas | Si | No | No |
+| Reportes con marca | Si | No | No |
+| QR de pacientes | Si | No | No |
+| Timeline de pacientes | Si | Si | Si |
+| Dashboard de analisis | No | Si | Si |
+| Notas SOAP | No | Si | No |
+| Prescripcion digital | No | Si | No |
+
+#### 4.3.11 Arquitectura Tecnica del Motor Clinica
+
+**API Routes:**
+
+| Endpoint | Metodo | Descripcion |
+|----------|--------|-------------|
+| `/api/clinica/medicos` | GET | Listar medicos del staff con conteo de pacientes |
+| `/api/clinica/medicos` | POST | Crear cuenta de medico vinculada a la clinica |
+| `/api/clinica/patients` | GET | Listar pacientes de la clinica (filtro por medico) |
+| `/api/clinica/patients` | POST | Crear paciente asignado a un medico del staff |
+| `/api/clinica/stats` | GET | KPIs: total medicos, pacientes, analisis del mes, alertas |
+| `/api/clinica/settings` | PATCH | Actualizar datos y logo de la clinica |
+
+**Base de datos (nuevas columnas):**
+
+| Tabla | Columna nueva | Tipo | Descripcion |
+|-------|--------------|------|-------------|
+| medicos | clinica_id | UUID FK -> clinicas | Vinculo con clinica (nullable) |
+| patients | clinica_id | UUID FK -> clinicas | Vinculo con clinica (nullable) |
+| clinicas | logo_url | TEXT | URL del logo para reportes |
+
+**Seguridad:**
+- Todas las API routes verifican `role === 'clinica'` antes de procesar
+- Creacion de usuarios usa Supabase Admin (service role key) para operaciones cross-user
+- La service role key solo existe en el servidor (variables de entorno de Vercel)
+- Medicos y pacientes independientes (sin clinica_id) no se ven afectados
 
 ---
 
@@ -490,6 +632,7 @@ En el tab Protocolo, cada intervención tiene un enlace sutil "Ver más evidenci
 | PDF generacion | jsPDF | 2.5.2 | Generacion de reportes |
 | Captura | html2canvas | 1.4.1 | Screenshots del dashboard |
 | Upload | react-dropzone | 14.3.5 | Drag & drop de archivos |
+| QR | qrcode | 1.5.4 | Generacion de codigos QR por paciente |
 | Lenguaje | TypeScript | 5 | Tipado estatico |
 
 ---
@@ -515,15 +658,36 @@ src/
 │   │   ├── patients/             # CRUD pacientes
 │   │   ├── results/[id]/         # Resultados + re-analisis + DELETE
 │   │   ├── references/route.ts   # Busqueda PubMed/Semantic Scholar/OpenAlex
-│   │   └── medico/
-│   │       ├── invitations/      # Invitaciones medico
-│   │       ├── notes/route.ts    # CRUD notas clinicas SOAP
-│   │       └── alerts/route.ts   # Alertas inteligentes
+│   │   ├── medico/
+│   │   │   ├── invitations/      # Invitaciones medico
+│   │   │   ├── notes/route.ts    # CRUD notas clinicas SOAP
+│   │   │   └── alerts/route.ts   # Alertas inteligentes
+│   │   ├── clinica/
+│   │   │   ├── medicos/route.ts  # CRUD medicos del staff
+│   │   │   ├── patients/route.ts # CRUD pacientes de clinica
+│   │   │   ├── stats/route.ts    # KPIs de la clinica
+│   │   │   └── settings/route.ts # Configuracion de clinica
+│   │   ├── consultations/        # Consultas medicas (SOAP)
+│   │   ├── consultations/transcribe/ # Transcripcion audio
+│   │   ├── voice-notes/          # Notas de voz
+│   │   └── transcribe/           # Transcripcion Whisper
 │   └── globals.css               # Estilos globales + animaciones
 │
 ├── components/
 │   ├── auth/RegisterModal.tsx    # Registro por rol
-│   ├── clinica/ClinicaDashboard  # Panel clinica
+│   ├── clinica/
+│   │   ├── ClinicaDashboard.tsx  # Panel clinica (4 tabs)
+│   │   ├── CreateMedicoModal.tsx # Modal crear medico
+│   │   ├── CreatePatientModal.tsx# Modal crear paciente
+│   │   ├── PatientQRCode.tsx     # Generador QR por paciente
+│   │   ├── PatientTimeline.tsx   # Timeline cronologico
+│   │   └── tabs/                 # ResumenTab, MedicosTab, PacientesTab, EstadisticasTab
+│   ├── consultation/
+│   │   ├── ConsultationRecorder  # Grabacion de consulta medica
+│   │   ├── ConsultationDetail    # Detalle de consulta
+│   │   └── ConsultationHistory   # Historial de consultas
+│   ├── voice/
+│   │   └── VoiceRecorder.tsx     # Grabador de voz con transcripcion
 │   ├── dashboard/
 │   │   ├── DashboardTabs.tsx     # Orquestador de 13 pestañas
 │   │   ├── InstantDashboard.tsx  # Dashboard instantaneo (Fase 2)
@@ -561,7 +725,9 @@ src/
 │   ├── supabase/
 │   │   ├── client.ts             # Cliente browser (singleton lazy)
 │   │   ├── server.ts             # Cliente servidor (request/component)
+│   │   ├── admin.ts              # Cliente admin (service role, solo server)
 │   │   └── queries.ts            # Esquema de referencia
+│   ├── voice-notes-context.ts    # Helper compartido para contexto de notas de voz
 │   └── utils.ts                  # Utilidades centralizadas
 │
 ├── types/index.ts                # Definiciones TypeScript
@@ -587,6 +753,7 @@ src/
 | height | DECIMAL | Estatura en cm |
 | clinical_history | JSONB | Historia clinica (9 secciones) |
 | notes | TEXT | Notas adicionales |
+| clinica_id | UUID FK -> clinicas | Vinculo con clinica (nullable) |
 | created_at | TIMESTAMPTZ | Fecha de creacion |
 
 **lab_results**
@@ -610,6 +777,7 @@ src/
 | specialty | TEXT | Especialidad medica |
 | license_number | TEXT | Cedula profesional |
 | email | TEXT | Correo electronico |
+| clinica_id | UUID FK -> clinicas | Vinculo con clinica (nullable) |
 
 **clinicas**
 | Columna | Tipo | Descripcion |
@@ -622,6 +790,35 @@ src/
 | phone | TEXT | Telefono |
 | address | TEXT | Direccion |
 | director_name | TEXT | Director medico |
+| logo_url | TEXT | URL del logo para reportes (nullable) |
+
+**voice_notes**
+| Columna | Tipo | Descripcion |
+|---------|------|-------------|
+| id | UUID PK | Identificador unico |
+| patient_id | UUID FK -> patients | Paciente |
+| user_id | UUID FK -> auth.users | Medico autor |
+| transcript | TEXT | Transcripcion del audio |
+| ai_summary | TEXT | Analisis IA de la nota |
+| audio_url | TEXT | URL del audio en storage |
+| duration_seconds | INTEGER | Duracion en segundos |
+| created_at | TIMESTAMPTZ | Fecha de creacion |
+
+**consultations**
+| Columna | Tipo | Descripcion |
+|---------|------|-------------|
+| id | UUID PK | Identificador unico |
+| patient_id | UUID FK -> patients | Paciente |
+| medico_user_id | UUID FK -> auth.users | Medico autor |
+| transcript | TEXT | Insights clinicos (no dialogo crudo) |
+| speakers | JSONB | Mapeo de hablantes |
+| ai_summary | TEXT | Resumen ejecutivo |
+| ai_soap | JSONB | Nota SOAP generada por IA |
+| audio_url | TEXT | URL del audio |
+| duration_seconds | INTEGER | Duracion en segundos |
+| tags | TEXT[] | Etiquetas (seguimiento, urgente, etc.) |
+| status | TEXT | completed / in_progress |
+| created_at | TIMESTAMPTZ | Fecha de creacion |
 
 **patient_medico_links**
 | Columna | Tipo | Descripcion |
@@ -1009,6 +1206,7 @@ evaluateAll(biomarkers, gender, age)       // Evalua todos
 | NEXT_PUBLIC_SUPABASE_URL | Publica | URL del proyecto Supabase |
 | NEXT_PUBLIC_SUPABASE_ANON_KEY | Publica | Clave anonima (RLS la protege) |
 | ANTHROPIC_API_KEY | Secreta | API key de Claude/Anthropic |
+| SUPABASE_SERVICE_ROLE_KEY | Secreta | Clave admin para operaciones cross-user (motor clinica). Obtener en Supabase > Project Settings > API > service_role. Solo usar server-side. |
 
 ---
 
