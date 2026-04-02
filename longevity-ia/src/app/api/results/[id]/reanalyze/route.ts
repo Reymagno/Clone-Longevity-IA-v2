@@ -7,6 +7,7 @@ import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { reanalyzeWithClinicalHistory, reanalyzePartial } from '@/lib/anthropic/analyzer'
 import { generateAlertsForResult } from '@/lib/generate-alerts'
+import { buildVoiceNotesContext } from '@/lib/voice-notes-context'
 
 function hashClinicalHistory(ch: unknown): string {
   return createHash('sha256').update(JSON.stringify(ch ?? null)).digest('hex').slice(0, 16)
@@ -54,22 +55,7 @@ export async function POST(
         if (patientError || !patient) { send({ ok: false, error: 'No autorizado' }); return }
 
         // Obtener notas de voz del médico (contexto adicional)
-        const { data: voiceNotes } = await supabase
-          .from('voice_notes')
-          .select('transcript, ai_summary, created_at')
-          .eq('patient_id', result.patient_id)
-          .order('created_at', { ascending: false })
-          .limit(10)
-
-        // Construir contexto de notas de voz para el análisis
-        let voiceNotesContext = ''
-        if (voiceNotes && voiceNotes.length > 0) {
-          voiceNotesContext = '\n\n--- NOTAS CLÍNICAS DEL MÉDICO (por voz) ---\n' +
-            voiceNotes.map((n, i) =>
-              `[Nota ${i + 1} — ${new Date(n.created_at).toLocaleDateString('es-MX')}]\n${n.transcript}` +
-              (n.ai_summary ? `\n[Análisis IA]: ${n.ai_summary}` : '')
-            ).join('\n\n')
-        }
+        const voiceNotesContext = await buildVoiceNotesContext(supabase, result.patient_id)
 
         const patientCtx = {
           name: patient.name as string,

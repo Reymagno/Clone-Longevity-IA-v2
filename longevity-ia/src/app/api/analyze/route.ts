@@ -7,6 +7,7 @@ import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { extractBiomarkers, reanalyzeWithClinicalHistory } from '@/lib/anthropic/analyzer'
 import { generateAlertsForResult } from '@/lib/generate-alerts'
+import { buildVoiceNotesContext } from '@/lib/voice-notes-context'
 
 /** Compute a combined SHA-256 hash of all file buffers for cache lookup */
 function computeFilesHash(buffers: Buffer[]): string {
@@ -57,6 +58,22 @@ export async function POST(request: NextRequest) {
           return
         }
 
+        // Validar tamaño de archivos (máx 20 MB por archivo, 100 MB total)
+        const MAX_FILE = 20 * 1024 * 1024
+        const MAX_TOTAL = 100 * 1024 * 1024
+        let totalSize = 0
+        for (const buf of fileBuffers) {
+          if (buf.length > MAX_FILE) {
+            send({ ok: false, error: `Un archivo excede el límite de 20 MB` })
+            return
+          }
+          totalSize += buf.length
+        }
+        if (totalSize > MAX_TOTAL) {
+          send({ ok: false, error: `Los archivos en total exceden 100 MB` })
+          return
+        }
+
         const { data: ownPatient } = await supabase
           .from('patients')
           .select('id, name, age, gender, weight, height, clinical_history')
@@ -65,6 +82,15 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (!ownPatient) { send({ ok: false, error: 'No autorizado' }); return }
+
+        // Validar tipos de archivo antes de cualquier procesamiento
+        const ALLOWED = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+        for (const file of files) {
+          if (!ALLOWED.has(file.type)) {
+            send({ ok: false, error: `Tipo no permitido: ${file.name}. Solo PDF, JPG, PNG o WEBP.` })
+            return
+          }
+        }
 
         // ── Cache check: buscar análisis existente con el mismo hash de archivos ──
         const { data: cachedResults } = await supabase
@@ -115,14 +141,6 @@ export async function POST(request: NextRequest) {
               send({ ok: true, step: 'done', resultId: newResult.id, patientId, cached: true })
               return
             }
-          }
-        }
-
-        const ALLOWED = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-        for (const file of files) {
-          if (!ALLOWED.has(file.type)) {
-            send({ ok: false, error: `Tipo no permitido: ${file.name}. Solo PDF, JPG, PNG o WEBP.` })
-            return
           }
         }
 
@@ -192,20 +210,8 @@ export async function POST(request: NextRequest) {
         // Obtener notas de voz del médico para contexto adicional
         let voiceNotesContext = ''
         try {
-          const { data: voiceNotes } = await supabase
-            .from('voice_notes')
-            .select('transcript, ai_summary, created_at')
-            .eq('patient_id', patientId)
-            .order('created_at', { ascending: false })
-            .limit(10)
-          if (voiceNotes && voiceNotes.length > 0) {
-            voiceNotesContext = '\n\n--- NOTAS CLÍNICAS DEL MÉDICO (por voz) ---\n' +
-              voiceNotes.map((n: { transcript: string; ai_summary: string | null; created_at: string }, i: number) =>
-                `[Nota ${i + 1} — ${new Date(n.created_at).toLocaleDateString('es-MX')}]\n${n.transcript}` +
-                (n.ai_summary ? `\n[Análisis IA]: ${n.ai_summary}` : '')
-              ).join('\n\n')
-          }
-        } catch { /* no crítico */ }
+          voiceNotesContext = await buildVoiceNotesContext(supabase, patientId)
+        } catch (vnErr) { console.error('Voice notes fetch failed (non-critical):', vnErr instanceof Error ? vnErr.message : vnErr) }
 
         const aiAnalysis = await reanalyzeWithClinicalHistory(parsedData, {
           name: ownPatient.name,

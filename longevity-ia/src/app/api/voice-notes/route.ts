@@ -4,7 +4,11 @@ import Anthropic from '@anthropic-ai/sdk'
 
 export const maxDuration = 120
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+let _anthropic: Anthropic | null = null
+function getAnthropic() {
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return _anthropic
+}
 
 // ─── GET: Listar notas de voz de un paciente ───────────────────────────────
 
@@ -22,11 +26,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'patientId requerido' }, { status: 400 })
     }
 
+    // Verificar ownership del paciente
+    const { data: ownPatient } = await supabase
+      .from('patients').select('id').eq('id', patientId).eq('user_id', user.id).maybeSingle()
+    if (!ownPatient) {
+      const { data: linked } = await supabase
+        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
+      if (!linked) return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
+    }
+
     const { data, error } = await supabase
       .from('voice_notes')
       .select('*')
       .eq('patient_id', patientId)
       .order('created_at', { ascending: false })
+      .limit(50)
 
     if (error) throw error
 
@@ -68,6 +82,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
     }
 
+    // Verificar ownership o vínculo médico
+    if (patient.user_id !== user.id) {
+      const { data: linked } = await supabase
+        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
+      if (!linked) return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
+    }
+
     // Subir audio si existe
     let audioUrl: string | null = null
     if (audioBlob) {
@@ -88,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Analizar transcripción con Claude para extraer datos clínicos relevantes
     let aiSummary: string | null = null
     try {
-      const analysisResponse = await anthropic.messages.create({
+      const analysisResponse = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
         system: `Eres un asistente médico clínico de longevidad. Analiza la siguiente nota de voz transcrita de un paciente o médico y extrae:
@@ -111,8 +132,8 @@ Responde en español, de forma concisa y clínica. Si la nota no contiene inform
 
       const textBlock = analysisResponse.content.find(b => b.type === 'text')
       aiSummary = textBlock ? textBlock.text : null
-    } catch {
-      // Si falla el análisis, guardamos sin resumen
+    } catch (aiErr) {
+      console.error('Voice note AI analysis failed:', aiErr instanceof Error ? aiErr.message : aiErr)
     }
 
     // Guardar en base de datos
@@ -152,8 +173,8 @@ Responde en español, de forma concisa y clínica. Si la nota no contiene inform
           })
           .eq('id', patientId)
       }
-    } catch {
-      // No crítico — la nota ya se guardó en voice_notes
+    } catch (histErr) {
+      console.error('Clinical history voice note ref update failed:', histErr instanceof Error ? histErr.message : histErr)
     }
 
     return NextResponse.json({ note })

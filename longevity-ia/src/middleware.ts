@@ -3,10 +3,15 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Si faltan las variables de entorno, dejar pasar sin bloquear
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !supabaseKey) {
+    // Sin env vars: bloquear rutas protegidas, dejar pasar el resto
+    const { pathname } = request.nextUrl
+    const isProtected = pathname.startsWith('/patients') || pathname.startsWith('/onboarding')
+    if (isProtected) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
     return NextResponse.next({ request })
   }
 
@@ -55,9 +60,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/patients', request.url))
     }
   } catch (error) {
-    // Si el middleware falla (error de red, Supabase caído, etc.),
-    // dejar pasar la request para no bloquear a los usuarios
     console.error('[middleware] Error:', error)
+    // Si falla en ruta protegida, redirigir a login por seguridad
+    const { pathname } = request.nextUrl
+    const isProtected = pathname.startsWith('/patients') || pathname.startsWith('/onboarding')
+    if (isProtected) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
 
   return response

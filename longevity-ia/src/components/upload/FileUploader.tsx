@@ -23,7 +23,9 @@ export function FileUploader({ onFilesChange, selectedFiles, disabled }: FileUpl
     onFilesChange(selectedFiles.filter((_, i) => i !== index))
   }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20 MB por archivo
+
+  const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
@@ -31,6 +33,8 @@ export function FileUploader({ onFilesChange, selectedFiles, disabled }: FileUpl
     },
     multiple: true,
     disabled,
+    maxSize: MAX_FILE_SIZE,
+    maxFiles: 10,
   })
 
   return (
@@ -64,10 +68,26 @@ export function FileUploader({ onFilesChange, selectedFiles, disabled }: FileUpl
             <span>·</span>
             <span className="flex items-center gap-1"><Image size={12} /> JPG, PNG, WEBP</span>
             <span>·</span>
-            <span className="text-accent/70">Múltiples archivos</span>
+            <span className="text-accent/70">Máx 20 MB / archivo</span>
           </div>
         </div>
       </div>
+
+      {/* Archivos rechazados */}
+      {fileRejections.length > 0 && (
+        <div className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
+          {fileRejections.map(({ file, errors }) => (
+            <p key={file.name}>
+              <strong>{file.name}</strong>: {errors.map(e =>
+                e.code === 'file-too-large' ? 'Excede 20 MB' :
+                e.code === 'file-invalid-type' ? 'Tipo no permitido' :
+                e.code === 'too-many-files' ? 'Máximo 10 archivos' :
+                e.message
+              ).join(', ')}
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* Lista de archivos seleccionados */}
       {selectedFiles.length > 0 && (

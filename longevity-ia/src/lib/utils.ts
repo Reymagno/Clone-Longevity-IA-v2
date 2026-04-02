@@ -115,12 +115,16 @@ export function formatNumber(value: number | null | undefined, decimals = 1): st
 
 export function generatePatientCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
+  const bytes = new Uint8Array(3)
+  crypto.getRandomValues(bytes)
+  const random = Array.from(bytes, b => b.toString(36)).join('').substring(0, 4).toUpperCase()
   return `LNG-${timestamp}-${random}`
 }
 
 export function generateMedicoCode(): string {
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+  const bytes = new Uint8Array(5)
+  crypto.getRandomValues(bytes)
+  const random = Array.from(bytes, b => b.toString(36)).join('').substring(0, 6).toUpperCase()
   return `MED-${random}`
 }
 

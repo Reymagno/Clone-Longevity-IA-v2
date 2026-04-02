@@ -29,11 +29,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'patientId requerido' }, { status: 400 })
     }
 
+    // Verificar ownership del paciente
+    const { data: ownPatient } = await supabase
+      .from('patients').select('id').eq('id', patientId).eq('user_id', user.id).maybeSingle()
+    if (!ownPatient) {
+      const { data: linked } = await supabase
+        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
+      if (!linked) return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
+    }
+
     const { data, error } = await supabase
       .from('consultations')
       .select('*')
       .eq('patient_id', patientId)
       .order('created_at', { ascending: false })
+      .limit(50)
 
     if (error) throw error
 
@@ -80,6 +90,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
     }
 
+    // Verificar ownership o vínculo médico
+    if (patient.user_id !== user.id) {
+      const { data: linked } = await supabase
+        .from('medico_patients').select('id').eq('patient_id', patientId).eq('medico_user_id', user.id).maybeSingle()
+      if (!linked) return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
+    }
+
     // Subir audio si existe
     let audioUrl: string | null = null
     if (audioBlob) {
@@ -97,8 +114,8 @@ export async function POST(request: NextRequest) {
           audioUrl = urlData.publicUrl
         }
         // Si falla el upload (bucket no existe, etc.), continuamos sin audio
-      } catch {
-        // Storage no disponible — continuar sin audio
+      } catch (storageErr) {
+        console.error('Consultation audio upload failed:', storageErr instanceof Error ? storageErr.message : storageErr)
       }
     }
 
