@@ -6,6 +6,12 @@
     },
     "src/app/api/results/[id]/reanalyze/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/consultations/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/consultations/transcribe/route.ts": {
+      "maxDuration": 300
     }
   }
 }
