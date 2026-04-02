@@ -5,6 +5,10 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Longevity IA — Análisis de Laboratorio con IA',
   description: 'Plataforma médica de longevidad con análisis de laboratorio impulsada por inteligencia artificial',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+  },
 }
 
 export default function RootLayout({
