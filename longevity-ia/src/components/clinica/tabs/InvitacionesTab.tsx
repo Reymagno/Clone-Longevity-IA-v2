@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Check, XCircle, Clock, Stethoscope, Mail, Calendar, UserCheck } from 'lucide-react'
+import { Check, XCircle, Clock, Stethoscope, Mail, Calendar, UserCheck, Unlink } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import type { ClinicaMedicoLink } from '@/types'
 
@@ -185,10 +185,24 @@ export function InvitacionesTab({ onRefresh }: InvitacionesTabProps) {
                   </p>
                 </div>
                 {inv.confirmed_at && (
-                  <span className="text-[10px] text-muted-foreground/60 shrink-0">
+                  <span className="text-[10px] text-muted-foreground/60 shrink-0 mr-2">
                     Desde {formatDate(inv.confirmed_at)}
                   </span>
                 )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (confirm(`¿Desvincular a ${inv.medico_name ?? 'este médico'} de la clínica?`)) {
+                      handleAction(inv.id, 'reject')
+                    }
+                  }}
+                  loading={processingId === inv.id}
+                  className="text-red-400 border-red-400/30 hover:bg-red-400/10 shrink-0"
+                >
+                  <Unlink size={13} />
+                  <span className="hidden sm:inline">Desvincular</span>
+                </Button>
               </div>
             ))}
           </div>

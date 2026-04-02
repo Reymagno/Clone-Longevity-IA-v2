@@ -196,13 +196,21 @@ export async function PATCH(request: NextRequest) {
       console.error('Error updating medicos.clinica_id:', medicoError.message)
     }
   } else {
-    // Reject: set status to revoked
-    const { error } = await supabase
+    // Reject/revoke: set status to revoked and clear clinica_id
+    const admin = getSupabaseAdmin()
+    const { error } = await admin
       .from('clinica_medico_links')
       .update({ status: 'revoked' })
       .eq('id', invitation_id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Limpiar clinica_id del médico
+    await admin
+      .from('medicos')
+      .update({ clinica_id: null })
+      .eq('user_id', link.medico_user_id)
+      .eq('clinica_id', clinica.id)
   }
 
   return NextResponse.json({ success: true })
