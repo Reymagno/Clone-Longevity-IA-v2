@@ -10,12 +10,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.5.0",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.17.14",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.45.4",
-    "@types/three": "^0.183.1",
+    "@types/three": "^0.170.0",
     "clsx": "^2.1.1",
+    "docx": "^9.6.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.460.0",
@@ -28,7 +29,7 @@
     "recharts": "^2.13.3",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.4",
-    "three": "^0.183.2",
+    "three": "^0.170.0",
     "zustand": "^5.0.1"
   },
   "devDependencies": {
