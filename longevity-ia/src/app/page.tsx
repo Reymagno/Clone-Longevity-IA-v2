@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowRight, Dna, Brain, Shield, BarChart2, Zap, FlaskConical, Sparkles,
@@ -118,6 +118,7 @@ const PLANS: {
 
 export default function LandingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [modalRole, setModalRole] = useState<RoleType | null>(null)
 
   useEffect(() => {
@@ -125,6 +126,15 @@ export default function LandingPage() {
       if (session) router.replace('/patients')
     })
   }, [router])
+
+  // Si viene de /login con ?registro=true, hacer scroll a los planes
+  useEffect(() => {
+    if (searchParams.get('registro') === 'true') {
+      setTimeout(() => {
+        document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+    }
+  }, [searchParams])
 
   return (
     <div className="min-h-screen hero-gradient relative overflow-hidden">

@@ -91,7 +91,7 @@ export default function LoginPage() {
           <div className="mt-6 pt-4 border-t border-border/40 text-center">
             <p className="text-sm text-muted-foreground">
               No tienes cuenta?{' '}
-              <Link href="/#planes" className="text-accent font-medium hover:underline">
+              <Link href="/?registro=true" className="text-accent font-medium hover:underline">
                 Registrate aqui
               </Link>
             </p>
