@@ -208,6 +208,10 @@ IMPORTANTE:
           if (parsed.pending_studies) aiSoap = { ...aiSoap as object, pending_studies: parsed.pending_studies }
           if (parsed.alerts) aiSoap = { ...aiSoap as object, alerts: parsed.alerts }
           if (parsed.key_findings) aiSoap = { ...aiSoap as object, key_findings: parsed.key_findings }
+
+          // DEBUG: log final del SOAP enriquecido que se va a guardar
+          console.log('Final aiSoap to save:', JSON.stringify(aiSoap, null, 2)?.substring(0, 1000))
+          console.log('aiSoap keys:', aiSoap ? Object.keys(aiSoap) : 'null')
         } catch (parseErr) {
           console.error('JSON parse failed for consultation analysis:', parseErr, 'Raw text:', textBlock.text.substring(0, 500))
           aiSummary = textBlock.text

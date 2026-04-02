@@ -82,6 +82,16 @@ export function ConsultationHistory({ consultations, onSelect, onDelete, onDownl
         const hasFindings = soap.key_findings && soap.key_findings.length > 0
         const hasStudies = soap.pending_studies && soap.pending_studies.length > 0
 
+        // DEBUG: verificar datos de insights
+        console.log(`[Card ${c.id.slice(0,8)}]`, {
+          hasAlerts, hasMeds, hasFindings, hasStudies,
+          alertsData: soap.alerts,
+          medsData: soap.medications,
+          findingsData: soap.key_findings,
+          studiesData: soap.pending_studies,
+          fullSoap: c.ai_soap,
+        })
+
         return (
           <div
             key={c.id}

@@ -70,7 +70,12 @@ export default function ConsultationPage() {
       const res = await fetch(`/api/consultations?patientId=${patientId}`)
       if (res.ok) {
         const data = await res.json()
-        setConsultations(data.consultations || [])
+        const list = data.consultations || []
+        // DEBUG: ver qué datos tienen las consultas
+        list.forEach((c: Consultation, i: number) => {
+          console.log(`[Consultation ${i}] id=${c.id}, ai_soap keys:`, c.ai_soap ? Object.keys(c.ai_soap) : 'null', 'ai_summary:', !!c.ai_summary, 'tags:', c.tags)
+        })
+        setConsultations(list)
       }
     } catch {
       // silent
