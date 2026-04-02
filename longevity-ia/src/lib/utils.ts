@@ -128,6 +128,13 @@ export function generateMedicoCode(): string {
   return `MED-${random}`
 }
 
+export function generateClinicaCode(): string {
+  const bytes = new Uint8Array(5)
+  crypto.getRandomValues(bytes)
+  const random = Array.from(bytes, b => b.toString(36)).join('').substring(0, 6).toUpperCase()
+  return `CLI-${random}`
+}
+
 /** Simple hash for comparing clinical history changes (browser-safe) */
 export async function hashString(input: string): Promise<string> {
   const encoder = new TextEncoder()

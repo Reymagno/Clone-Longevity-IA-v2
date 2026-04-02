@@ -410,8 +410,22 @@ export interface Clinica {
   phone: string
   address: string
   director_name: string
+  code: string | null
   logo_url: string | null
   created_at: string
+}
+
+export interface ClinicaMedicoLink {
+  id: string
+  clinica_id: string
+  medico_user_id: string
+  status: 'pending' | 'active' | 'revoked'
+  invited_at: string
+  confirmed_at: string | null
+  medico_name?: string
+  medico_specialty?: string
+  medico_email?: string
+  clinic_name?: string
 }
 
 export interface Medico {

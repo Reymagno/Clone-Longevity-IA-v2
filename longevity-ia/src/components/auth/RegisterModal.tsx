@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { X, UserPlus } from 'lucide-react'
-import { generateMedicoCode } from '@/lib/utils'
+import { generateMedicoCode, generateClinicaCode } from '@/lib/utils'
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -190,6 +190,7 @@ export function RegisterModal({ role, isOpen, onClose }: RegisterModalProps) {
           phone: form.phone,
           address: form.address,
           director_name: form.director_name,
+          code: generateClinicaCode(),
         })
         if (clinicaError) throw new Error(`Error al guardar perfil de clinica: ${clinicaError.message}`)
       }

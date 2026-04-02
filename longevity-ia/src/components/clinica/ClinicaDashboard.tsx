@@ -2,20 +2,23 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { Building2 } from 'lucide-react'
+import { Building2, Hash, Copy } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Clinica, Medico, ClinicStats, Patient } from '@/types'
 import { ResumenTab } from './tabs/ResumenTab'
 import { MedicosTab } from './tabs/MedicosTab'
 import { PacientesTab } from './tabs/PacientesTab'
 import { EstadisticasTab } from './tabs/EstadisticasTab'
+import { InvitacionesTab } from './tabs/InvitacionesTab'
 
-type TabKey = 'resumen' | 'medicos' | 'pacientes' | 'estadisticas'
+type TabKey = 'resumen' | 'medicos' | 'pacientes' | 'estadisticas' | 'invitaciones'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen', label: 'Resumen' },
   { key: 'medicos', label: 'Medicos' },
   { key: 'pacientes', label: 'Pacientes' },
   { key: 'estadisticas', label: 'Estadisticas' },
+  { key: 'invitaciones', label: 'Invitaciones' },
 ]
 
 export function ClinicaDashboard() {
@@ -149,6 +152,23 @@ export function ClinicaDashboard() {
             </div>
           </div>
         )}
+        {clinica?.code && (
+          <div className="mt-4 pt-4 border-t border-border/40 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+              <Hash size={14} className="text-amber-400" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Codigo de Clinica</p>
+              <p className="text-sm font-bold text-foreground tracking-wider">{clinica.code}</p>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(clinica.code!); toast.success('Codigo copiado') }}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted/40 transition-colors"
+            >
+              <Copy size={12} /> Copiar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -183,6 +203,9 @@ export function ClinicaDashboard() {
       )}
       {activeTab === 'estadisticas' && (
         <EstadisticasTab stats={stats} medicos={medicos} />
+      )}
+      {activeTab === 'invitaciones' && (
+        <InvitacionesTab onRefresh={handleRefreshMedicos} />
       )}
     </div>
   )

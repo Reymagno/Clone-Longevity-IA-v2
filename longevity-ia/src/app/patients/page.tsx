@@ -8,7 +8,7 @@ import { NewPatientModal } from '@/components/patients/NewPatientModal'
 import { AnalysisCards } from '@/components/patients/AnalysisCards'
 import { Button } from '@/components/ui/button'
 import type { Patient, PatientWithLatestResult } from '@/types'
-import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, Hash, AlertTriangle } from 'lucide-react'
+import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, Hash, AlertTriangle, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
@@ -18,6 +18,7 @@ import { MedicoLinksPanel } from '@/components/patients/MedicoLinksPanel'
 import { InvitationsPanel } from '@/components/medico/InvitationsPanel'
 import { AlertsPanel } from '@/components/medico/AlertsPanel'
 import { ClinicaDashboard } from '@/components/clinica/ClinicaDashboard'
+import { ClinicaLinkPanel } from '@/components/clinica/ClinicaLinkPanel'
 import { UserAvatar } from '@/components/profile/UserAvatar'
 import { ProfileModal } from '@/components/profile/ProfileModal'
 
@@ -30,6 +31,7 @@ export default function PatientsPage() {
   const [showMedicoPanel, setShowMedicoPanel] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
   const [showAlerts, setShowAlerts] = useState(false)
+  const [showClinicaLink, setShowClinicaLink] = useState(false)
   const [pendingInvCount, setPendingInvCount] = useState(0)
   const [alertCount, setAlertCount] = useState(0)
   const [search, setSearch] = useState('')
@@ -304,6 +306,10 @@ export default function PatientsPage() {
                     </span>
                   )}
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowClinicaLink(true)}>
+                  <Building2 size={14} />
+                  <span className="hidden sm:inline">Mi Clinica</span>
+                </Button>
               </>
             )}
             {(userRole === 'paciente' || userRole === 'medico') && (
@@ -464,6 +470,10 @@ export default function PatientsPage() {
           onClose={() => setShowAlerts(false)}
           onAlertRead={() => setAlertCount(c => Math.max(0, c - 1))}
         />
+      )}
+
+      {userRole === 'medico' && showClinicaLink && (
+        <ClinicaLinkPanel onClose={() => setShowClinicaLink(false)} />
       )}
 
       <ProfileModal
