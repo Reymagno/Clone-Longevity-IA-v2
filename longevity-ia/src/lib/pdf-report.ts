@@ -18,21 +18,22 @@ const CW = PW - MG * 2  // content width
 type RGB = [number, number, number]
 
 const C: Record<string, RGB> = {
-  dark:    [6, 12, 26],
-  bg:      [255, 255, 255],
-  sheet:   [248, 250, 252],
-  section: [236, 242, 250],
-  text:    [15, 23, 42],
-  muted:   [71, 85, 105],
-  light:   [148, 163, 184],
-  border:  [218, 226, 238],
-  green:   [0, 175, 115],
-  accent:  [4, 120, 87],
-  optimal: [4, 120, 87],
-  normal:  [3, 105, 161],
-  warning: [180, 83, 9],
-  danger:  [185, 28, 28],
-  gray:    [100, 116, 139],
+  dark:     [5, 14, 26],
+  bg:       [255, 255, 255],
+  sheet:    [250, 251, 253],
+  section:  [245, 247, 250],
+  text:     [15, 23, 42],
+  muted:    [100, 116, 139],
+  light:    [148, 163, 184],
+  border:   [226, 232, 240],
+  gold:     [201, 168, 76],
+  goldDark: [160, 130, 50],
+  accent:   [4, 120, 87],
+  optimal:  [16, 185, 129],
+  normal:   [59, 130, 246],
+  warning:  [245, 158, 11],
+  danger:   [239, 68, 68],
+  gray:     [107, 114, 128],
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,11 +45,11 @@ const sc = (s: string | null): RGB =>
   s === 'warning' ? C.warning : s === 'danger'  ? C.danger : C.gray
 
 const sbg = (s: string | null): RGB => {
-  if (s === 'optimal') return [209, 245, 230]
-  if (s === 'normal')  return [209, 234, 251]
-  if (s === 'warning') return [252, 233, 207]
-  if (s === 'danger')  return [252, 213, 213]
-  return [233, 237, 243]
+  if (s === 'optimal') return [220, 252, 239]
+  if (s === 'normal')  return [219, 234, 254]
+  if (s === 'warning') return [254, 243, 199]
+  if (s === 'danger')  return [254, 226, 226]
+  return [241, 245, 249]
 }
 
 const sl = (s: string | null): string =>
@@ -59,10 +60,10 @@ const scoreC = (n: number): RGB =>
   n >= 85 ? C.optimal : n >= 65 ? C.normal : n >= 40 ? C.warning : C.danger
 
 const scoreBg = (n: number): RGB => {
-  if (n >= 85) return [209, 245, 230]
-  if (n >= 65) return [209, 234, 251]
-  if (n >= 40) return [252, 233, 207]
-  return [252, 213, 213]
+  if (n >= 85) return [220, 252, 239]
+  if (n >= 65) return [219, 234, 254]
+  if (n >= 40) return [254, 243, 199]
+  return [254, 226, 226]
 }
 
 const bv  = (bm: BiomarkerValue | null | undefined): string => bm?.value != null ? String(bm.value) : '—'
@@ -225,36 +226,50 @@ export async function generateMedicalReport(
 
   // ── Estructura de página ──────────────────────────────────────
   function drawHeader() {
-    box(0, 0, PW, 9, C.dark)
-    ink(C.green); sz(6.5); b()
-    t('LONGEVITY IA', MG, 6)
-    ink(C.light); n()
-    t('REPORTE MÉDICO COMPLETO', MG + 30, 6)
-    t(`${patient.name}  ·  Pág. ${pageNum}`, PW - MG, 6, 'right')
-    y = 16
+    box(0, 0, PW, 10, C.dark)
+    ink(C.gold); sz(7); b()
+    t('LONGEVITY IA', MG, 6.5)
+    // Gold dot separator
+    pdf.setFillColor(C.gold[0], C.gold[1], C.gold[2])
+    pdf.circle(MG + 28, 5.5, 0.6, 'F')
+    ink(C.light); sz(6.5); n()
+    tSafe(patient.name, MG + 31, 6.5, 90)
+    ink(C.light); sz(6.5); n()
+    t(`Pág. ${pageNum}`, PW - MG, 6.5, 'right')
+    // Thin gold accent line at bottom of header
+    dr(C.gold); pdf.setLineWidth(0.4); pdf.line(0, 10, PW, 10)
+    y = 17
   }
 
   function drawFooter() {
-    box(0, PH - 10, PW, 10, C.dark)
-    ink(C.light); sz(6); n()
-    t('Longevity IA · Reporte confidencial · Solo para uso médico', MG, PH - 4)
-    t(new Date().toLocaleDateString('es-MX'), PW - MG, PH - 4, 'right')
+    // Thin gold line across top of footer area
+    dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, PH - 12, PW - MG, PH - 12)
+    // Footer content
+    ink(C.gold); sz(6.5); b()
+    t('Longevity IA', MG, PH - 7)
+    ink(C.muted); sz(6); n()
+    t('Reporte confidencial · Solo para uso médico', MG + 24, PH - 7)
+    t(new Date().toLocaleDateString('es-MX'), PW - MG, PH - 7, 'right')
   }
 
   function nextPage() {
     drawFooter(); pdf.addPage(); pageNum++; drawHeader()
   }
 
-  // ── Sección con acento izquierdo ──────────────────────────────
+  // ── Sección con acento izquierdo gold ─────────────────────────
   function section(title: string, sub = '') {
     guard(16)
-    box(MG, y, CW, 9, C.section)
-    box(MG, y, 3, 9, C.green)
-    ink(C.text); sz(9.5); b()
+    // Subtle gold tint background
+    box(MG, y, CW, 10, [255, 252, 240] as RGB)
+    // Gold left accent bar
+    box(MG, y, 3, 10, C.gold)
+    ink(C.text); sz(10); b()
     const titleMaxW = sub ? CW * 0.55 : CW - 10
-    tSafe(title, MG + 7, y + 6.5, titleMaxW)
-    if (sub) { ink(C.muted); sz(7.5); n(); tSafe(sub, MG + CW - 2, y + 6.5, CW * 0.4, 'right') }
-    skip(13)
+    tSafe(title, MG + 7, y + 7, titleMaxW)
+    if (sub) { ink(C.muted); sz(7); n(); tSafe(sub, MG + CW - 2, y + 7, CW * 0.4, 'right') }
+    // Thin gold line below
+    dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, y + 10, MG + CW, y + 10)
+    skip(14)
   }
 
   // ── Tabla de biomarcadores ─────────────────────────────────────
@@ -264,7 +279,7 @@ export async function generateMedicalReport(
   function bmHead() {
     guard(10)
     box(MG, y, CW, 7, C.dark)
-    ink(C.bg); sz(6); b()
+    ink(C.gold); sz(6); b()
     const labels = ['BIOMARCADOR', 'VALOR', 'UNIDAD', 'REF.', 'ÓPTIMO', 'ESTADO']
     const xs = [BC.name, BC.val, BC.unit, BC.ref, BC.opt, BC.badge]
     labels.forEach((lbl, idx) => t(lbl, xs[idx], y + 5))
@@ -274,7 +289,7 @@ export async function generateMedicalReport(
   function bmRow(label: string, bm: BiomarkerValue | null | undefined, even: boolean) {
     const RH = 7
     guard(RH + 1)
-    box(MG, y, CW, RH, even ? C.bg : C.sheet)
+    box(MG, y, CW, RH, even ? C.bg : [246, 248, 251] as RGB)
     // Truncar nombre si es muy largo
     const maxNameW = BC.val - BC.name - 2
     const truncLabel = pdf.getTextWidth(label) > maxNameW ? label.substring(0, 22) + '…' : label
@@ -285,10 +300,17 @@ export async function generateMedicalReport(
       tSafe(bu(bm), BC.unit, y + 5, BC.ref - BC.unit - 1)
       tSafe(bref(bm), BC.ref, y + 5, BC.opt - BC.ref - 1)
       tSafe(bopt(bm), BC.opt, y + 5, BC.badge - BC.opt - 1)
-      // Badge
+      // Pill-shaped badge (rect + circles at ends)
       const badgeW = 26
+      const badgeH = 4.5
       const badgeX = MG + CW - badgeW - 2
-      box(badgeX, y + 1.2, badgeW, 4.5, sbg(bm.status))
+      const badgeY = y + 1.2
+      const pillR = badgeH / 2
+      const bgColor = sbg(bm.status)
+      fl(bgColor)
+      pdf.circle(badgeX + pillR, badgeY + pillR, pillR, 'F')
+      pdf.circle(badgeX + badgeW - pillR, badgeY + pillR, pillR, 'F')
+      pdf.rect(badgeX + pillR, badgeY, badgeW - badgeH, badgeH, 'F')
       ink(sc(bm.status)); sz(6); b()
       t(sl(bm.status), badgeX + badgeW / 2, y + 4.8, 'center')
     } else {
@@ -298,24 +320,49 @@ export async function generateMedicalReport(
     skip(RH)
   }
 
-  // ── Barra de score ─────────────────────────────────────────────
+  // ── Barra de score con extremos redondeados ────────────────────
   function scoreBar(label: string, score: number, even: boolean) {
     const RH = 9
     guard(RH + 1)
-    box(MG, y, CW, RH, even ? C.bg : C.sheet)
+    box(MG, y, CW, RH, even ? C.bg : [246, 248, 251] as RGB)
     ink(C.text); sz(8); n(); t(label, MG + 3, y + 6)
-    // Barra de progreso — posicionada después del label
-    const BAR_X = MG + 42, BAR_W = 70, BAR_H = 3.5
-    box(BAR_X, y + 3, BAR_W, BAR_H, C.border)
-    box(BAR_X, y + 3, (score / 100) * BAR_W, BAR_H, scoreC(score))
-    // Score numérico
-    ink(scoreC(score)); sz(8); b()
-    t(`${Math.round(score)}`, BAR_X + BAR_W + 3, y + 6)
-    // Badge al final
-    const badgeW = 20
+    // Rounded progress bar
+    const BAR_X = MG + 42, BAR_W = 70, BAR_H = 3.5, R = BAR_H / 2
+    const barY = y + 3
+    // Background bar with rounded ends
+    const bgBar: RGB = [235, 238, 242]
+    fl(bgBar)
+    pdf.circle(BAR_X + R, barY + R, R, 'F')
+    pdf.circle(BAR_X + BAR_W - R, barY + R, R, 'F')
+    pdf.rect(BAR_X + R, barY, BAR_W - BAR_H, BAR_H, 'F')
+    // Filled portion with rounded ends
+    const fillW = Math.max(BAR_H, (score / 100) * BAR_W)
+    const sColor = scoreC(score)
+    fl(sColor)
+    pdf.circle(BAR_X + R, barY + R, R, 'F')
+    pdf.circle(BAR_X + fillW - R, barY + R, R, 'F')
+    pdf.rect(BAR_X + R, barY, fillW - BAR_H, BAR_H, 'F')
+    // Score number: inside bar if wide enough, otherwise to the right
+    const scoreStr = `${Math.round(score)}`
+    if (fillW > 14) {
+      ink(C.bg); sz(7); b()
+      t(scoreStr, BAR_X + fillW - 3, y + 6, 'right')
+    } else {
+      ink(sColor); sz(8); b()
+      t(scoreStr, BAR_X + fillW + 2, y + 6)
+    }
+    // Pill-shaped badge at end
+    const badgeW = 22
+    const badgeH = 5
     const badgeX = MG + CW - badgeW - 1
-    box(badgeX, y + 2, badgeW, 5, scoreBg(score))
-    ink(scoreC(score)); sz(6); b()
+    const badgeY = y + 2
+    const pillR = badgeH / 2
+    const bgC = scoreBg(score)
+    fl(bgC)
+    pdf.circle(badgeX + pillR, badgeY + pillR, pillR, 'F')
+    pdf.circle(badgeX + badgeW - pillR, badgeY + pillR, pillR, 'F')
+    pdf.rect(badgeX + pillR, badgeY, badgeW - badgeH, badgeH, 'F')
+    ink(sColor); sz(6); b()
     const scoreLabel = score >= 85 ? 'Óptimo' : score >= 65 ? 'Normal' : score >= 40 ? 'Atención' : 'Crítico'
     t(scoreLabel, badgeX + badgeW / 2, y + 5.8, 'center')
     hline(y + RH)
@@ -329,14 +376,15 @@ export async function generateMedicalReport(
     n()
   }
 
-  // ── Alerta de texto ────────────────────────────────────────────
+  // ── Alerta de texto con borde gold ─────────────────────────────
   function alertBox(text: string, level: 'warning' | 'danger' = 'warning') {
     const color = level === 'danger' ? C.danger : C.warning
-    const bg = level === 'danger' ? ([252, 213, 213] as RGB) : ([252, 233, 207] as RGB)
+    const bgTint: RGB = level === 'danger' ? [255, 245, 245] : [255, 251, 235]
     const lines = pdf.splitTextToSize(text, CW - 10) as string[]
     const H = lines.length * 4.5 + 6
     guard(H + 2)
-    box(MG, y, CW, H, bg)
+    // Subtle tinted background with gold border
+    boxStroke(MG, y, CW, H, bgTint, C.gold, 0.3)
     box(MG, y, 3, H, color)
     ink(color); sz(7.5); n()
     pdf.text(lines, MG + 6, y + 5)
@@ -354,116 +402,113 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PORTADA
+  // PORTADA — Premium Medical Longevity Clinic
   // ═══════════════════════════════════════════════════════════════
-  // Header oscuro grande
-  box(0, 0, PW, 52, C.dark)
 
-  // Branding
-  ink(C.green); sz(8); b()
-  t('LONGEVITY IA', MG, 14)
+  const ov = analysis.overallScore ?? 50
+  const ovC = scoreC(ov)
+  const ageDiff = patient.age - (analysis.longevity_age ?? patient.age)
+
+  // ── Dark background covering top 60% ─────────────────────────
+  const COVER_DARK_H = 178  // ~60% of 297
+  box(0, 0, PW, COVER_DARK_H, C.dark)
+
+  // Gold accent line at bottom of dark area (3mm thick)
+  box(0, COVER_DARK_H, PW, 3, C.gold)
+
+  // ── Branding ──────────────────────────────────────────────────
+  ink(C.gold); sz(12); b()
+  // Wide tracking simulation via character spacing
+  t('L O N G E V I T Y   I A', MG, 28)
+  ink(C.bg); sz(22); b()
+  t('REPORTE MÉDICO INTEGRAL', MG, 52)
+  ink(C.light); sz(8); n()
+  t('Análisis de Biomarcadores · Protocolo Personalizado', MG, 62)
+
+  // ── Score circle on the right side of dark area ───────────────
+  const CIRCLE_X = PW - MG - 25   // center X
+  const CIRCLE_Y = 110             // center Y
+  const CIRCLE_R = 20              // radius
+  // Filled circle with score color
+  fl(ovC)
+  pdf.circle(CIRCLE_X, CIRCLE_Y, CIRCLE_R, 'F')
+  // Score number in white, bold, centered
+  ink(C.bg); sz(28); b()
+  t(String(Math.round(ov)), CIRCLE_X, CIRCLE_Y + 3, 'center')
+  // "LONGEVITY SCORE" below in small text
+  ink(C.bg); sz(6); n()
+  t('LONGEVITY SCORE', CIRCLE_X, CIRCLE_Y + 11, 'center')
+  t('/100', CIRCLE_X, CIRCLE_Y + 15, 'center')
+
+  // ── Age comparison below score circle ─────────────────────────
+  const bioAge = analysis.longevity_age ?? patient.age
   ink(C.light); sz(7); n()
-  t('Medicina de Precisión · Longevidad · Bienestar', MG, 20)
+  t('Edad biológica:', CIRCLE_X - 18, CIRCLE_Y + 24)
+  ink(ovC); sz(9); b()
+  t(`${bioAge} años`, CIRCLE_X - 18, CIRCLE_Y + 30)
+  ink(C.light); sz(6.5); n()
+  const diffTxt = ageDiff > 0 ? `${ageDiff} años más joven` :
+    ageDiff < 0 ? `${Math.abs(ageDiff)} años mayor` : 'Igual a cronológica'
+  t(diffTxt, CIRCLE_X - 18, CIRCLE_Y + 35)
 
-  // Título
-  ink(C.bg); sz(20); b()
-  t('REPORTE MÉDICO', MG, 33)
-  t('COMPLETO', MG, 43)
-  ink(C.light); sz(7.5); n()
-  tSafe('Análisis de biomarcadores · Protocolo personalizado · Proyección de longevidad', MG, 49, CW)
-
-  y = 62
-
-  // Datos del paciente
+  // ── Patient info card below dark area ─────────────────────────
   const bmi = patient.weight && patient.height
     ? (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1) + ' kg/m²'
     : 'No disponible'
-  const pInfo = [
+
+  const CARD_Y = COVER_DARK_H + 7
+  const CARD_H = 58
+  // White card with very light stroke
+  boxStroke(MG, CARD_Y, CW, CARD_H, C.bg, [230, 232, 238] as RGB, 0.2)
+  // Gold left accent bar (3mm)
+  box(MG, CARD_Y, 3, CARD_H, C.gold)
+
+  // Card title
+  ink(C.goldDark); sz(7); b()
+  t('DATOS DEL PACIENTE', MG + 8, CARD_Y + 8)
+  dr(C.border); pdf.setLineWidth(0.15); pdf.line(MG + 8, CARD_Y + 10, MG + CW - 4, CARD_Y + 10)
+
+  // Two columns: Left (Name, Code, Date, Age) — Right (Gender, Weight, Height, BMI)
+  const pInfoLeft = [
     ['Nombre', patient.name],
     ['Código', patient.code],
     ['Fecha del estudio', fmtDate(resultDate)],
     ['Edad cronológica', `${patient.age} años`],
+  ]
+  const pInfoRight = [
     ['Género', patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'],
     ['Peso', patient.weight ? `${patient.weight} kg` : 'No registrado'],
     ['Estatura', patient.height ? `${patient.height} cm` : 'No registrada'],
     ['IMC', bmi],
   ]
-
-  const blockH = 54
-  boxStroke(MG, y, CW, blockH, C.sheet, C.border)
-  box(MG, y, 3, blockH, C.green)
-
-  ink(C.accent); sz(7); b()
-  t('DATOS DEL PACIENTE', MG + 7, y + 7)
-  hline(y + 10, C.border, 0.2)
-
-  const col1 = pInfo.slice(0, 4), col2 = pInfo.slice(4)
-  const colW = CW / 2 - 10
-  col1.forEach(([lbl, val], i) => {
-    ink(C.muted); sz(7); n(); t(lbl + ':', MG + 7, y + 18 + i * 10)
-    ink(C.text); sz(9); b(); tSafe(val, MG + 7, y + 23 + i * 10, colW)
+  const colW = CW / 2 - 12
+  pInfoLeft.forEach(([lbl, val], i) => {
+    ink(C.muted); sz(6.5); n(); t(lbl, MG + 8, CARD_Y + 18 + i * 10)
+    ink(C.text); sz(8.5); b(); tSafe(val, MG + 8, CARD_Y + 23 + i * 10, colW)
   })
-  col2.forEach(([lbl, val], i) => {
-    ink(C.muted); sz(7); n(); t(lbl + ':', MG + 7 + CW / 2, y + 18 + i * 10)
-    ink(C.text); sz(9); b(); tSafe(val, MG + 7 + CW / 2, y + 23 + i * 10, colW)
+  pInfoRight.forEach(([lbl, val], i) => {
+    ink(C.muted); sz(6.5); n(); t(lbl, MG + CW / 2 + 4, CARD_Y + 18 + i * 10)
+    ink(C.text); sz(8.5); b(); tSafe(val, MG + CW / 2 + 4, CARD_Y + 23 + i * 10, colW)
   })
-  skip(blockH + 6)
 
-  // Score global
-  const ov = analysis.overallScore ?? 50
-  const ovC = scoreC(ov)
-  const ageDiff = patient.age - (analysis.longevity_age ?? patient.age)
-
-  boxStroke(MG, y, CW, 48, C.bg, C.border)
-  box(MG, y, 3, 48, ovC)
-
-  // Score box
-  const SBOX_X = MG + CW - 48
-  box(SBOX_X, y + 4, 46, 40, ovC)
-  ink(C.bg); sz(24); b()
-  t(String(Math.round(ov)), SBOX_X + 23, y + 22, 'center')
-  sz(7.5); n()
-  t('SCORE DE', SBOX_X + 23, y + 30, 'center')
-  t('LONGEVIDAD', SBOX_X + 23, y + 35, 'center')
-  t('/100', SBOX_X + 23, y + 40, 'center')
-
-  const leftAreaW = CW - 55 // espacio a la izquierda del score box
-  ink(ovC); sz(10); b()
-  tSafe('Resultado del Análisis', MG + 8, y + 12, leftAreaW)
-  ink(C.text); sz(8.5); n()
-  t('Edad biológica:', MG + 8, y + 22)
-  ink(ovC); b()
-  tSafe(`${analysis.longevity_age ?? patient.age} años`, MG + 8 + 28, y + 22, leftAreaW - 30)
-  ink(C.muted); sz(7.5); n()
-  const diffTxt = ageDiff > 0 ? `${ageDiff} años más joven que su edad cronológica` :
-    ageDiff < 0 ? `${Math.abs(ageDiff)} años mayor que su edad cronológica` : 'Igual a su edad cronológica'
-  tSafe(diffTxt, MG + 8, y + 28, leftAreaW)
-  ink(C.text); sz(8); n()
-  t('Score global de longevidad', MG + 8, y + 38)
-  ink(ovC); sz(8.5); b()
-  const ovLabel = ov >= 85 ? 'Excelente' : ov >= 70 ? 'Bueno' : ov >= 55 ? 'Regular' : 'Requiere intervención'
-  tSafe(ovLabel, MG + 8 + 40, y + 38, leftAreaW - 42)
-  skip(54)
-
-  // Nota legal
-  guard(20)
-  ink(C.muted); sz(7); n()
+  // ── Legal disclaimer at the bottom ────────────────────────────
+  const LEGAL_Y = CARD_Y + CARD_H + 6
+  ink(C.muted); sz(6.5); n()
   const legalLines = pdf.splitTextToSize(
     'Este reporte es generado por Longevity IA con base en los estudios de laboratorio proporcionados. ' +
     'Los datos y recomendaciones deben ser interpretados por un médico certificado. No sustituye el diagnóstico clínico profesional.',
-    CW - 4
+    CW - 10
   ) as string[]
-  const legalH = legalLines.length * 4 + 6
-  boxStroke(MG, y, CW, legalH, C.sheet, C.border, 0.15)
-  pdf.text(legalLines, MG + 2, y + 4)
-  skip(legalH)
+  const legalH = legalLines.length * 3.8 + 6
+  boxStroke(MG, LEGAL_Y, CW, legalH, [250, 251, 253] as RGB, C.border, 0.15)
+  pdf.text(legalLines, MG + 5, LEGAL_Y + 4)
 
-  // Footer portada
-  box(0, PH - 10, PW, 10, C.dark)
-  ink(C.green); sz(7); b(); t('LONGEVITY IA', MG, PH - 4)
-  ink(C.light); sz(7); n()
-  t('Medicina de Precisión · Longevidad · Bienestar', MG + 28, PH - 4)
-  t('Pág. 1', PW - MG, PH - 4, 'right')
+  // ── Footer portada ────────────────────────────────────────────
+  dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, PH - 14, PW - MG, PH - 14)
+  ink(C.gold); sz(7); b(); t('Longevity IA', MG, PH - 8)
+  ink(C.muted); sz(6.5); n()
+  t('Medicina de Precisión · Longevidad · Bienestar', MG + 24, PH - 8)
+  t('Pág. 1', PW - MG, PH - 8, 'right')
 
   // ═══════════════════════════════════════════════════════════════
   // RESUMEN EJECUTIVO
@@ -478,8 +523,8 @@ export async function generateMedicalReport(
   guard(sumLines.length * LH_SUM + 6)
   // Wrapped summary in a subtle box
   const sumBoxH = sumLines.length * LH_SUM + 8
-  boxStroke(MG, y - 2, CW, sumBoxH, C.sheet, C.border, 0.15)
-  box(MG, y - 2, 3, sumBoxH, C.green)
+  boxStroke(MG, y - 2, CW, sumBoxH, [252, 252, 250] as RGB, C.border, 0.15)
+  box(MG, y - 2, 3, sumBoxH, C.gold)
   pdf.text(sumLines, MG + 7, y + 2)
   skip(sumBoxH + 4)
 
@@ -496,12 +541,12 @@ export async function generateMedicalReport(
       const target = a.target != null ? String(a.target) : ''
 
       const alertColor = level === 'danger' ? C.danger : C.warning
-      const alertBg = level === 'danger' ? [252, 213, 213] as RGB : [252, 233, 207] as RGB
+      const alertBgTint: RGB = level === 'danger' ? [255, 245, 245] : [255, 251, 235]
       const fullText = `${title}${desc ? ': ' + desc : ''}${val ? '  (Actual: ' + val + (target ? ' → Objetivo: ' + target : '') + ')' : ''}`
       const aLines = pdf.splitTextToSize(fullText, CW - 12) as string[]
       const AH = aLines.length * 4.5 + 5
       guard(AH + 2)
-      box(MG, y, CW, AH, alertBg)
+      boxStroke(MG, y, CW, AH, alertBgTint, C.gold, 0.3)
       box(MG, y, 3, AH, alertColor)
       ink(alertColor); sz(7.5); n()
       pdf.text(aLines, MG + 7, y + 4.5)
@@ -515,7 +560,7 @@ export async function generateMedicalReport(
 
   // Tabla header
   box(MG, y, CW, 7, C.dark)
-  ink(C.bg); sz(7); b()
+  ink(C.gold); sz(7); b()
   t('SISTEMA', MG + 3, y + 5)
   t('EVALUACIÓN', MG + CW - 90, y + 5)
   t('SCORE', MG + CW - 18, y + 5, 'right')
@@ -739,7 +784,7 @@ export async function generateMedicalReport(
   section('RIESGOS DE ENFERMEDAD', '— Probabilidad a largo plazo sin intervención')
 
   box(MG, y, CW, 7, C.dark)
-  ink(C.bg); sz(7); b()
+  ink(C.gold); sz(7); b()
   t('ENFERMEDAD / DRIVERS', MG + 3, y + 5)
   t('PROBABILIDAD', MG + CW - 60, y + 5)
   t('HORIZONTE', MG + CW - 2, y + 5, 'right')
@@ -803,7 +848,7 @@ export async function generateMedicalReport(
 
       guard(RH + 2)
       box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
-      box(MG, y, 3, RH, C.green)
+      box(MG, y, 3, RH, C.gold)
 
       // Factor name
       ink(C.text); sz(8.5); b()
@@ -882,14 +927,29 @@ export async function generateMedicalReport(
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
     box(MG, y, 3, RH, urgColor)
 
-    // Header: number + urgency badge + category
-    ink(urgColor); sz(7.5); b()
-    t(`${item.number ?? i + 1}`, MG + 7, y + 6)
-    box(MG + 13, y + 2, 20, 5, sbg(item.urgency ?? 'low'))
+    // Header: gold numbered circle + urgency pill badge + category
+    const numStr = `${item.number ?? i + 1}`
+    const circleR = 3.5
+    const circleCX = MG + 7 + circleR
+    const circleCY = y + 5
+    fl(C.gold)
+    pdf.circle(circleCX, circleCY, circleR, 'F')
+    ink(C.bg); sz(7); b()
+    t(numStr, circleCX, circleCY + 1.2, 'center')
+    // Urgency pill badge
+    const pillX = MG + 16
+    const pillW = 22
+    const pillH = 5
+    const pR = pillH / 2
+    const urgBg = sbg(item.urgency ?? 'low')
+    fl(urgBg)
+    pdf.circle(pillX + pR, y + 2 + pR, pR, 'F')
+    pdf.circle(pillX + pillW - pR, y + 2 + pR, pR, 'F')
+    pdf.rect(pillX + pR, y + 2, pillW - pillH, pillH, 'F')
     ink(urgColor); sz(6); b()
-    t(urgLabel, MG + 23, y + 5.8, 'center')
+    t(urgLabel, pillX + pillW / 2, y + 5.8, 'center')
     ink(C.light); sz(6); n()
-    tSafe(item.category ?? '', MG + 36, y + 6, CW - 40)
+    tSafe(item.category ?? '', MG + 40, y + 6, CW - 44)
 
     let cy = y + headerH
 
@@ -1007,7 +1067,7 @@ export async function generateMedicalReport(
   // Factores del algoritmo
   section('FACTORES DEL ALGORITMO DE DOSIFICACIÓN', '— 8 variables clínicas evaluadas')
   box(MG, y, CW, 7, C.dark)
-  ink(C.bg); sz(6.8); b()
+  ink(C.gold); sz(6.8); b()
   t('FACTOR CLÍNICO', MG + 3, y + 5)
   t('VALOR', MG + 56, y + 5)
   t('ESTADO', MG + 100, y + 5)
@@ -1086,7 +1146,7 @@ export async function generateMedicalReport(
   // Total row
   guard(10)
   box(MG, y, CW, 9, C.section)
-  box(MG, y, 3, 9, C.green)
+  box(MG, y, 3, 9, C.gold)
   ink(C.text); sz(8.5); b()
   t('FACTOR COMPUESTO TOTAL', MG + 7, y + 6.5)
   const totalColor = stem.totalFactor > 1.3 ? C.danger : stem.totalFactor > 1.1 ? C.warning : stem.totalFactor < 0.95 ? C.normal : C.optimal
