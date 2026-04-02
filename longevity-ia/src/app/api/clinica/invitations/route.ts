@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 
 // GET /api/clinica/invitations — list invitations for the clinic
 export async function GET(request: NextRequest) {
@@ -81,8 +82,9 @@ export async function POST(request: NextRequest) {
 
   const trimmed = code.trim().toUpperCase()
 
-  // Look up clinica by code
-  const { data: clinica } = await supabase
+  // Look up clinica by code (usar admin: RLS de clinicas solo permite al dueño leer)
+  const admin = getSupabaseAdmin()
+  const { data: clinica } = await admin
     .from('clinicas')
     .select('id, clinic_name')
     .eq('code', trimmed)
@@ -92,8 +94,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No se encontro una clinica con ese codigo' }, { status: 404 })
   }
 
-  // Check if link already exists
-  const { data: existing } = await supabase
+  // Check if link already exists (usar admin para leer cross-user)
+  const { data: existing } = await admin
     .from('clinica_medico_links')
     .select('id, status')
     .eq('clinica_id', clinica.id)
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ya tienes una solicitud pendiente con esta clinica' }, { status: 409 })
     }
     // If revoked, allow re-request by updating
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from('clinica_medico_links')
       .update({ status: 'pending', invited_at: new Date().toISOString(), confirmed_at: null })
       .eq('id', existing.id)
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Insert new link
-  const { data: newLink, error } = await supabase
+  const { data: newLink, error } = await admin
     .from('clinica_medico_links')
     .insert({
       clinica_id: clinica.id,
