@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react'
-import { Mic, Loader2 } from 'lucide-react'
+import { Mic, Loader2, Square, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Consultation } from '@/types'
 
@@ -17,15 +17,6 @@ interface ConsultationRecorderProps {
 
 type Phase = 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'done' | 'error'
 
-const PHASE_LABELS: Record<Phase, string> = {
-  idle: 'Presiona la estrella para iniciar la consulta',
-  recording: 'Grabando consulta...',
-  transcribing: 'Transcribiendo audio...',
-  analyzing: 'Generando nota SOAP...',
-  done: 'Consulta guardada',
-  error: 'Error en el proceso',
-}
-
 export function ConsultationRecorder({ patientId, onSaved, disabled }: ConsultationRecorderProps) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [elapsed, setElapsed] = useState(0)
@@ -36,7 +27,6 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef(0)
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -144,38 +134,83 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
     }
   }, [patientId, onSaved])
 
-  function handleStarClick() {
-    if (disabled || phase === 'transcribing' || phase === 'analyzing' || phase === 'done') return
-    if (phase === 'recording') {
-      stopAndProcess()
-    } else {
-      startRecording()
-    }
-  }
-
   const isRecording = phase === 'recording'
   const isProcessing = phase === 'transcribing' || phase === 'analyzing'
+  const showScene = phase !== 'idle' && phase !== 'error'
   const mins = Math.floor(elapsed / 60)
   const secs = elapsed % 60
 
+  // ── IDLE: Big start button ──────────────────────────────────
+  if (phase === 'idle') {
+    return (
+      <div className="flex flex-col items-center gap-5 animate-fade-in">
+        <button
+          onClick={startRecording}
+          disabled={disabled}
+          className="
+            group relative w-44 h-44 rounded-full
+            bg-gradient-to-br from-accent/20 via-accent/10 to-transparent
+            border-2 border-accent/30
+            flex flex-col items-center justify-center gap-3
+            transition-all duration-300
+            hover:border-accent/50 hover:from-accent/25 hover:via-accent/15
+            hover:shadow-[0_0_40px_rgba(46,174,123,0.15)]
+            hover:scale-[1.03]
+            active:scale-[0.98]
+            disabled:opacity-40 disabled:cursor-not-allowed
+            cursor-pointer
+          "
+        >
+          {/* Pulsing ring behind */}
+          <div className="absolute inset-0 rounded-full border border-accent/10 animate-pulse-glow" />
+
+          <Mic size={36} className="text-accent group-hover:text-accent transition-colors" />
+          <span className="text-sm font-bold text-accent tracking-wide">Iniciar Consulta</span>
+        </button>
+
+        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
+          El audio sera transcrito y analizado automaticamente al finalizar
+        </p>
+      </div>
+    )
+  }
+
+  // ── ERROR: Message + retry ──────────────────────────────────
+  if (phase === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-4 animate-fade-in">
+        <div className="w-28 h-28 rounded-full bg-danger/10 border border-danger/25 flex items-center justify-center">
+          <Mic size={32} className="text-danger/60" />
+        </div>
+        <p className="text-sm text-danger text-center max-w-xs">{errorMsg || 'Error en el proceso'}</p>
+        <Button variant="outline" size="sm" onClick={() => { setPhase('idle'); setErrorMsg('') }}>
+          Intentar de nuevo
+        </Button>
+      </div>
+    )
+  }
+
+  // ── RECORDING / PROCESSING / DONE: 3D Scene ────────────────
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* 3D Star */}
-      <Suspense
-        fallback={
-          <div className="flex items-center justify-center" style={{ width: 420, height: 420 }}>
-            <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
-              <Mic size={28} className="text-accent/40" />
+    <div className="flex flex-col items-center gap-6 animate-fade-in">
+      {/* 3D Voice Recorder Scene */}
+      {showScene && (
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center" style={{ width: 420, height: 420 }}>
+              <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
+                <Mic size={28} className="text-accent/40" />
+              </div>
             </div>
-          </div>
-        }
-      >
-        <StarScene
-          phase={phase}
-          onClick={handleStarClick}
-          disabled={disabled || isProcessing || phase === 'done'}
-        />
-      </Suspense>
+          }
+        >
+          <StarScene
+            phase={phase}
+            onClick={isRecording ? stopAndProcess : () => {}}
+            disabled={!isRecording}
+          />
+        </Suspense>
+      )}
 
       {/* Timer */}
       {isRecording && (
@@ -184,38 +219,40 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
         </div>
       )}
 
+      {/* Stop button while recording */}
+      {isRecording && (
+        <button
+          onClick={stopAndProcess}
+          className="
+            flex items-center gap-2.5 px-6 py-3
+            bg-danger/15 border border-danger/30 rounded-xl
+            text-danger text-sm font-semibold
+            hover:bg-danger/25 hover:border-danger/50
+            transition-all duration-200
+            animate-pulse
+          "
+        >
+          <Square size={14} className="fill-current" />
+          Detener y procesar
+        </button>
+      )}
+
       {/* Processing indicator */}
       {isProcessing && (
         <div className="flex items-center gap-3 text-info bg-info/[0.06] border border-info/15 rounded-xl px-5 py-3 backdrop-blur-sm">
           <Loader2 size={16} className="animate-spin" />
-          <span className="text-sm font-medium">{PHASE_LABELS[phase]}</span>
+          <span className="text-sm font-medium">
+            {phase === 'transcribing' ? 'Transcribiendo audio...' : 'Generando nota SOAP...'}
+          </span>
         </div>
       )}
 
-      {/* Phase label */}
-      {!isProcessing && (
-        <p className={`text-sm text-center ${phase === 'error' ? 'text-danger' : phase === 'done' ? 'text-accent font-medium' : phase === 'idle' ? 'text-muted-foreground bg-muted/40 rounded-lg px-4 py-2' : 'text-muted-foreground'}`}>
-          {errorMsg || PHASE_LABELS[phase]}
-        </p>
-      )}
-
-      {/* Hints */}
-      {phase === 'idle' && (
-        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
-          El audio sera transcrito y analizado automaticamente al finalizar
-        </p>
-      )}
-      {isRecording && (
-        <p className="text-xs text-danger/70 text-center animate-pulse" style={{ textShadow: '0 0 10px rgba(212,83,106,0.3)' }}>
-          Toca la estrella para detener y procesar
-        </p>
-      )}
-
-      {/* Error retry */}
-      {phase === 'error' && (
-        <Button variant="outline" size="sm" className="mt-2" onClick={() => { setPhase('idle'); setErrorMsg('') }}>
-          Intentar de nuevo
-        </Button>
+      {/* Done indicator */}
+      {phase === 'done' && (
+        <div className="flex items-center gap-3 text-accent bg-accent/[0.06] border border-accent/15 rounded-xl px-5 py-3 backdrop-blur-sm">
+          <CheckCircle2 size={16} />
+          <span className="text-sm font-semibold">Consulta guardada</span>
+        </div>
       )}
     </div>
   )
