@@ -18,6 +18,8 @@ import { MedicoLinksPanel } from '@/components/patients/MedicoLinksPanel'
 import { InvitationsPanel } from '@/components/medico/InvitationsPanel'
 import { AlertsPanel } from '@/components/medico/AlertsPanel'
 import { ClinicaDashboard } from '@/components/clinica/ClinicaDashboard'
+import { UserAvatar } from '@/components/profile/UserAvatar'
+import { ProfileModal } from '@/components/profile/ProfileModal'
 
 export default function PatientsPage() {
   const router = useRouter()
@@ -33,6 +35,9 @@ export default function PatientsPage() {
   const [search, setSearch] = useState('')
   const [userRole, setUserRole] = useState<string>('paciente')
   const [medicoCode, setMedicoCode] = useState<string | null>(null)
+  const [showProfile, setShowProfile] = useState(false)
+  const [userName, setUserName] = useState('')
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -186,6 +191,18 @@ export default function PatientsPage() {
     loadPatients()
   }, [loadPatients])
 
+  // Fetch user profile for avatar + name
+  useEffect(() => {
+    fetch('/api/profile')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return
+        setUserName(data.full_name || data.clinic_name || data.email || '')
+        setUserAvatar(data.avatar_url ?? null)
+      })
+      .catch(() => {})
+  }, [])
+
   const filtered = patients.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.code.toLowerCase().includes(search.toLowerCase())
@@ -212,6 +229,13 @@ export default function PatientsPage() {
                   <span className="hidden sm:inline">Nuevo Estudio</span>
                 </Button>
               </Link>
+              <UserAvatar
+                avatarUrl={userAvatar}
+                name={userName}
+                size={32}
+                onClick={() => setShowProfile(true)}
+                className="cursor-pointer hover:ring-2 hover:ring-accent/50 rounded-full transition-all"
+              />
               <Button variant="ghost" size="sm" onClick={handleLogout} title="Cerrar sesion">
                 <LogOut size={16} />
               </Button>
@@ -237,6 +261,12 @@ export default function PatientsPage() {
             onClose={() => setShowMedicoPanel(false)}
           />
         )}
+
+        <ProfileModal
+          isOpen={showProfile}
+          onClose={() => setShowProfile(false)}
+          onUpdated={({ name, avatarUrl }) => { setUserName(name); setUserAvatar(avatarUrl) }}
+        />
       </div>
     )
   }
@@ -282,6 +312,13 @@ export default function PatientsPage() {
                 Nuevo Paciente
               </Button>
             )}
+            <UserAvatar
+              avatarUrl={userAvatar}
+              name={userName}
+              size={32}
+              onClick={() => setShowProfile(true)}
+              className="cursor-pointer hover:ring-2 hover:ring-accent/50 rounded-full transition-all"
+            />
             <Button variant="ghost" size="sm" onClick={handleLogout} title="Cerrar sesion">
               <LogOut size={16} />
             </Button>
@@ -428,6 +465,12 @@ export default function PatientsPage() {
           onAlertRead={() => setAlertCount(c => Math.max(0, c - 1))}
         />
       )}
+
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        onUpdated={({ name, avatarUrl }) => { setUserName(name); setUserAvatar(avatarUrl) }}
+      />
     </div>
   )
 }
