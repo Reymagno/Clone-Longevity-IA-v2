@@ -158,8 +158,29 @@ IMPORTANTE:
 
       const textBlock = analysisResponse.content.find(b => b.type === 'text')
       if (textBlock && textBlock.type === 'text') {
+        // Extraer JSON robusto — Claude a veces envuelve en ```json...```
+        let jsonText = textBlock.text.trim()
+        // Remover markdown code fences si existen
+        jsonText = jsonText.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
+        // Buscar el JSON entre la primera { y la última }
+        const firstBrace = jsonText.indexOf('{')
+        const lastBrace = jsonText.lastIndexOf('}')
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+          jsonText = jsonText.slice(firstBrace, lastBrace + 1)
+        }
+
         try {
-          const parsed = JSON.parse(textBlock.text)
+          const parsed = JSON.parse(jsonText)
+          console.log('Claude consultation fields:', {
+            hasSummary: !!parsed.summary,
+            hasKeyFindings: !!parsed.key_findings?.length,
+            hasMedications: !!parsed.medications?.length,
+            hasPendingStudies: !!parsed.pending_studies?.length,
+            hasAlerts: !!parsed.alerts?.length,
+            hasSoap: !!parsed.soap,
+            hasTags: !!parsed.tags?.length,
+          })
+
           aiSummary = parsed.summary || null
           aiSoap = parsed.soap || null
           tags = parsed.tags || []
@@ -182,12 +203,13 @@ IMPORTANTE:
 
           clinicalInsights = parts.join('\n\n')
 
-          // Agregar medications, pending_studies y alerts al SOAP para tener todo en un solo lugar
+          // Agregar medications, pending_studies, alerts y key_findings al SOAP
           if (parsed.medications) aiSoap = { ...aiSoap as object, medications: parsed.medications }
           if (parsed.pending_studies) aiSoap = { ...aiSoap as object, pending_studies: parsed.pending_studies }
           if (parsed.alerts) aiSoap = { ...aiSoap as object, alerts: parsed.alerts }
           if (parsed.key_findings) aiSoap = { ...aiSoap as object, key_findings: parsed.key_findings }
-        } catch {
+        } catch (parseErr) {
+          console.error('JSON parse failed for consultation analysis:', parseErr, 'Raw text:', textBlock.text.substring(0, 500))
           aiSummary = textBlock.text
           clinicalInsights = textBlock.text
         }
