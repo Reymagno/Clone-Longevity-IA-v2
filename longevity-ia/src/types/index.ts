@@ -341,6 +341,34 @@ export interface VoiceNote {
 }
 
 // ============================================================
+// CONSULTAS MÉDICAS
+// ============================================================
+
+export interface ConsultationSOAP {
+  subjective: string
+  objective: string
+  assessment: string
+  plan: string
+  diagnoses?: string[]
+  follow_up?: string
+}
+
+export interface Consultation {
+  id: string
+  patient_id: string
+  medico_user_id: string
+  transcript: string
+  speakers: Record<string, string>   // {"Speaker 1": "Dr. García", "Speaker 2": "Paciente"}
+  ai_summary: string | null
+  ai_soap: ConsultationSOAP | null
+  audio_url: string | null
+  duration_seconds: number | null
+  tags: string[]
+  status: 'recording' | 'transcribing' | 'analyzing' | 'completed' | 'error'
+  created_at: string
+}
+
+// ============================================================
 // ESTADO DE ANÁLISIS (ZUSTAND)
 // ============================================================
 

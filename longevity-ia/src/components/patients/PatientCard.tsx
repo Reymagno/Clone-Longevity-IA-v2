@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { User, Calendar, AlertTriangle, Activity, Upload, BarChart2, Trash2, X, TriangleAlert, ShieldOff, Archive, ClipboardList, CheckCircle2 } from 'lucide-react'
+import { User, Calendar, AlertTriangle, Activity, Upload, BarChart2, Trash2, X, TriangleAlert, ShieldOff, Archive, ClipboardList, CheckCircle2, Stethoscope } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { PatientWithLatestResult } from '@/types'
 import { formatDate, getScoreColor } from '@/lib/utils'
@@ -248,6 +248,17 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
                 <span className="ml-auto text-xs text-warning font-medium">Pendiente</span>
               </>
             )}
+          </Link>
+        )}
+
+        {/* Consulta Médica — solo para médicos */}
+        {viewerRole === 'medico' && (
+          <Link
+            href={`/patients/${patient.id}/consultation`}
+            className="mt-2 w-full flex items-center justify-center gap-2 border border-accent/30 text-accent text-sm font-medium py-2 rounded-lg hover:bg-accent/10 transition-all"
+          >
+            <Stethoscope size={13} />
+            <span>Consulta Medica</span>
           </Link>
         )}
 
