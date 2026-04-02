@@ -515,9 +515,9 @@ export async function generateMedicalReport(
 
   ink(C.text); sz(8.5); n()
   const LH_SUM = 4.8
-  const sumLines = pdf.splitTextToSize(analysis.clinicalSummary ?? '', CW - 2) as string[]
-  guard(sumLines.length * LH_SUM + 6)
-  // Wrapped summary in a subtle box
+  const sumTextW = CW - 14  // margen izq (7) + margen der (7)
+  const sumLines = pdf.splitTextToSize(analysis.clinicalSummary ?? '', sumTextW) as string[]
+  guard(sumLines.length * LH_SUM + 10)
   const sumBoxH = sumLines.length * LH_SUM + 8
   boxStroke(MG, y - 2, CW, sumBoxH, [252, 252, 250] as RGB, C.border, 0.15)
   box(MG, y - 2, 3, sumBoxH, C.gold)
@@ -603,9 +603,9 @@ export async function generateMedicalReport(
     box(MG, y, CW, 9, [...color.map(v => Math.min(255, v + 190))] as RGB)
     box(MG, y, 3, 9, color)
     ink(color); sz(8.5); b()
-    t(title, MG + 7, y + 6.5)
-    ink(C.muted); sz(7.5); n()
-    t(sub, MG + CW - 2, y + 6.5, 'right')
+    tSafe(title, MG + 7, y + 6.5, CW * 0.45)
+    ink(C.muted); sz(7); n()
+    tSafe(sub, MG + CW - 2, y + 6.5, CW * 0.5, 'right')
     skip(12)
 
     if (arrItems.length === 0) {
@@ -619,9 +619,9 @@ export async function generateMedicalReport(
         const impact = normalize(it, ['expectedImpact', 'impact'])
         const prob = normalize(it, ['probability'])
 
-        const detMaxW = CW - (impact ? 55 : 10)
+        const detMaxW = CW - (impact || prob ? 58 : 14)
         const detLines = pdf.splitTextToSize(det, detMaxW) as string[]
-        const eviLines = evi ? pdf.splitTextToSize(evi, CW - 12) as string[] : []
+        const eviLines = evi ? pdf.splitTextToSize(evi, CW - 14) as string[] : []
         const DLH = 4.5  // line height para detalle
         const ELH = 3.8  // line height para evidencia
         const RH = Math.max(14, 8 + detLines.length * DLH + (eviLines.length > 0 ? eviLines.length * ELH + 3 : 0) + 4)
@@ -841,14 +841,15 @@ export async function generateMedicalReport(
       const withP = pf.withProtocol ?? '—'
       const justification = pf.medicalJustification ?? ''
 
-      const halfCol = CW / 2 - 10
-      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, halfCol) as string[]
-      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, halfCol) as string[]
+      const leftColW = CW / 2 - 14
+      const rightColW = CW / 2 - 7
+      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, leftColW) as string[]
+      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, rightColW) as string[]
       const justLines = justification ? pdf.splitTextToSize(justification, CW - 16) as string[] : []
 
       // Actual y Óptimo en líneas separadas si son muy largos
-      const currentLines = pdf.splitTextToSize(`Actual: ${current}`, halfCol) as string[]
-      const optimalLines = pdf.splitTextToSize(`Óptimo: ${optimal}`, halfCol) as string[]
+      const currentLines = pdf.splitTextToSize(`Actual: ${current}`, leftColW) as string[]
+      const optimalLines = pdf.splitTextToSize(`Óptimo: ${optimal}`, rightColW) as string[]
       const valuesH = Math.max(currentLines.length, optimalLines.length) * 4.2
 
       const RH = 10 + valuesH + 4 + Math.max(withoutLines.length, withLines.length) * 4 + (justLines.length > 0 ? justLines.length * 3.5 + 2 : 0) + 4
@@ -910,7 +911,8 @@ export async function generateMedicalReport(
       item.urgency === 'medium'    ? 'MEDIO' : 'BAJO'
 
     // Layout vertical: header → molécula/dosis → mecanismo → evidencia → resultado
-    const contentW = CW - 14
+    // Texto inicia en MG+7, margen derecho 7mm → ancho útil = CW - 14 - 4 (extra seguridad)
+    const contentW = CW - 18
 
     const moleculeLines = pdf.splitTextToSize(item.molecule ?? '', contentW) as string[]
     const doseLines = pdf.splitTextToSize(item.dose ?? '', contentW) as string[]
@@ -1209,7 +1211,7 @@ export async function generateMedicalReport(
   const noteText =
     'Este protocolo es una estimación algorítmica basada en evidencia clínica publicada. No sustituye el criterio del médico tratante. ' +
     'La dosis final debe ser validada considerando el estado clínico actual, disponibilidad del producto celular y potencia por lote (batch potency).'
-  const noteLines = pdf.splitTextToSize(noteText, CW - 14) as string[]
+  const noteLines = pdf.splitTextToSize(noteText, CW - 18) as string[]
   const noteH = noteLines.length * 4.2 + 12
   guard(noteH + 2)
   box(MG, y, CW, noteH, [232, 244, 253] as RGB)
