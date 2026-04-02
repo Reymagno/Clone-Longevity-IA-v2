@@ -553,6 +553,85 @@ body {
   }
 }
 
+/* ── Consultation card enhancements ──────────────────────────────── */
+@keyframes insightReveal {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-insight-reveal {
+  animation: insightReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Insight mini-cards inside consultation cards */
+.insight-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 100%;
+  border-radius: 3px 0 0 3px;
+}
+.insight-card:hover {
+  transform: translateY(-1px);
+}
+
+.insight-card-danger::before { background: linear-gradient(180deg, #D4536A, rgba(212, 83, 106, 0.3)); }
+.insight-card-danger { background: linear-gradient(135deg, rgba(212, 83, 106, 0.08) 0%, rgba(212, 83, 106, 0.02) 100%); border: 1px solid rgba(212, 83, 106, 0.15); }
+
+.insight-card-info::before { background: linear-gradient(180deg, #5BA4C9, rgba(91, 164, 201, 0.3)); }
+.insight-card-info { background: linear-gradient(135deg, rgba(91, 164, 201, 0.08) 0%, rgba(91, 164, 201, 0.02) 100%); border: 1px solid rgba(91, 164, 201, 0.15); }
+
+.insight-card-accent::before { background: linear-gradient(180deg, #2EAE7B, rgba(46, 174, 123, 0.3)); }
+.insight-card-accent { background: linear-gradient(135deg, rgba(46, 174, 123, 0.08) 0%, rgba(46, 174, 123, 0.02) 100%); border: 1px solid rgba(46, 174, 123, 0.15); }
+
+.insight-card-warning::before { background: linear-gradient(180deg, #D4A03A, rgba(212, 160, 58, 0.3)); }
+.insight-card-warning { background: linear-gradient(135deg, rgba(212, 160, 58, 0.08) 0%, rgba(212, 160, 58, 0.02) 100%); border: 1px solid rgba(212, 160, 58, 0.15); }
+
+/* Glowing icon effect */
+.icon-glow-danger { filter: drop-shadow(0 0 4px rgba(212, 83, 106, 0.4)); }
+.icon-glow-info { filter: drop-shadow(0 0 4px rgba(91, 164, 201, 0.4)); }
+.icon-glow-accent { filter: drop-shadow(0 0 4px rgba(46, 174, 123, 0.4)); }
+.icon-glow-warning { filter: drop-shadow(0 0 4px rgba(212, 160, 58, 0.4)); }
+
+/* Summary accent border */
+.summary-accent {
+  border-left: 2px solid transparent;
+  border-image: linear-gradient(180deg, #2EAE7B, rgba(46, 174, 123, 0.2)) 1;
+}
+
+/* Consultation action button */
+.consultation-action {
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.consultation-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* SOAP section colored borders */
+.soap-subjective { border-left: 2px solid rgba(91, 164, 201, 0.5); }
+.soap-objective { border-left: 2px solid rgba(46, 174, 123, 0.5); }
+.soap-assessment { border-left: 2px solid rgba(212, 160, 58, 0.5); }
+.soap-plan { border-left: 2px solid rgba(46, 174, 123, 0.5); }
+
+/* Medication table row */
+.med-row {
+  transition: background 0.2s ease;
+}
+.med-row:hover {
+  background: rgba(46, 174, 123, 0.04);
+}
+.med-row-alt {
+  background: rgba(26, 46, 76, 0.15);
+}
+
 /* ── Recharts estilos ──────────────────────────────────────────── */
 .recharts-cartesian-axis-tick-value {
   font-family: 'DM Mono', monospace !important;
