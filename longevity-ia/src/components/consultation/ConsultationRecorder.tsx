@@ -1,9 +1,13 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { Mic, Square, Loader2, Send } from 'lucide-react'
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react'
+import { Mic, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Consultation } from '@/types'
+
+const StarScene = lazy(() =>
+  import('./StarScene').then(m => ({ default: m.StarScene }))
+)
 
 interface ConsultationRecorderProps {
   patientId: string
@@ -14,26 +18,12 @@ interface ConsultationRecorderProps {
 type Phase = 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'done' | 'error'
 
 const PHASE_LABELS: Record<Phase, string> = {
-  idle: 'Listo para grabar',
+  idle: 'Presiona la estrella para iniciar la consulta',
   recording: 'Grabando consulta...',
   transcribing: 'Transcribiendo audio...',
   analyzing: 'Generando nota SOAP...',
   done: 'Consulta guardada',
   error: 'Error en el proceso',
-}
-
-/* ── Keyframes ────────────────────────────────────────────── */
-const KF_ID = 'consultation-recorder-kf'
-function injectKF() {
-  if (typeof document === 'undefined' || document.getElementById(KF_ID)) return
-  const s = document.createElement('style')
-  s.id = KF_ID
-  s.textContent = `
-    @keyframes cr-pulse { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.15); opacity:.9; } }
-    @keyframes cr-ring  { 0% { transform:scale(.8); opacity:.6; } 100% { transform:scale(2); opacity:0; } }
-    @keyframes cr-spin  { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
-  `
-  document.head.appendChild(s)
 }
 
 export function ConsultationRecorder({ patientId, onSaved, disabled }: ConsultationRecorderProps) {
@@ -45,8 +35,6 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef(0)
-
-  useEffect(() => { injectKF() }, [])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -72,7 +60,7 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
 
-      recorder.start(1000) // chunk every second
+      recorder.start(1000)
       mediaRecRef.current = recorder
       startTimeRef.current = Date.now()
       setPhase('recording')
@@ -88,14 +76,12 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
   }, [])
 
   const stopAndProcess = useCallback(async () => {
-    // Stop recording
     const recorder = mediaRecRef.current
     if (!recorder || recorder.state !== 'recording') return
 
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000)
 
-    // Wait for final chunks
     await new Promise<void>((resolve) => {
       recorder.onstop = () => resolve()
       recorder.stop()
@@ -110,7 +96,6 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
       return
     }
 
-    // Phase 1: Transcribe
     setPhase('transcribing')
     try {
       const transcribeForm = new FormData()
@@ -133,7 +118,6 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
         return
       }
 
-      // Phase 2: Save + SOAP analysis
       setPhase('analyzing')
       const saveForm = new FormData()
       saveForm.append('patientId', patientId)
@@ -153,8 +137,6 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
 
       setPhase('done')
       onSaved(consultation)
-
-      // Reset after 3 seconds
       setTimeout(() => setPhase('idle'), 3000)
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Error desconocido')
@@ -162,101 +144,76 @@ export function ConsultationRecorder({ patientId, onSaved, disabled }: Consultat
     }
   }, [patientId, onSaved])
 
+  function handleStarClick() {
+    if (disabled || phase === 'transcribing' || phase === 'analyzing' || phase === 'done') return
+    if (phase === 'recording') {
+      stopAndProcess()
+    } else {
+      startRecording()
+    }
+  }
+
   const isRecording = phase === 'recording'
   const isProcessing = phase === 'transcribing' || phase === 'analyzing'
   const mins = Math.floor(elapsed / 60)
   const secs = elapsed % 60
 
-  // Sphere colors per phase
-  const sphereColor = phase === 'recording' ? 'rgba(212, 83, 106, 0.8)'
-    : phase === 'transcribing' ? 'rgba(91, 164, 201, 0.8)'
-    : phase === 'analyzing' ? 'rgba(46, 174, 123, 0.8)'
-    : phase === 'done' ? 'rgba(46, 174, 123, 0.9)'
-    : phase === 'error' ? 'rgba(212, 83, 106, 0.6)'
-    : 'rgba(46, 174, 123, 0.5)'
-
-  const sphereGlow = phase === 'recording' ? '0 0 40px rgba(212, 83, 106, 0.3), 0 0 80px rgba(212, 83, 106, 0.1)'
-    : isProcessing ? '0 0 40px rgba(91, 164, 201, 0.3), 0 0 80px rgba(91, 164, 201, 0.1)'
-    : '0 0 30px rgba(46, 174, 123, 0.2), 0 0 60px rgba(46, 174, 123, 0.08)'
-
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* Sphere */}
-      <div className="relative" style={{ width: 200, height: 200 }}>
-        {/* Pulse rings when recording */}
-        {isRecording && (
-          <>
-            <div className="absolute inset-0 rounded-full" style={{
-              border: `2px solid ${sphereColor}`,
-              animation: 'cr-ring 2s ease-out infinite',
-            }} />
-            <div className="absolute inset-0 rounded-full" style={{
-              border: `2px solid ${sphereColor}`,
-              animation: 'cr-ring 2s ease-out 0.6s infinite',
-            }} />
-            <div className="absolute inset-0 rounded-full" style={{
-              border: `2px solid ${sphereColor}`,
-              animation: 'cr-ring 2s ease-out 1.2s infinite',
-            }} />
-          </>
-        )}
-
-        {/* Processing spinner ring */}
-        {isProcessing && (
-          <div className="absolute inset-[-10px] rounded-full" style={{
-            border: '2px solid transparent',
-            borderTopColor: sphereColor,
-            borderRightColor: sphereColor,
-            animation: 'cr-spin 1.2s linear infinite',
-          }} />
-        )}
-
-        {/* Main sphere */}
-        <button
-          onClick={isRecording ? stopAndProcess : startRecording}
+    <div className="flex flex-col items-center gap-4">
+      {/* 3D Star */}
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center" style={{ width: 280, height: 280 }}>
+            <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
+              <Mic size={28} className="text-accent/40" />
+            </div>
+          </div>
+        }
+      >
+        <StarScene
+          phase={phase}
+          onClick={handleStarClick}
           disabled={disabled || isProcessing || phase === 'done'}
-          className="absolute inset-4 rounded-full flex flex-col items-center justify-center cursor-pointer transition-all duration-500 disabled:cursor-not-allowed"
-          style={{
-            background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.1) 0%, ${sphereColor} 60%, rgba(0,0,0,0.3) 100%)`,
-            boxShadow: sphereGlow,
-            animation: isRecording ? 'cr-pulse 2s ease-in-out infinite' : undefined,
-          }}
-        >
-          {phase === 'idle' && <Mic size={36} className="text-white/90" />}
-          {isRecording && <Square size={28} className="text-white" />}
-          {isProcessing && <Loader2 size={32} className="text-white animate-spin" />}
-          {phase === 'done' && <Send size={28} className="text-white" />}
-          {phase === 'error' && <Mic size={32} className="text-white/70" />}
-        </button>
-      </div>
+        />
+      </Suspense>
 
       {/* Timer */}
       {isRecording && (
-        <div className="font-mono text-2xl font-bold text-foreground tabular-nums">
+        <div className="font-mono text-3xl font-bold text-foreground tabular-nums tracking-wider">
           {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
         </div>
       )}
 
-      {/* Phase label */}
-      <p className="text-sm text-muted-foreground text-center">
-        {errorMsg || PHASE_LABELS[phase]}
-      </p>
+      {/* Processing indicator */}
+      {isProcessing && (
+        <div className="flex items-center gap-2 text-info">
+          <Loader2 size={16} className="animate-spin" />
+          <span className="text-sm font-medium">{PHASE_LABELS[phase]}</span>
+        </div>
+      )}
 
-      {/* Action hint */}
+      {/* Phase label */}
+      {!isProcessing && (
+        <p className={`text-sm text-center ${phase === 'error' ? 'text-danger' : phase === 'done' ? 'text-accent font-medium' : 'text-muted-foreground'}`}>
+          {errorMsg || PHASE_LABELS[phase]}
+        </p>
+      )}
+
+      {/* Hints */}
       {phase === 'idle' && (
-        <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
-          Presiona la esfera para iniciar la grabacion de la consulta medica. Al terminar, el audio sera transcrito y analizado automaticamente.
+        <p className="text-xs text-muted-foreground/50 text-center max-w-xs">
+          El audio sera transcrito y analizado automaticamente al finalizar
         </p>
       )}
       {isRecording && (
-        <p className="text-xs text-danger/80 text-center">
-          Presiona la esfera para detener y procesar la consulta
+        <p className="text-xs text-danger/70 text-center animate-pulse">
+          Toca la estrella para detener y procesar
         </p>
       )}
 
       {/* Error retry */}
       {phase === 'error' && (
-        <Button variant="outline" size="sm" onClick={() => setPhase('idle')}>
+        <Button variant="outline" size="sm" onClick={() => { setPhase('idle'); setErrorMsg('') }}>
           Intentar de nuevo
         </Button>
       )}

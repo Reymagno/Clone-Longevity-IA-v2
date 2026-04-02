@@ -36,6 +36,7 @@ function SOAPSection({ label, icon: Icon, content, color }: {
         className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/10 transition-colors"
       >
         <div className="flex items-center gap-2">
+          {/* @ts-expect-error lucide-react type mismatch */}
           <Icon size={14} className={color} />
           <span className="text-xs font-semibold text-foreground">{label}</span>
         </div>
