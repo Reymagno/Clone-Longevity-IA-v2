@@ -502,13 +502,9 @@ export async function generateMedicalReport(
   boxStroke(MG, LEGAL_Y, CW, legalH, [250, 251, 253] as RGB, C.border, 0.15)
   pdf.text(legalLines, MG + 5, LEGAL_Y + 4)
 
-  // ── Footer portada (posicionado debajo del disclaimer) ────────
-  const footerY = Math.max(LEGAL_Y + legalH + 8, PH - 16)
-  dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, footerY, PW - MG, footerY)
-  ink(C.gold); sz(7); b(); t('Longevity IA', MG, footerY + 6)
+  // ── Footer portada ─────────────────────────────────────────────
   ink(C.muted); sz(6.5); n()
-  t('Medicina de Precisión · Longevidad · Bienestar', MG + 24, footerY + 6)
-  t('Pág. 1', PW - MG, footerY + 6, 'right')
+  t('Pág. 1', PW - MG, PH - 8, 'right')
 
   // ═══════════════════════════════════════════════════════════════
   // RESUMEN EJECUTIVO
