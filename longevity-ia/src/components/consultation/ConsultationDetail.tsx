@@ -6,6 +6,7 @@ import {
   X, FileDown, Calendar, Clock, Tag, MessageSquare,
   ChevronDown, ChevronUp, Stethoscope, User,
   ClipboardList, Activity, Target, CheckCircle2,
+  Pill, FlaskConical, AlertTriangle, Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
@@ -53,6 +54,12 @@ function SOAPSection({ label, icon: Icon, content, color }: {
 export function ConsultationDetail({ consultation, patient, onClose, medicoName }: ConsultationDetailProps) {
   const [downloading, setDownloading] = useState(false)
   const soap = consultation.ai_soap as ConsultationSOAP | null
+  const soapExt = (consultation.ai_soap || {}) as {
+    key_findings?: string[]
+    medications?: { name: string; dose?: string; instructions?: string }[]
+    pending_studies?: string[]
+    alerts?: string[]
+  }
   const speakers = (consultation.speakers || {}) as Record<string, string>
   const speakerEntries = Object.entries(speakers)
 
@@ -165,6 +172,79 @@ export function ConsultationDetail({ consultation, patient, onClose, medicoName 
                   <p className="text-xs text-foreground">{soap.follow_up}</p>
                 </div>
               )}
+
+              {/* Key Findings */}
+              {soapExt.key_findings && soapExt.key_findings.length > 0 && (
+                <div className="rounded-lg border border-info/20 bg-info/5 p-3">
+                  <p className="text-[10px] font-semibold text-info mb-2 flex items-center gap-1">
+                    <Lightbulb size={10} />
+                    Hallazgos Clave
+                  </p>
+                  <ul className="space-y-1">
+                    {soapExt.key_findings.map((f: string, i: number) => (
+                      <li key={i} className="text-xs text-foreground flex items-start gap-1.5">
+                        <span className="text-info mt-0.5">•</span>{f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Medications */}
+              {soapExt.medications && soapExt.medications.length > 0 && (
+                <div className="rounded-lg border border-accent/20 bg-accent/5 p-3">
+                  <p className="text-[10px] font-semibold text-accent mb-2 flex items-center gap-1">
+                    <Pill size={10} />
+                    Medicamentos Indicados
+                  </p>
+                  <div className="space-y-1.5">
+                    {soapExt.medications.map((m: { name: string; dose?: string; instructions?: string }, i: number) => (
+                      <div key={i} className="text-xs text-foreground flex items-start gap-1.5">
+                        <span className="text-accent mt-0.5">•</span>
+                        <span>
+                          <strong>{m.name}</strong>
+                          {m.dose && <span className="text-muted-foreground font-mono ml-1">{m.dose}</span>}
+                          {m.instructions && <span className="text-muted-foreground ml-1">— {m.instructions}</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Studies */}
+              {soapExt.pending_studies && soapExt.pending_studies.length > 0 && (
+                <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
+                  <p className="text-[10px] font-semibold text-warning mb-2 flex items-center gap-1">
+                    <FlaskConical size={10} />
+                    Estudios Pendientes
+                  </p>
+                  <ul className="space-y-1">
+                    {soapExt.pending_studies.map((s: string, i: number) => (
+                      <li key={i} className="text-xs text-foreground flex items-start gap-1.5">
+                        <span className="text-warning mt-0.5">•</span>{s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Alerts */}
+              {soapExt.alerts && soapExt.alerts.length > 0 && (
+                <div className="rounded-lg border border-danger/20 bg-danger/5 p-3">
+                  <p className="text-[10px] font-semibold text-danger mb-2 flex items-center gap-1">
+                    <AlertTriangle size={10} />
+                    Alertas Clinicas
+                  </p>
+                  <ul className="space-y-1">
+                    {soapExt.alerts.map((a: string, i: number) => (
+                      <li key={i} className="text-xs text-danger/90 flex items-start gap-1.5">
+                        <span className="mt-0.5">•</span>{a}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -178,15 +258,15 @@ export function ConsultationDetail({ consultation, patient, onClose, medicoName 
             </div>
           )}
 
-          {/* Full transcript */}
+          {/* Clinical Insights (condensed, not raw dialogue) */}
           {consultation.transcript && (
             <div>
               <h3 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
                 <MessageSquare size={12} className="text-muted-foreground" />
-                Transcripcion completa
+                Insights Clinicos
               </h3>
               <div className="rounded-xl border border-border/30 bg-muted/10 p-4 max-h-80 overflow-y-auto">
-                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap font-mono">
+                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {consultation.transcript}
                 </p>
               </div>

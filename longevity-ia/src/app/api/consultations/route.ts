@@ -102,36 +102,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Analizar transcripción con Claude — generar SOAP + resumen + tags
+    // Analizar transcripción con Claude — extraer SOLO insights clínicos (no guardar diálogo crudo)
     let aiSummary: string | null = null
     let aiSoap: Record<string, unknown> | null = null
     let tags: string[] = []
     let speakers: Record<string, string> = {}
+    let clinicalInsights = ''  // versión condensada con solo lo clínicamente relevante
 
     try {
       const analysisResponse = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6-20250514',
-        max_tokens: 3000,
-        system: `Eres un asistente medico clinico especializado en medicina de longevidad. Analiza la siguiente transcripcion de consulta medica entre un doctor y un paciente.
+        max_tokens: 4000,
+        system: `Eres un asistente medico clinico especializado en medicina de longevidad. Analiza la siguiente transcripcion de consulta medica y EXTRAE UNICAMENTE los insights clinicos relevantes.
+
+NO guardes el dialogo textual. Transforma la conversacion en informacion clinica estructurada.
 
 Debes responder EXCLUSIVAMENTE con un JSON valido (sin markdown, sin backticks) con esta estructura:
 {
   "speakers": {"Speaker 1": "Doctor" o nombre si se menciona, "Speaker 2": "Paciente" o nombre si se menciona},
   "soap": {
-    "subjective": "Lo que el paciente reporta: sintomas, quejas, historia",
-    "objective": "Datos objetivos mencionados: signos vitales, resultados, hallazgos",
-    "assessment": "Evaluacion clinica: diagnosticos, impresiones, analisis",
-    "plan": "Plan de tratamiento: medicamentos, estudios, seguimiento, cambios de estilo de vida",
-    "diagnoses": ["lista de diagnosticos mencionados"],
-    "follow_up": "cuando y como debe ser el seguimiento"
+    "subjective": "Sintomas, quejas y preocupaciones reportadas por el paciente (redactado como nota clinica, NO como dialogo)",
+    "objective": "Datos objetivos mencionados: signos vitales, resultados de estudios, hallazgos clinicos, mediciones",
+    "assessment": "Evaluacion clinica del medico: diagnosticos, impresiones diagnosticas, correlaciones clinicas",
+    "plan": "Plan de tratamiento completo: medicamentos con dosis, estudios solicitados, interconsultas, proxima cita, cambios de estilo de vida",
+    "diagnoses": ["lista de diagnosticos o impresiones diagnosticas mencionados"],
+    "follow_up": "fecha o periodo de seguimiento y que se debe evaluar"
   },
-  "summary": "Resumen ejecutivo de 2-3 oraciones con lo mas importante de la consulta",
-  "tags": ["etiquetas relevantes como: seguimiento, primera-vez, urgente, preventivo, resultados, tratamiento, etc."]
+  "summary": "Resumen ejecutivo de 2-3 oraciones con los hallazgos y decisiones mas importantes",
+  "key_findings": [
+    "Hallazgo clinico 1 (dato especifico, no generalidades)",
+    "Hallazgo clinico 2",
+    "Decision terapeutica importante"
+  ],
+  "medications": [
+    {"name": "nombre del medicamento", "dose": "dosis", "instructions": "indicaciones"}
+  ],
+  "pending_studies": ["estudios o laboratorios solicitados"],
+  "alerts": ["cualquier dato de alarma o urgencia que requiera atencion inmediata"],
+  "tags": ["etiquetas: seguimiento, primera-vez, urgente, preventivo, resultados, tratamiento, etc."]
 }
 
 Contexto del paciente: ${patient.name}, ${patient.age} anos, ${patient.gender === 'male' ? 'masculino' : patient.gender === 'female' ? 'femenino' : 'otro'}.
 
-Responde en espanol. Si la transcripcion es muy corta o no tiene contenido medico, genera igualmente el JSON con los campos que puedas llenar y deja vacios los demas.`,
+IMPORTANTE:
+- Redacta como nota clinica profesional, NO como transcripcion de dialogo
+- Incluye datos especificos (numeros, dosis, fechas) mencionados en la consulta
+- Omite saludos, despedidas, conversacion social y repeticiones
+- Si mencionan medicamentos, incluye nombre y dosis exacta
+- Si mencionan estudios previos, incluye los valores relevantes`,
         messages: [{
           role: 'user',
           content: `Transcripcion de consulta medica:\n\n"${transcript}"`,
@@ -146,22 +164,46 @@ Responde en espanol. Si la transcripcion es muy corta o no tiene contenido medic
           aiSoap = parsed.soap || null
           tags = parsed.tags || []
           speakers = parsed.speakers || {}
+
+          // Construir insights condensados a partir del análisis (reemplaza la transcripción cruda)
+          const parts: string[] = []
+          if (parsed.summary) parts.push(`RESUMEN: ${parsed.summary}`)
+          if (parsed.key_findings?.length) parts.push(`HALLAZGOS: ${parsed.key_findings.join(' | ')}`)
+          if (parsed.medications?.length) {
+            const meds = parsed.medications.map((m: { name: string; dose?: string; instructions?: string }) =>
+              `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.instructions ? ` — ${m.instructions}` : ''}`
+            )
+            parts.push(`MEDICAMENTOS: ${meds.join(' | ')}`)
+          }
+          if (parsed.pending_studies?.length) parts.push(`ESTUDIOS PENDIENTES: ${parsed.pending_studies.join(' | ')}`)
+          if (parsed.alerts?.length) parts.push(`ALERTAS: ${parsed.alerts.join(' | ')}`)
+          if (parsed.soap?.diagnoses?.length) parts.push(`DIAGNOSTICOS: ${parsed.soap.diagnoses.join(' | ')}`)
+          if (parsed.soap?.follow_up) parts.push(`SEGUIMIENTO: ${parsed.soap.follow_up}`)
+
+          clinicalInsights = parts.join('\n\n')
+
+          // Agregar medications, pending_studies y alerts al SOAP para tener todo en un solo lugar
+          if (parsed.medications) aiSoap = { ...aiSoap as object, medications: parsed.medications }
+          if (parsed.pending_studies) aiSoap = { ...aiSoap as object, pending_studies: parsed.pending_studies }
+          if (parsed.alerts) aiSoap = { ...aiSoap as object, alerts: parsed.alerts }
+          if (parsed.key_findings) aiSoap = { ...aiSoap as object, key_findings: parsed.key_findings }
         } catch {
-          // Si no se pudo parsear JSON, usar como resumen de texto plano
           aiSummary = textBlock.text
+          clinicalInsights = textBlock.text
         }
       }
     } catch {
-      // Si falla el analisis, guardamos sin resumen
+      // Si falla el análisis, guardar transcripción como fallback
+      clinicalInsights = transcript
     }
 
-    // Guardar en base de datos
+    // Guardar en base de datos — solo insights clínicos, NO el diálogo crudo
     const { data: consultation, error: insertError } = await supabase
       .from('consultations')
       .insert({
         patient_id: patientId,
         medico_user_id: user.id,
-        transcript,
+        transcript: clinicalInsights,  // insights condensados en vez de diálogo completo
         speakers,
         ai_summary: aiSummary,
         ai_soap: aiSoap,
