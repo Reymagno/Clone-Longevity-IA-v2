@@ -74,15 +74,16 @@ export async function GET(request: NextRequest) {
         .in('patient_id', patientIds)
         .gte('created_at', monthStart)
       analysesThisMonth = aCount ?? 0
-
-      const { count: alertCount } = await admin
-        .from('medico_alerts')
-        .select('id', { count: 'exact', head: true })
-        .in('medico_user_id', medicoUserIds)
-        .eq('read', false)
-        .eq('dismissed', false)
-      pendingAlerts = alertCount ?? 0
     }
+
+    // Alertas pendientes — depende de médicos, no de pacientes
+    const { count: alertCount } = await admin
+      .from('medico_alerts')
+      .select('id', { count: 'exact', head: true })
+      .in('medico_user_id', medicoUserIds)
+      .eq('read', false)
+      .eq('dismissed', false)
+    pendingAlerts = alertCount ?? 0
   }
 
   const stats: ClinicStats = {
