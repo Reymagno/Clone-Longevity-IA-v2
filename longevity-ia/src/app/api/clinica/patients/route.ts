@@ -40,31 +40,48 @@ export async function GET(request: NextRequest) {
   for (const l of linkedMedicos.data ?? []) allMedicoIds.add(l.medico_user_id)
   const medicoUserIds = Array.from(allMedicoIds)
 
-  // Buscar pacientes: con clinica_id O cuyos user_id sea un médico de la clínica
+  // Buscar pacientes de dos fuentes:
+  // 1. Creados por el médico (patients.user_id = medico)
+  // 2. Vinculados por código MED-XXXXX (patient_medico_links.status = 'active')
   const medicoFilter = request.nextUrl.searchParams.get('medico_user_id')
-  let patients: Record<string, unknown>[] = []
+  const targetMedicoIds = medicoFilter
+    ? (medicoUserIds.includes(medicoFilter) ? [medicoFilter] : [])
+    : medicoUserIds
 
-  if (medicoFilter) {
-    // Filtrar por un médico específico (verificar que pertenece a la clínica)
-    if (!medicoUserIds.includes(medicoFilter)) {
-      return NextResponse.json({ error: 'Médico no pertenece a esta clínica' }, { status: 403 })
-    }
-    const { data } = await admin
-      .from('patients')
-      .select('*')
-      .eq('user_id', medicoFilter)
-      .order('created_at', { ascending: false })
-    patients = data ?? []
-  } else if (medicoUserIds.length > 0) {
-    // Todos los pacientes de todos los médicos de la clínica
-    const { data } = await admin
-      .from('patients')
-      .select('*')
-      .in('user_id', medicoUserIds)
-      .order('created_at', { ascending: false })
-    patients = data ?? []
+  if (medicoFilter && !medicoUserIds.includes(medicoFilter)) {
+    return NextResponse.json({ error: 'Médico no pertenece a esta clínica' }, { status: 403 })
   }
 
+  const patientMap = new Map<string, Record<string, unknown>>()
+
+  if (targetMedicoIds.length > 0) {
+    // Pacientes creados directamente por los médicos
+    const { data: ownedPatients } = await admin
+      .from('patients')
+      .select('*')
+      .in('user_id', targetMedicoIds)
+      .order('created_at', { ascending: false })
+    for (const p of ownedPatients ?? []) patientMap.set(p.id, p)
+
+    // Pacientes vinculados por código al médico (patient_medico_links)
+    const { data: links } = await admin
+      .from('patient_medico_links')
+      .select('patient_id')
+      .in('medico_user_id', targetMedicoIds)
+      .eq('status', 'active')
+
+    const linkedPatientIds = (links ?? []).map(l => l.patient_id).filter(id => !patientMap.has(id))
+    if (linkedPatientIds.length > 0) {
+      const { data: linkedPatients } = await admin
+        .from('patients')
+        .select('*')
+        .in('id', linkedPatientIds)
+        .order('created_at', { ascending: false })
+      for (const p of linkedPatients ?? []) patientMap.set(p.id, p)
+    }
+  }
+
+  const patients = Array.from(patientMap.values())
   return NextResponse.json({ patients })
 }
 

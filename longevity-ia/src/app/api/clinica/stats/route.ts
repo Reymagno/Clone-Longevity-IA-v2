@@ -48,19 +48,24 @@ export async function GET(request: NextRequest) {
   let pendingAlerts = 0
 
   if (medicoUserIds.length > 0) {
-    // Total pacientes de los médicos de la clínica
-    const { count: pCount } = await admin
-      .from('patients')
-      .select('id', { count: 'exact', head: true })
-      .in('user_id', medicoUserIds)
-    totalPatients = pCount ?? 0
+    // Pacientes propios + vinculados por código
+    const patientIdSet = new Set<string>()
 
-    // Obtener IDs de pacientes para queries de lab_results y alerts
-    const { data: patientRows } = await admin
+    const { data: ownedPatients } = await admin
       .from('patients')
       .select('id')
       .in('user_id', medicoUserIds)
-    const patientIds = (patientRows ?? []).map(p => p.id)
+    for (const p of ownedPatients ?? []) patientIdSet.add(p.id)
+
+    const { data: linkedPatients } = await admin
+      .from('patient_medico_links')
+      .select('patient_id')
+      .in('medico_user_id', medicoUserIds)
+      .eq('status', 'active')
+    for (const l of linkedPatients ?? []) patientIdSet.add(l.patient_id)
+
+    totalPatients = patientIdSet.size
+    const patientIds = Array.from(patientIdSet)
 
     if (patientIds.length > 0) {
       const { count: aCount } = await admin

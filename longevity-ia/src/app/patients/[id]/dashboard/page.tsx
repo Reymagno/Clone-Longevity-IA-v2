@@ -49,8 +49,23 @@ async function getServerData(
         for (const m of directM.data ?? []) idSet.add(m.user_id)
         for (const l of linkedM.data ?? []) idSet.add(l.medico_user_id)
         const medicoIds = Array.from(idSet)
-        const { data: pat } = await admin.from('patients').select('user_id').eq('id', patientId).maybeSingle()
-        if (!pat || !medicoIds.includes(pat.user_id)) {
+        const { data: pat } = await admin.from('patients').select('id, user_id').eq('id', patientId).maybeSingle()
+        if (!pat) return { patient: null, result: null, allResults: [], viewerRole }
+        // Verificar: paciente creado por un médico del staff O vinculado por código
+        const isOwned = medicoIds.includes(pat.user_id)
+        let isLinked = false
+        if (!isOwned) {
+          const { data: link } = await admin
+            .from('patient_medico_links')
+            .select('id')
+            .eq('patient_id', pat.id)
+            .in('medico_user_id', medicoIds)
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle()
+          isLinked = !!link
+        }
+        if (!isOwned && !isLinked) {
           return { patient: null, result: null, allResults: [], viewerRole }
         }
       }
