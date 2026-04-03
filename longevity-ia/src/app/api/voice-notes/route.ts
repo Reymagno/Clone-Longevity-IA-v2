@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 import Anthropic from '@anthropic-ai/sdk'
 
 export const maxDuration = 120
@@ -90,10 +91,8 @@ export async function POST(request: NextRequest) {
         .upload(filePath, audioBlob, { contentType: 'audio/webm' })
 
       if (!uploadError) {
-        const { data: urlData } = supabase.storage
-          .from('voice-notes')
-          .getPublicUrl(filePath)
-        audioUrl = urlData.publicUrl
+        // Store the storage path, not a public URL (HIPAA: private buckets)
+        audioUrl = filePath
       }
     }
 
@@ -168,6 +167,8 @@ Responde en español, de forma concisa y clínica. Si la nota no contiene inform
       console.error('Clinical history voice note ref update failed:', histErr instanceof Error ? histErr.message : histErr)
     }
 
+    logAudit({ userId: user.id, email: user.email ?? undefined, action: 'create_voice_note', resourceType: 'voice_note', resourceId: note.id, patientId }, request)
+
     return NextResponse.json({ note })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error al guardar nota'
@@ -206,11 +207,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado para eliminar esta nota' }, { status: 403 })
     }
 
-    // Eliminar audio de storage si existe
+    // Eliminar audio de storage si existe (handles both bare paths and legacy full URLs)
     if (note.audio_url) {
-      const urlParts = note.audio_url.split('/voice-notes/')
-      if (urlParts[1]) {
-        await supabase.storage.from('voice-notes').remove([urlParts[1]])
+      const path = note.audio_url.startsWith('http')
+        ? note.audio_url.split('/voice-notes/')[1]
+        : note.audio_url
+      if (path) {
+        await supabase.storage.from('voice-notes').remove([path])
       }
     }
 
@@ -221,6 +224,8 @@ export async function DELETE(request: NextRequest) {
       .eq('id', noteId)
 
     if (error) throw error
+
+    logAudit({ userId: user.id, email: user.email ?? undefined, action: 'delete_voice_note', resourceType: 'voice_note', resourceId: noteId }, request)
 
     return NextResponse.json({ success: true })
   } catch (err) {

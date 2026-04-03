@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 
 // ─── GET /api/profile ────────────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -81,6 +82,7 @@ export async function PATCH(request: NextRequest) {
         await supabase.auth.updateUser({ data: { full_name: body.full_name } })
       }
 
+      logAudit({ userId: user.id, email: user.email ?? undefined, role, action: 'update_profile', resourceType: 'medico', details: { fields: Object.keys(allowed) } }, request)
       return NextResponse.json({ role, ...data })
     }
 
@@ -106,6 +108,7 @@ export async function PATCH(request: NextRequest) {
         await supabase.auth.updateUser({ data: { full_name: body.clinic_name } })
       }
 
+      logAudit({ userId: user.id, email: user.email ?? undefined, role, action: 'update_profile', resourceType: 'clinica', details: { fields: Object.keys(allowed) } }, request)
       return NextResponse.json({ role, ...data })
     }
 
@@ -126,6 +129,7 @@ export async function PATCH(request: NextRequest) {
       await supabase.auth.updateUser({ data: { full_name: body.full_name } })
     }
 
+    logAudit({ userId: user.id, email: user.email ?? undefined, role, action: 'update_profile', resourceType: 'profile', details: { fields: Object.keys(allowed) } }, request)
     return NextResponse.json({ role, ...data })
   } catch (err) {
     console.error('[PATCH /api/profile]', err)

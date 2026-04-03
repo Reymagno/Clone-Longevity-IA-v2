@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Download, ZoomIn, ZoomOut, X,
   ExternalLink, FileText, ImageIcon,
-  RotateCcw, Maximize2,
+  RotateCcw, Maximize2, Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getSignedUrl, extractPathFromUrl } from '@/lib/storage'
 
 interface FilesTabProps {
   fileUrls: string[]
@@ -269,6 +270,31 @@ function FileCard({
 
 // ─── Main component ──────────────────────────────────────────────
 export function FilesTab({ fileUrls, patientName, resultDate }: FilesTabProps) {
+  // Resolve signed URLs for private storage paths
+  const [resolvedUrls, setResolvedUrls] = useState<(string | null)[]>([])
+  const [resolving, setResolving] = useState(true)
+
+  const resolveUrls = useCallback(async () => {
+    if (!fileUrls || fileUrls.length === 0) {
+      setResolving(false)
+      return
+    }
+    setResolving(true)
+    const urls = await Promise.all(
+      fileUrls.map(async (urlOrPath) => {
+        // If it is already a full http URL (legacy data), use it directly
+        if (urlOrPath.startsWith('http')) return urlOrPath
+        // Otherwise it is a bare storage path — get a signed URL
+        const path = extractPathFromUrl(urlOrPath, 'lab-files')
+        return getSignedUrl('lab-files', path)
+      })
+    )
+    setResolvedUrls(urls)
+    setResolving(false)
+  }, [fileUrls])
+
+  useEffect(() => { resolveUrls() }, [resolveUrls])
+
   if (!fileUrls || fileUrls.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
@@ -277,14 +303,25 @@ export function FilesTab({ fileUrls, patientName, resultDate }: FilesTabProps) {
         </div>
         <p className="text-foreground font-semibold">Sin archivos adjuntos</p>
         <p className="text-sm text-muted-foreground max-w-xs">
-          Este resultado no tiene imágenes ni PDFs asociados.
+          Este resultado no tiene imagenes ni PDFs asociados.
         </p>
       </div>
     )
   }
 
-  const images = fileUrls.filter(isImage)
-  const pdfs   = fileUrls.filter(u => !isImage(u))
+  if (resolving) {
+    return (
+      <div className="flex items-center justify-center gap-3 py-24">
+        <Loader2 size={20} className="animate-spin text-accent" />
+        <p className="text-sm text-muted-foreground">Cargando archivos...</p>
+      </div>
+    )
+  }
+
+  // Filter out any that failed to resolve
+  const validUrls = resolvedUrls.filter(Boolean) as string[]
+  const images = validUrls.filter(isImage)
+  const pdfs   = validUrls.filter(u => !isImage(u))
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -293,16 +330,16 @@ export function FilesTab({ fileUrls, patientName, resultDate }: FilesTabProps) {
         <div>
           <h2 className="text-xl font-bold text-foreground">Estudio Original</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {fileUrls.length} archivo{fileUrls.length > 1 ? 's' : ''} adjunto{fileUrls.length > 1 ? 's' : ''}
+            {validUrls.length} archivo{validUrls.length > 1 ? 's' : ''} adjunto{validUrls.length > 1 ? 's' : ''}
             {images.length > 0 && ` · ${images.length} imagen${images.length > 1 ? 'es' : ''}`}
             {pdfs.length > 0   && ` · ${pdfs.length} PDF${pdfs.length > 1 ? 's' : ''}`}
           </p>
         </div>
 
         {/* Download all */}
-        {fileUrls.length > 1 && (
+        {validUrls.length > 1 && (
           <div className="flex gap-2">
-            {fileUrls.map((url, i) => (
+            {validUrls.map((url, i) => (
               <a
                 key={i}
                 href={url}
@@ -320,9 +357,9 @@ export function FilesTab({ fileUrls, patientName, resultDate }: FilesTabProps) {
 
       {/* File cards */}
       <div className="space-y-4">
-        {fileUrls.map((url, i) => (
+        {validUrls.map((url, i) => (
           <FileCard
-            key={url}
+            key={`${url}-${i}`}
             url={url}
             index={i}
             patientName={patientName}

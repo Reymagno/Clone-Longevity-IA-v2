@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { generatePatientCode } from '@/lib/utils'
+import { logAudit } from '@/lib/audit'
 
 // GET /api/clinica/patients — listar pacientes de la clínica
 export async function GET(request: NextRequest) {
@@ -165,6 +166,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+
+  logAudit({ userId: user.id, email: user.email ?? undefined, role: 'clinica', action: 'create_patient', resourceType: 'patient', resourceId: patient.id, patientId: patient.id, details: { medico_user_id } }, request)
 
   return NextResponse.json({ patient }, { status: 201 })
 }

@@ -11,11 +11,13 @@ import { toast } from 'sonner'
 import { LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { LogoIcon } from '@/components/ui/logo-icon'
+import { MFAVerify } from '@/components/auth/MFAVerify'
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
+  const [needsMFA, setNeedsMFA] = useState(false)
 
   function set(field: 'email' | 'password', value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -35,6 +37,15 @@ export default function LoginPage() {
         password: form.password,
       })
       if (error) throw error
+
+      // Check if MFA is required
+      const { data: factors } = await supabase.auth.mfa.listFactors()
+      const totp = factors?.totp?.[0]
+      if (totp?.status === 'verified') {
+        setNeedsMFA(true)
+        return
+      }
+
       router.push('/patients')
       router.refresh()
     } catch (err) {
@@ -43,6 +54,17 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (needsMFA) {
+    return (
+      <MFAVerify
+        onVerified={() => {
+          router.push('/patients')
+          router.refresh()
+        }}
+      />
+    )
   }
 
   return (

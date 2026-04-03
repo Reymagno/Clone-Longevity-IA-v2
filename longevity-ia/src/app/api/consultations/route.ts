@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 import Anthropic from '@anthropic-ai/sdk'
 
 export const maxDuration = 120
@@ -99,10 +100,8 @@ export async function POST(request: NextRequest) {
           .upload(filePath, audioBlob, { contentType: 'audio/webm' })
 
         if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from('consultation-audio')
-            .getPublicUrl(filePath)
-          audioUrl = urlData.publicUrl
+          // Store the storage path, not a public URL (HIPAA: private buckets)
+          audioUrl = filePath
         }
         // Si falla el upload (bucket no existe, etc.), continuamos sin audio
       } catch (storageErr) {
@@ -271,6 +270,8 @@ IMPORTANTE:
       }, { status: 500 })
     }
 
+    logAudit({ userId: user.id, email: user.email ?? undefined, action: 'create_consultation', resourceType: 'consultation', resourceId: consultation.id, patientId }, request)
+
     return NextResponse.json({ consultation })
   } catch (err) {
     console.error('Consultation POST error:', err)
@@ -309,11 +310,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado para eliminar esta consulta' }, { status: 403 })
     }
 
-    // Eliminar audio de storage
+    // Eliminar audio de storage (handles both bare paths and legacy full URLs)
     if (consultation.audio_url) {
-      const urlParts = consultation.audio_url.split('/consultation-audio/')
-      if (urlParts[1]) {
-        await supabase.storage.from('consultation-audio').remove([urlParts[1]])
+      const path = consultation.audio_url.startsWith('http')
+        ? consultation.audio_url.split('/consultation-audio/')[1]
+        : consultation.audio_url
+      if (path) {
+        await supabase.storage.from('consultation-audio').remove([path])
       }
     }
 

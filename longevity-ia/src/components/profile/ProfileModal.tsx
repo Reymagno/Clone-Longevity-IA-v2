@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { UserAvatar } from '@/components/profile/UserAvatar'
 import { toast } from 'sonner'
+import { MFASetup } from '@/components/auth/MFASetup'
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -359,6 +360,11 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
                   />
                 </>
               )}
+            </div>
+
+            {/* MFA Setup */}
+            <div className="px-6 pb-2">
+              <MFASetup />
             </div>
 
             {/* Footer */}

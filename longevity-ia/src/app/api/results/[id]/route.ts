@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
+import { extractPathFromUrl } from '@/lib/storage'
 
 export async function GET(
   request: NextRequest,
@@ -47,15 +49,11 @@ export async function DELETE(
     return NextResponse.json({ error: 'Resultado no encontrado o no autorizado' }, { status: 404 })
   }
 
-  // Eliminar archivos de storage
+  // Eliminar archivos de storage (handles both bare paths and legacy full URLs)
   const fileUrls: string[] = (result.file_urls as string[]) ?? []
   if (fileUrls.length > 0) {
     const paths = fileUrls
-      .map(url => {
-        const marker = '/lab-files/'
-        const idx = url.indexOf(marker)
-        return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null
-      })
+      .map(url => extractPathFromUrl(url, 'lab-files'))
       .filter(Boolean) as string[]
 
     if (paths.length > 0) {
@@ -72,6 +70,8 @@ export async function DELETE(
   if (deleteError) {
     return NextResponse.json({ error: `Error al eliminar: ${deleteError.message}` }, { status: 500 })
   }
+
+  logAudit({ userId: user.id, email: user.email ?? undefined, action: 'delete_result', resourceType: 'lab_result', resourceId: params.id, patientId: result.patient_id }, request)
 
   return NextResponse.json({ ok: true, patientId: result.patient_id })
 }

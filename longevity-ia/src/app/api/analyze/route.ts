@@ -8,6 +8,7 @@ import { createClientFromRequest } from '@/lib/supabase/server'
 import { extractBiomarkers, reanalyzeWithClinicalHistory } from '@/lib/anthropic/analyzer'
 import { generateAlertsForResult } from '@/lib/generate-alerts'
 import { buildVoiceNotesContext } from '@/lib/voice-notes-context'
+import { logAudit } from '@/lib/audit'
 
 /** Compute a combined SHA-256 hash of all file buffers for cache lookup */
 function computeFilesHash(buffers: Buffer[]): string {
@@ -114,8 +115,8 @@ export async function POST(request: NextRequest) {
                 const buffer = fileBuffers[i]
                 const fileName = `${patientId}/${timestamp}-${file.name.replace(/\s/g, '_')}`
                 await supabase.storage.from('lab-files').upload(fileName, buffer, { contentType: file.type, upsert: false })
-                const { data: urlData } = supabase.storage.from('lab-files').getPublicUrl(fileName)
-                fileUrls.push(urlData.publicUrl)
+                // Store the storage path, not a public URL (HIPAA: private buckets)
+                fileUrls.push(fileName)
               }
 
               send({ ok: true, step: 'analyzing' })
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
                 return
               }
 
+              logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'analyze_lab', resourceType: 'lab_result', resourceId: newResult.id, patientId: patientId ?? undefined, details: { cached: true } }, request)
               send({ ok: true, step: 'done', resultId: newResult.id, patientId, cached: true })
               return
             }
@@ -165,8 +167,8 @@ export async function POST(request: NextRequest) {
             return
           }
 
-          const { data: urlData } = supabase.storage.from('lab-files').getPublicUrl(fileName)
-          fileUrls.push(urlData.publicUrl)
+          // Store the storage path, not a public URL (HIPAA: private buckets)
+          fileUrls.push(fileName)
         }
 
         // Extraer biomarcadores (Llamada 1 a Claude — ligera, ~30-60s)
@@ -250,6 +252,7 @@ export async function POST(request: NextRequest) {
           true
         ).catch(e => console.error('Alert generation failed:', e))
 
+        logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'analyze_lab', resourceType: 'lab_result', resourceId: labResult.id, patientId: patientId ?? undefined }, request)
         send({ ok: true, step: 'done', resultId: labResult.id, patientId })
 
       } catch (error) {
