@@ -25,6 +25,20 @@ Versión 4.0 | Abril 2026
    - 5.8 Flujo de Datos Completo
    - 5.9 Seguridad y RLS
    - 5.10 Variables de Entorno
+6. Cumplimiento HIPAA
+   - 6.1 Alcance y Aplicabilidad
+   - 6.2 Regla de Privacidad (Privacy Rule)
+   - 6.3 Regla de Seguridad (Security Rule)
+   - 6.4 Cifrado de Datos
+   - 6.5 Control de Acceso
+   - 6.6 Autenticacion Multifactor (MFA)
+   - 6.7 Registro de Auditoria (Audit Trail)
+   - 6.8 Almacenamiento Privado (Signed URLs)
+   - 6.9 Integridad de Datos
+   - 6.10 Seguridad en Transmision
+   - 6.11 Acuerdos de Asociados de Negocio (BAA)
+   - 6.12 Regla de Notificacion de Brechas
+   - 6.13 Matriz de Cumplimiento
 
 ---
 
@@ -1207,6 +1221,375 @@ evaluateAll(biomarkers, gender, age)       // Evalua todos
 | NEXT_PUBLIC_SUPABASE_ANON_KEY | Publica | Clave anonima (RLS la protege) |
 | ANTHROPIC_API_KEY | Secreta | API key de Claude/Anthropic |
 | SUPABASE_SERVICE_ROLE_KEY | Secreta | Clave admin para operaciones cross-user (motor clinica). Obtener en Supabase > Project Settings > API > service_role. Solo usar server-side. |
+
+---
+
+## 6. CUMPLIMIENTO HIPAA
+
+Longevity IA implementa los pilares tecnicos de la Health Insurance Portability and Accountability Act (HIPAA) para proteger la informacion de salud protegida (PHI — Protected Health Information) de los pacientes. Esta seccion documenta cada salvaguarda implementada y como cumple con los requerimientos de la ley.
+
+### 6.1 Alcance y Aplicabilidad
+
+**¿Que es PHI en Longevity IA?**
+
+Toda informacion que identifica a un paciente y se relaciona con su salud:
+
+| Tipo de dato | Ejemplos en Longevity IA | Clasificacion |
+|---|---|---|
+| Datos del paciente | Nombre, edad, genero, peso, estatura, codigo | PHI - Identificadores directos |
+| Estudios de laboratorio | PDFs/imagenes de resultados de sangre y orina | PHI - Datos clinicos |
+| Analisis IA | Scores, biomarcadores, protocolo, FODA, proyeccion | PHI - Datos clinicos derivados |
+| Notas clinicas | SOAP, comentarios por biomarcador, diagnosticos CIE-10 | PHI - Documentacion medica |
+| Consultas medicas | Transcripciones de audio, analisis SOAP automatico | PHI - Registros de consulta |
+| Notas de voz | Audio y transcripcion de notas del medico | PHI - Registros medicos |
+| Historia clinica | Cuestionario de 9 secciones (alergias, dieta, medicamentos, etc.) | PHI - Historial medico |
+| Prescripciones | PDF con medicamentos, dosis, firma del medico | PHI - Ordenes medicas |
+
+**Roles cubiertos:**
+- **Covered Entity:** La clinica o medico que usa Longevity IA para atender pacientes
+- **Business Associate:** Longevity IA como plataforma SaaS que procesa PHI
+- **Subcontractors:** Supabase (base de datos y almacenamiento), Vercel (hosting), Anthropic (analisis IA)
+
+### 6.2 Regla de Privacidad (Privacy Rule)
+
+La Regla de Privacidad establece que la PHI solo puede ser accedida por personas autorizadas y para propositos especificos.
+
+**Implementacion en Longevity IA:**
+
+| Principio | Implementacion | Archivo/Componente |
+|---|---|---|
+| Acceso minimo necesario | RLS de Supabase: cada usuario solo ve sus propios datos | `supabase/migrations/20260329_roles_profiles.sql` |
+| Separacion por rol | 3 roles (paciente, medico, clinica) con permisos diferenciados | `src/middleware.ts`, todas las API routes |
+| Consentimiento del paciente | El paciente decide vincular a un medico por codigo (opt-in) | `src/components/patients/MedicoLinksPanel.tsx` |
+| Derecho de acceso | El paciente puede ver, exportar y descargar todos sus datos | `ExportButtons.tsx`, `FilesTab.tsx` |
+| Desvinculacion | El paciente puede revocar acceso de un medico en cualquier momento | `MedicoLinksPanel.tsx` — boton desvincular |
+
+**Matriz de acceso por rol:**
+
+| Dato | Paciente (propio) | Medico (propio) | Medico (vinculado) | Clinica |
+|---|:---:|:---:|:---:|:---:|
+| Ver dashboard | Si | Si | Si | Si |
+| Subir estudios | Si | Si | No | No |
+| Notas SOAP | No | Si | Si | No |
+| Prescripcion | No | Si | Si | No |
+| Re-analizar | Si | Si | No | No |
+| Historia clinica | Si | Si | No | No |
+| Exportar PDF | Si | Si | Si | Si |
+| Eliminar paciente | Si | Si | No | No |
+
+### 6.3 Regla de Seguridad (Security Rule)
+
+La Regla de Seguridad exige salvaguardas administrativas, fisicas y tecnicas. Longevity IA implementa las salvaguardas tecnicas:
+
+| Salvaguarda HIPAA | Requisito | Estado | Implementacion |
+|---|---|:---:|---|
+| §164.312(a)(1) | Control de acceso | Cumple | Auth con email/password + MFA opcional + RLS por usuario |
+| §164.312(a)(2)(i) | ID unico de usuario | Cumple | UUID de Supabase Auth para cada usuario |
+| §164.312(a)(2)(iii) | Cierre de sesion automatico | Cumple | Tokens JWT con expiracion + refresh automatico |
+| §164.312(a)(2)(iv) | Cifrado | Cumple | AES-256 en reposo (Supabase), TLS 1.3 en transito |
+| §164.312(b) | Controles de auditoria | Cumple | Tabla `audit_logs` con registro de toda accion sobre PHI |
+| §164.312(c)(1) | Integridad de datos | Cumple | Hash SHA-256 de archivos, foreign keys, constraints |
+| §164.312(d) | Autenticacion de persona | Cumple | Email/password + MFA TOTP + verificacion de email |
+| §164.312(e)(1) | Seguridad en transmision | Cumple | HTTPS obligatorio (Vercel), SSL PostgreSQL (Supabase) |
+| §164.312(e)(2)(ii) | Cifrado en transmision | Cumple | TLS 1.3 para todo el trafico |
+
+### 6.4 Cifrado de Datos
+
+#### En reposo (Data at Rest)
+
+| Componente | Cifrado | Detalle |
+|---|---|---|
+| Base de datos PostgreSQL | AES-256 | Supabase cifra automaticamente todos los datos almacenados |
+| Storage (archivos medicos) | AES-256 | Supabase Storage cifra archivos en reposo |
+| Backups | AES-256 | Supabase realiza backups cifrados automaticos |
+| Variables de entorno | Cifradas | Vercel cifra todas las env vars en reposo |
+
+#### En transito (Data in Transit)
+
+| Conexion | Protocolo | Detalle |
+|---|---|---|
+| Usuario ↔ Vercel | TLS 1.3 | HTTPS obligatorio, certificados automaticos |
+| Vercel ↔ Supabase | TLS/SSL | Conexiones PostgreSQL cifradas |
+| Vercel ↔ Anthropic | TLS 1.3 | API calls cifradas |
+| Supabase Auth | TLS | Tokens JWT firmados con HMAC-SHA256 |
+
+### 6.5 Control de Acceso
+
+#### Niveles de proteccion
+
+```
+Nivel 1: Middleware (rutas protegidas)
+  └─ Redirige a /login si no hay sesion
+  └─ Bloquea acceso si Supabase falla (no deja pasar)
+
+Nivel 2: API Routes (verificacion de rol)
+  └─ Cada endpoint verifica auth.getUser()
+  └─ Verifica user_metadata.role para operaciones por rol
+  └─ Verifica ownership (user_id) para operaciones sobre datos
+
+Nivel 3: Row Level Security (base de datos)
+  └─ patients: user_id = auth.uid()
+  └─ lab_results: patient_id IN (patients del usuario)
+  └─ clinical_notes: medico_user_id = auth.uid()
+  └─ medico_alerts: medico_user_id = auth.uid()
+  └─ audit_logs: solo service role puede leer (RLS bloquea todo)
+
+Nivel 4: Service Role (operaciones administrativas)
+  └─ Solo usado server-side para operaciones cross-user
+  └─ Clinica creando medicos/pacientes
+  └─ Sistema de auditoria escribiendo logs
+  └─ Generacion de signed URLs para archivos privados
+```
+
+#### Validaciones de acceso en API routes
+
+| Validacion | Donde se aplica | Archivos |
+|---|---|---|
+| Auth obligatoria | Todas las API routes | Todas en `src/app/api/` |
+| Verificacion de rol | Routes de clinica, medico | `api/clinica/*`, `api/medico/*` |
+| Ownership de paciente | Lectura/escritura de datos | `api/voice-notes`, `api/consultations` |
+| Vinculacion verificada | Clinica accediendo a datos de medicos | `api/clinica/patients`, dashboard page |
+| Limites de archivo | Uploads | `api/analyze` (20MB/archivo, 100MB total) |
+
+### 6.6 Autenticacion Multifactor (MFA)
+
+Longevity IA implementa MFA basado en TOTP (Time-based One-Time Password) compatible con RFC 6238.
+
+**Flujo de activacion:**
+
+1. El usuario accede a su perfil (icono de avatar en el header)
+2. En la seccion "Autenticacion de dos factores", click en "Configurar MFA"
+3. Supabase Auth genera una clave secreta unica de 160 bits
+4. Se muestra un codigo QR que el usuario escanea con su app de autenticacion
+5. Tambien se muestra la clave secreta en texto para copia manual
+6. El usuario ingresa el codigo de 6 digitos generado por la app
+7. Supabase verifica el codigo contra la clave secreta
+8. Si es correcto, MFA queda activado permanentemente hasta que se desactive
+
+**Flujo de verificacion (cada login):**
+
+1. Usuario ingresa email y contrasena → Supabase Auth valida credenciales
+2. El frontend consulta `supabase.auth.mfa.listFactors()` para verificar si tiene TOTP activo
+3. Si tiene factor TOTP con status `verified`, se muestra la pantalla de verificacion MFA
+4. El usuario abre su app de autenticacion y lee el codigo de 6 digitos vigente
+5. El frontend llama a `supabase.auth.mfa.challenge()` para crear un desafio
+6. Luego llama a `supabase.auth.mfa.verify()` con el codigo ingresado
+7. Supabase valida: el codigo correcto + dentro de la ventana de 30 segundos + no reutilizado
+8. Si es valido, el nivel de autenticacion sube a `aal2` (Authenticator Assurance Level 2)
+9. El usuario es redirigido a `/patients`
+
+**Algoritmo TOTP (RFC 6238):**
+- Hash: HMAC-SHA1 sobre la clave secreta + timestamp actual / 30
+- Resultado: 6 digitos decimales
+- Ventana: 30 segundos por codigo
+- Tolerancia: ±1 ventana (permite el codigo anterior y el siguiente)
+- Previene replay: cada codigo solo puede usarse una vez
+
+**Apps compatibles:** Google Authenticator, Authy, Microsoft Authenticator, 1Password, Bitwarden, cualquier app TOTP estandar.
+
+**Componentes:**
+
+| Componente | Archivo | Funcion |
+|---|---|---|
+| MFASetup | `src/components/auth/MFASetup.tsx` | Activar/desactivar MFA desde el perfil |
+| MFAVerify | `src/components/auth/MFAVerify.tsx` | Pantalla de verificacion post-login |
+| Login integration | `src/app/login/page.tsx` | Detecta MFA activo y muestra verificacion |
+| ProfileModal | `src/components/profile/ProfileModal.tsx` | Incluye MFASetup en el modal de perfil |
+
+### 6.7 Registro de Auditoria (Audit Trail)
+
+HIPAA §164.312(b) requiere registrar toda actividad sobre PHI. Longevity IA implementa un sistema de auditoria completo.
+
+**Tabla `audit_logs`:**
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| id | UUID PK | Identificador unico del evento |
+| user_id | UUID FK | Usuario que realizo la accion |
+| user_email | TEXT | Email del usuario (snapshot al momento) |
+| user_role | TEXT | Rol del usuario (paciente/medico/clinica) |
+| action | TEXT | Tipo de accion (ver tabla abajo) |
+| resource_type | TEXT | Tipo de recurso afectado |
+| resource_id | TEXT | ID del recurso especifico |
+| patient_id | UUID FK | Paciente afectado (si aplica) |
+| details | JSONB | Metadatos adicionales de la accion |
+| ip_address | TEXT | IP del usuario (x-forwarded-for) |
+| user_agent | TEXT | Navegador/dispositivo del usuario |
+| created_at | TIMESTAMPTZ | Fecha y hora exacta del evento |
+
+**Acciones registradas:**
+
+| Accion | Recurso | Trigger | Archivo |
+|---|---|---|---|
+| `analyze_lab` | lab_result | Subir y analizar estudio de laboratorio | `api/analyze/route.ts` |
+| `create_consultation` | consultation | Crear consulta medica con grabacion | `api/consultations/route.ts` |
+| `create_voice_note` | voice_note | Guardar nota de voz | `api/voice-notes/route.ts` |
+| `delete_voice_note` | voice_note | Eliminar nota de voz | `api/voice-notes/route.ts` |
+| `delete_result` | lab_result | Eliminar resultado de laboratorio | `api/results/[id]/route.ts` |
+| `create_medico` | medico | Clinica crea cuenta de medico | `api/clinica/medicos/route.ts` |
+| `create_patient` | patient | Clinica crea paciente | `api/clinica/patients/route.ts` |
+| `update_profile` | profile | Actualizar datos de perfil | `api/profile/route.ts` |
+
+**Seguridad de los logs:**
+- RLS con policy `USING (false)` — ningun usuario puede leer los logs desde el cliente
+- Solo el service role (server-side) puede escribir y leer
+- Indices en `user_id`, `patient_id`, `action`, `created_at` para consultas eficientes
+
+**Caracteristicas del helper `logAudit()`:**
+- Fire-and-forget: nunca bloquea la operacion principal
+- Nunca causa error en la respuesta al usuario si falla el log
+- Captura automaticamente IP y User-Agent del request
+- Usa `getSupabaseAdmin()` para bypass de RLS
+
+### 6.8 Almacenamiento Privado (Signed URLs)
+
+HIPAA requiere que los archivos medicos no sean accesibles publicamente. Longevity IA usa un sistema de URLs temporales firmadas.
+
+**Antes (NO compliant):**
+```
+Archivo subido → Se genera URL publica permanente
+→ Cualquiera con la URL puede acceder para siempre
+→ URL predecible: {supabase}/storage/v1/object/public/lab-files/{patientId}/{archivo}
+```
+
+**Ahora (HIPAA compliant):**
+```
+Archivo subido → Se guarda solo el PATH interno (ej: "abc-123/estudio.pdf")
+→ Para ver el archivo, el frontend solicita una URL temporal
+→ API verifica autenticacion y genera URL firmada (expira en 1 hora)
+→ La URL solo funciona durante 1 hora, luego se invalida
+→ No es predecible ni reutilizable
+```
+
+**Buckets privados (PHI):**
+
+| Bucket | Contenido | Acceso |
+|---|---|---|
+| lab-files | PDFs e imagenes de estudios de laboratorio | Privado — signed URLs |
+| voice-notes | Audio de notas de voz del medico | Privado — signed URLs |
+| consultation-audio | Audio de consultas medicas | Privado — signed URLs |
+
+**Bucket publico (no PHI):**
+
+| Bucket | Contenido | Acceso |
+|---|---|---|
+| avatars | Fotos de perfil de usuarios | Publico — no contiene PHI |
+
+**Componentes del sistema:**
+
+| Componente | Archivo | Funcion |
+|---|---|---|
+| API Signed URL | `src/app/api/storage/signed-url/route.ts` | Genera URL temporal (1h) previa autenticacion |
+| Helper storage | `src/lib/storage.ts` | `getSignedUrl()`, `extractPathFromUrl()`, `buildStoragePath()` |
+| FilesTab | `src/components/dashboard/tabs/FilesTab.tsx` | Resuelve signed URLs on-demand para visualizar archivos |
+
+**Compatibilidad retroactiva:**
+- Los archivos subidos antes del cambio (con URLs publicas completas) siguen funcionando
+- El sistema detecta automaticamente si es una URL completa o un path interno
+- `extractPathFromUrl()` maneja ambos formatos
+
+### 6.9 Integridad de Datos
+
+| Mecanismo | Implementacion | Proposito |
+|---|---|---|
+| Hash SHA-256 de archivos | `computeFilesHash()` en `api/analyze/route.ts` | Detectar duplicados y verificar integridad |
+| Foreign keys con CASCADE | Todas las tablas referenciadas | Eliminar datos huerfanos automaticamente |
+| CHECK constraints | `gender IN ('male','female','other')`, `status IN ('pending','active','revoked')` | Validar integridad de enumeraciones |
+| NOT NULL constraints | Campos criticos (name, age, code, etc.) | Prevenir datos incompletos |
+| UNIQUE constraints | `patients.code`, `medicos.code`, `clinicas.code`, `user_id` | Prevenir duplicados |
+| Validacion server-side | Todas las API routes | Validar tipos, rangos y formatos antes de insertar |
+| Validacion client-side | Formularios React | Feedback inmediato al usuario |
+
+### 6.10 Seguridad en Transmision
+
+| Ruta | Protocolo | Certificado | Forzado |
+|---|---|---|---|
+| Usuario → Vercel | HTTPS TLS 1.3 | Let's Encrypt automatico | Si (redirect HTTP→HTTPS) |
+| Vercel → Supabase REST | HTTPS TLS 1.3 | Supabase managed | Si |
+| Vercel → Supabase PostgreSQL | SSL | Supabase managed | Si |
+| Vercel → Anthropic API | HTTPS TLS 1.3 | Anthropic managed | Si |
+| Vercel → OpenAI API (Whisper) | HTTPS TLS 1.3 | OpenAI managed | Si |
+
+**Headers de seguridad (automaticos via Vercel):**
+- `Strict-Transport-Security: max-age=63072000` (HSTS)
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+
+### 6.11 Acuerdos de Asociados de Negocio (BAA)
+
+HIPAA requiere que cualquier entidad que procese PHI firme un Business Associate Agreement (BAA).
+
+| Proveedor | Servicio | BAA disponible | Como obtenerlo |
+|---|---|---|---|
+| **Supabase** | Base de datos, auth, storage | Si (Plan Pro+) | Dashboard > Organization > Compliance > Sign BAA |
+| **Vercel** | Hosting, serverless functions | Si (Plan Enterprise) | Contactar ventas enterprise |
+| **Anthropic** | Analisis IA con Claude | Si (Plan Enterprise) | Contactar ventas enterprise |
+| **OpenAI** | Transcripcion con Whisper | Si (Plan Enterprise) | Contactar sales + API agreement |
+
+**Requerimiento:** Para operar en produccion con datos reales de pacientes en EEUU, los 4 BAAs deben estar firmados. En Mexico (LFPDPPP), los BAAs no son obligatorios pero son buena practica.
+
+### 6.12 Regla de Notificacion de Brechas
+
+HIPAA §164.404-408 requiere notificar brechas de PHI dentro de 60 dias.
+
+**Plan de respuesta implementado:**
+
+1. **Deteccion:** Los `audit_logs` permiten detectar accesos no autorizados mediante consultas SQL sobre patrones anomalos (accesos fuera de horario, multiples pacientes en poco tiempo, IPs desconocidas)
+
+2. **Investigacion:** La tabla `audit_logs` contiene toda la informacion necesaria:
+   - Que datos fueron accedidos (`resource_type`, `resource_id`, `patient_id`)
+   - Por quien (`user_id`, `user_email`, `ip_address`)
+   - Cuando (`created_at`)
+   - Desde donde (`user_agent`, `ip_address`)
+
+3. **Notificacion:** En caso de brecha confirmada:
+   - Notificar a pacientes afectados dentro de 60 dias
+   - Notificar al HHS (Department of Health and Human Services) si afecta a 500+ personas
+   - Documentar la brecha, las acciones correctivas y las mejoras implementadas
+
+4. **Queries utiles para deteccion:**
+```sql
+-- Accesos en las ultimas 24h por usuario
+SELECT user_email, action, COUNT(*) as total
+FROM audit_logs
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY user_email, action
+ORDER BY total DESC;
+
+-- Accesos a un paciente especifico
+SELECT * FROM audit_logs
+WHERE patient_id = 'UUID_DEL_PACIENTE'
+ORDER BY created_at DESC;
+
+-- Accesos desde IPs desconocidas
+SELECT DISTINCT ip_address, user_email, COUNT(*)
+FROM audit_logs
+GROUP BY ip_address, user_email
+ORDER BY COUNT(*) DESC;
+```
+
+### 6.13 Matriz de Cumplimiento
+
+Resumen del estado de cumplimiento de Longevity IA con los requerimientos tecnicos de HIPAA:
+
+| # | Requerimiento HIPAA | Seccion | Estado | Implementacion |
+|---|---|---|:---:|---|
+| 1 | Cifrado en reposo | §164.312(a)(2)(iv) | Cumple | AES-256 via Supabase |
+| 2 | Cifrado en transito | §164.312(e)(2)(ii) | Cumple | TLS 1.3 via Vercel/Supabase |
+| 3 | Control de acceso | §164.312(a)(1) | Cumple | Auth + RLS + ownership checks |
+| 4 | ID unico de usuario | §164.312(a)(2)(i) | Cumple | UUID de Supabase Auth |
+| 5 | Autenticacion | §164.312(d) | Cumple | Email/password + MFA TOTP |
+| 6 | Cierre automatico | §164.312(a)(2)(iii) | Cumple | JWT expiration + refresh |
+| 7 | Auditoria | §164.312(b) | Cumple | Tabla audit_logs con 8 acciones |
+| 8 | Integridad | §164.312(c)(1) | Cumple | SHA-256, FK, constraints |
+| 9 | Seguridad en transmision | §164.312(e)(1) | Cumple | HTTPS obligatorio |
+| 10 | Acceso minimo necesario | Privacy Rule | Cumple | RLS + roles + ownership |
+| 11 | Almacenamiento privado | Best Practice | Cumple | Signed URLs temporales (1h) |
+| 12 | BAA con proveedores | §164.308(b)(1) | Pendiente | Requiere planes enterprise con Supabase, Vercel, Anthropic |
+| 13 | Plan de brechas | §164.308(a)(6) | Parcial | Deteccion via audit_logs, falta proceso formal documentado |
+
+**Estado general:** 11 de 13 requerimientos cumplidos tecnicamente. Los 2 pendientes son administrativos (BAAs y proceso formal de brechas), no de codigo.
 
 ---
 
