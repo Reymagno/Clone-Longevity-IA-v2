@@ -20,7 +20,9 @@ export const patientCreateSchema = z.object({
 
 export const medicoCreateSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres'),
+  password: z.string().min(8, 'Mínimo 8 caracteres').max(128)
+    .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
+    .regex(/[0-9]/, 'Debe contener al menos un número'),
   full_name: z.string().min(1, 'Nombre requerido').max(200),
   specialty: z.string().min(1, 'Especialidad requerida').max(200),
   license_number: z.string().min(1, 'Cédula requerida').max(50),
@@ -33,7 +35,7 @@ export const clinicSettingsSchema = z.object({
   phone: z.string().max(20).optional(),
   address: z.string().max(500).optional(),
   director_name: z.string().max(200).optional(),
-  logo_url: z.string().url().optional(),
+  logo_url: z.string().url().refine(u => u.startsWith('https://'), 'Solo URLs HTTPS').optional(),
 }).refine(data => Object.values(data).some(v => v !== undefined), {
   message: 'Al menos un campo requerido',
 })

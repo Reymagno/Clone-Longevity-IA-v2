@@ -55,7 +55,7 @@ function getChatStorageKey(patientId?: string, resultId?: string): string | null
 function loadChatHistory(key: string | null): Message[] {
   if (!key) return [WELCOME]
   try {
-    const stored = localStorage.getItem(key)
+    const stored = sessionStorage.getItem(key)
     if (!stored) return [WELCOME]
     const parsed = JSON.parse(stored) as Message[]
     if (!Array.isArray(parsed) || parsed.length === 0) return [WELCOME]
@@ -71,7 +71,7 @@ function saveChatHistory(key: string | null, messages: Message[]) {
   if (!key) return
   try {
     const toStore = messages.slice(-MAX_STORED_MESSAGES)
-    localStorage.setItem(key, JSON.stringify(toStore))
+    sessionStorage.setItem(key, JSON.stringify(toStore))
   } catch {
     // localStorage full or unavailable — silently fail
   }

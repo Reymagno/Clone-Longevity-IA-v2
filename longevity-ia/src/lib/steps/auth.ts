@@ -31,7 +31,8 @@ export async function authenticateUser(
   return {
     supabase,
     user,
-    role: user.user_metadata?.role ?? 'paciente',
+    // SECURITY: usar app_metadata (no modificable por el usuario) con fallback a user_metadata
+    role: user.app_metadata?.role ?? user.user_metadata?.role ?? 'paciente',
     email: user.email ?? '',
   }
 }

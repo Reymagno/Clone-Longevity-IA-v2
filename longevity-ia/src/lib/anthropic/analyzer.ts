@@ -11,7 +11,7 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-const MODEL = 'claude-sonnet-4-20250514'
+const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514'
 
 const SYSTEM_PROMPT = `Eres Longevity IA, el sistema de inteligencia artificial médica especializado en medicina regenerativa, longevidad y optimización biológica. Integras evidencia científica 2020-2026 de las instituciones más prestigiosas del mundo.
 

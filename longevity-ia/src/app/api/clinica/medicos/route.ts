@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Acceso exclusivo para clínicas' }, { status: 403 })
   }
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Acceso exclusivo para clínicas' }, { status: 403 })
   }
@@ -127,12 +127,13 @@ export async function POST(request: NextRequest) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { role: 'medico', full_name },
+    user_metadata: { full_name },
+    app_metadata: { role: 'medico' },
   })
 
   if (authError) {
     return NextResponse.json(
-      { error: `Error al crear usuario: ${authError.message}` },
+      { error: 'Error al crear usuario' },
       { status: 400 }
     )
   }
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
     // Rollback: eliminar el usuario creado si falla la inserción
     await admin.auth.admin.deleteUser(newUser.user.id)
     return NextResponse.json(
-      { error: `Error al registrar médico: ${insertError.message}` },
+      { error: 'Error al registrar médico' },
       { status: 500 }
     )
   }

@@ -53,7 +53,8 @@ export async function medicoOnboardingWorkflow(input: MedicoOnboardingInput): Pr
       email: input.email,
       password: input.password,
       email_confirm: true,
-      user_metadata: { role: 'medico', full_name: input.fullName },
+      user_metadata: { full_name: input.fullName },
+      app_metadata: { role: 'medico' },
     })
 
     if (authError || !authData.user) {
@@ -61,6 +62,8 @@ export async function medicoOnboardingWorkflow(input: MedicoOnboardingInput): Pr
     }
 
     const newUserId = authData.user.id
+    // SECURITY: limpiar password de memoria después de crear el usuario auth
+    ;(input as { password: string }).password = ''
     const code = generateMedicoCode()
 
     // Step 3: Create medico record

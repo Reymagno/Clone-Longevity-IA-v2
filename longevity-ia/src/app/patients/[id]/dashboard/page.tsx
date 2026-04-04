@@ -28,7 +28,7 @@ async function getServerData(
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { patient: null, result: null, allResults: [], viewerRole: 'paciente' }
-    const viewerRole = user?.user_metadata?.role ?? 'paciente'
+    const viewerRole = user?.app_metadata?.role ?? user?.user_metadata?.role ?? 'paciente'
 
     // Para clínicas: usar admin client (RLS bloquea cross-user reads)
     // Para pacientes/médicos: usar supabase con RLS normal

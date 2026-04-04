@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 import type { AIAnalysis, Patient } from '@/types'
 
 // ─────────────────────────────────────────────────────────────────
@@ -187,6 +188,10 @@ export async function POST(request: NextRequest) {
     const supabase = createClientFromRequest(request)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return new Response('No autorizado', { status: 401 })
+
+    // Rate limit: max 20 mensajes por minuto por usuario
+    const rl = rateLimit(`chat:${user.id}`, 20, 60_000)
+    if (!rl.allowed) return new Response('Demasiadas solicitudes', { status: 429 })
 
     const body = (await request.json()) as ChatRequest
     const { messages, patient, analysis } = body

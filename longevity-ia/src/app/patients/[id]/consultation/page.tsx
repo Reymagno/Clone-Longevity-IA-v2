@@ -33,7 +33,7 @@ export default function ConsultationPage() {
         if (!user) { router.push('/login'); return }
 
         // Verify medico role
-        const role = user.user_metadata?.role
+        const role = user.app_metadata?.role ?? user.user_metadata?.role
         if (role !== 'medico') { router.push('/patients'); return }
 
         // Load medico name

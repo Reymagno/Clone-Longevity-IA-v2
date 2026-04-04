@@ -6,6 +6,9 @@ import type { NextRequest } from 'next/server'
 const SESSION_DEBOUNCE_COOKIE = '_st'
 const SESSION_DEBOUNCE_SECONDS = 5 * 60
 
+// Secret compartido con /api/session/track para prevenir llamadas externas
+const INTERNAL_SESSION_SECRET = process.env.INTERNAL_API_SECRET ?? 'longevity-internal-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(-12)
+
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -66,9 +69,11 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Subscription gating ──────────────────────────────────────
+    // SECURITY: allowlist approach — only 'active' and 'trialing' pass
     if (user && isProtected && !isPricingPage) {
       const subCookie = request.cookies.get('_sub')?.value
-      if (subCookie === 'canceled' || subCookie === 'unpaid') {
+      const allowedStatuses = ['active', 'trialing']
+      if (subCookie && !allowedStatuses.includes(subCookie)) {
         const pricingUrl = new URL('/pricing', request.url)
         pricingUrl.searchParams.set('reason', 'subscription_required')
         return NextResponse.redirect(pricingUrl)
@@ -79,7 +84,7 @@ export async function middleware(request: NextRequest) {
     // Edge Runtime no soporta import() dinámico de módulos Node.js,
     // así que delegamos el tracking a un endpoint interno ligero.
     if (user && isProtected && !request.cookies.get(SESSION_DEBOUNCE_COOKIE)) {
-      const role = user.user_metadata?.role ?? 'paciente'
+      const role = user.app_metadata?.role ?? user.user_metadata?.role ?? 'paciente'
       const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null
       const ua = request.headers.get('user-agent') ?? null
 
@@ -87,7 +92,10 @@ export async function middleware(request: NextRequest) {
       const trackUrl = new URL('/api/session/track', request.url)
       fetch(trackUrl.toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': INTERNAL_SESSION_SECRET,
+        },
         body: JSON.stringify({ userId: user.id, role, ip, ua }),
       }).catch(() => {
         // Silencioso — session tracking nunca debe romper el request
@@ -103,7 +111,7 @@ export async function middleware(request: NextRequest) {
       })
     }
   } catch (error) {
-    console.error('[middleware] Error:', error)
+    console.error('[middleware] Error:', error instanceof Error ? error.message : 'Unknown error')
     // Si falla en ruta protegida, redirigir a login por seguridad
     const { pathname } = request.nextUrl
     const isProtected = pathname.startsWith('/patients') || pathname.startsWith('/onboarding')

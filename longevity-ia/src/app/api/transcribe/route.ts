@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 import OpenAI from 'openai'
 
 export const maxDuration = 60
@@ -29,6 +30,17 @@ export async function POST(request: NextRequest) {
 
     if (!audioFile) {
       return NextResponse.json({ error: 'No se recibió archivo de audio' }, { status: 400 })
+    }
+
+    // SECURITY: validar tamaño máximo (25MB = límite de Whisper)
+    if (audioFile.size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Archivo muy grande (máximo 25MB)' }, { status: 400 })
+    }
+
+    // Rate limit: max 10 transcripciones por minuto por usuario
+    const rl = rateLimit(`transcribe:${user.id}`, 10, 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 })
     }
 
     // Convertir File a buffer para enviar a Whisper

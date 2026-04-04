@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Solo clinicas pueden ver invitaciones' }, { status: 403 })
   }
@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
     .neq('status', 'revoked')
     .order('invited_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[invitations] Query error:', error.message)
+    return NextResponse.json({ error: 'Error al obtener invitaciones' }, { status: 500 })
+  }
 
   // Enrich with medico info
   const medicoUserIds = (data ?? []).map(d => d.medico_user_id)
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'medico') {
     return NextResponse.json({ error: 'Solo medicos pueden solicitar vinculacion' }, { status: 403 })
   }
@@ -146,7 +149,7 @@ export async function PATCH(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Solo clinicas pueden gestionar invitaciones' }, { status: 403 })
   }

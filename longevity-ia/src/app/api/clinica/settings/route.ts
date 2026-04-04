@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Acceso exclusivo para clínicas' }, { status: 403 })
   }

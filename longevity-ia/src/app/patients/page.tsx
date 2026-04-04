@@ -55,7 +55,7 @@ export default function PatientsPage() {
       if (!user) { router.replace('/login'); return }
 
       // Check role from user metadata
-      const role = user.user_metadata?.role ?? 'paciente'
+      const role = user.app_metadata?.role ?? user.user_metadata?.role ?? 'paciente'
       setUserRole(role)
 
       // For medicos: load linked patients + pending invitations

@@ -68,6 +68,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    // SECURITY: solo médicos pueden crear consultas
+    const role = user.app_metadata?.role ?? user.user_metadata?.role
+    if (role !== 'medico') {
+      return NextResponse.json({ error: 'Solo médicos pueden crear consultas' }, { status: 403 })
+    }
+
     const formData = await request.formData()
     const patientId = formData.get('patientId') as string
     const transcript = formData.get('transcript') as string
@@ -78,7 +84,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'patientId y transcript requeridos' }, { status: 400 })
     }
 
-    // Verificar acceso al paciente
+    // Verificar acceso al paciente (ownership via RLS + explicit check)
     const { data: patient } = await supabase
       .from('patients')
       .select('id, user_id, name, age, gender')
@@ -86,7 +92,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!patient) {
-      return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
+      return NextResponse.json({ error: 'Paciente no encontrado o no autorizado' }, { status: 403 })
+    }
+
+    // SECURITY: verificar que el usuario autenticado es el owner del paciente
+    if (patient.user_id !== user.id) {
+      return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
     }
 
     // Subir audio si existe

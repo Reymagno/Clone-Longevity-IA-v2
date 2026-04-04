@@ -25,7 +25,7 @@ export async function GET(
       return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
     }
 
-    logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'view_patient', resourceType: 'patient', resourceId: params.id, patientId: params.id }, request)
+    logAudit({ userId: user.id, email: user.email ?? undefined, role: user.app_metadata?.role ?? user.user_metadata?.role, action: 'view_patient', resourceType: 'patient', resourceId: params.id, patientId: params.id }, request)
 
     return NextResponse.json(data)
   } catch (err) {

@@ -9,6 +9,7 @@ import { getToolsForRole } from '@/lib/agent-tools'
 import { executeAgentTool } from '@/lib/agent-tool-executor'
 import { resolveClinicaId } from '@/lib/steps'
 import { logAudit } from '@/lib/audit'
+import { rateLimit } from '@/lib/rate-limit'
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -80,10 +81,14 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return new Response('No autorizado', { status: 401 })
 
-    const role = user.user_metadata?.role as string
+    const role = (user.app_metadata?.role ?? user.user_metadata?.role) as string
     if (role !== 'medico' && role !== 'clinica') {
       return new Response('Solo médicos y clínicas pueden usar el agente', { status: 403 })
     }
+
+    // Rate limit: max 10 requests de agente por minuto por usuario
+    const rl = rateLimit(`agent:${user.id}`, 10, 60_000)
+    if (!rl.allowed) return new Response('Demasiadas solicitudes', { status: 429 })
 
     const body = (await request.json()) as AgentRequest
     const { messages } = body

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'patientId y transcript requeridos' }, { status: 400 })
     }
 
-    // Verificar acceso al paciente
+    // Verificar acceso al paciente (ownership via RLS + explicit check)
     const { data: patient } = await supabase
       .from('patients')
       .select('id, user_id, name, age, gender')
@@ -78,7 +78,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!patient) {
-      return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
+      return NextResponse.json({ error: 'Paciente no encontrado o no autorizado' }, { status: 403 })
+    }
+
+    // SECURITY: verificar que el usuario autenticado es el owner del paciente
+    if (patient.user_id !== user.id) {
+      return NextResponse.json({ error: 'No autorizado para este paciente' }, { status: 403 })
     }
 
     // Subir audio si existe

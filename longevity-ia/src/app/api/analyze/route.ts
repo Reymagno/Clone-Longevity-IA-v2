@@ -9,6 +9,7 @@ import { extractBiomarkers, reanalyzeWithClinicalHistory } from '@/lib/anthropic
 import { generateAlertsForResult } from '@/lib/generate-alerts'
 import { buildVoiceNotesContext } from '@/lib/voice-notes-context'
 import { logAudit } from '@/lib/audit'
+import { rateLimit } from '@/lib/rate-limit'
 
 /** Compute a combined SHA-256 hash of all file buffers for cache lookup */
 function computeFilesHash(buffers: Buffer[]): string {
@@ -53,6 +54,10 @@ export async function POST(request: NextRequest) {
         const supabase = createClientFromRequest(request)
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { send({ ok: false, error: 'No autorizado' }); return }
+
+        // Rate limit: max 5 análisis por minuto por usuario
+        const rl = rateLimit(`analyze:${user.id}`, 5, 60_000)
+        if (!rl.allowed) { send({ ok: false, error: 'Demasiadas solicitudes. Intenta en un momento.' }); return }
 
         if (!files.length || !patientId || !resultDate) {
           send({ ok: false, error: 'Archivos, paciente y fecha son requeridos' })
@@ -139,7 +144,7 @@ export async function POST(request: NextRequest) {
                 return
               }
 
-              logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'analyze_lab', resourceType: 'lab_result', resourceId: newResult.id, patientId: patientId ?? undefined, details: { cached: true } }, request)
+              logAudit({ userId: user.id, email: user.email ?? undefined, role: user.app_metadata?.role ?? user.user_metadata?.role, action: 'analyze_lab', resourceType: 'lab_result', resourceId: newResult.id, patientId: patientId ?? undefined, details: { cached: true } }, request)
               send({ ok: true, step: 'done', resultId: newResult.id, patientId, cached: true })
               return
             }
@@ -252,7 +257,7 @@ export async function POST(request: NextRequest) {
           true
         ).catch(e => console.error('Alert generation failed:', e))
 
-        logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'analyze_lab', resourceType: 'lab_result', resourceId: labResult.id, patientId: patientId ?? undefined }, request)
+        logAudit({ userId: user.id, email: user.email ?? undefined, role: user.app_metadata?.role ?? user.user_metadata?.role, action: 'analyze_lab', resourceType: 'lab_result', resourceId: labResult.id, patientId: patientId ?? undefined }, request)
         send({ ok: true, step: 'done', resultId: labResult.id, patientId })
 
       } catch (error) {

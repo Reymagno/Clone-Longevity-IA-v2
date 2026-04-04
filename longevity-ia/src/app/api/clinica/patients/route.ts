@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Acceso exclusivo para clínicas' }, { status: 403 })
   }
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'clinica') {
     return NextResponse.json({ error: 'Acceso exclusivo para clínicas' }, { status: 403 })
   }
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     return NextResponse.json(
-      { error: `Error al crear paciente: ${insertError.message}` },
+      { error: 'Error al crear paciente' },
       { status: 500 }
     )
   }

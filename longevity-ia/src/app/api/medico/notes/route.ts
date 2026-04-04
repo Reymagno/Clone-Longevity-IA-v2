@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'medico') return NextResponse.json({ error: 'Solo médicos' }, { status: 403 })
 
   const patientId = request.nextUrl.searchParams.get('patientId')
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'medico') return NextResponse.json({ error: 'Solo médicos' }, { status: 403 })
 
   const body = await request.json()
@@ -71,7 +71,7 @@ export async function DELETE(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'medico') return NextResponse.json({ error: 'Solo médicos' }, { status: 403 })
 
   const noteId = request.nextUrl.searchParams.get('noteId')

@@ -60,8 +60,12 @@ export async function deleteFromStorage(
 // ── Build storage path ──────────────────────────────────────────────
 
 export function buildStoragePath(prefix: string, fileName: string): string {
-  const safeName = fileName.replace(/\s+/g, '_')
-  return `${prefix}/${Date.now()}-${safeName}`
+  // Sanitize: whitelist alphanumeric + safe chars, prevent path traversal
+  const safeName = fileName
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/\.{2,}/g, '.')
+  const safePrefix = prefix.replace(/[^a-zA-Z0-9_-]/g, '')
+  return `${safePrefix}/${Date.now()}-${safeName}`
 }
 
 // ── Extract path from URL ───────────────────────────────────────────

@@ -19,7 +19,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.replace('/login'); return }
-      const role = user.user_metadata?.role
+      const role = user.app_metadata?.role ?? user.user_metadata?.role
       if (role === 'medico' || role === 'clinica') {
         router.replace('/patients')
       }

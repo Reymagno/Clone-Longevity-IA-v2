@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     // Verify medico role
-    const role = user.user_metadata?.role
+    const role = user.app_metadata?.role ?? user.user_metadata?.role
     if (role !== 'medico') {
       return NextResponse.json({ error: 'Solo disponible para médicos' }, { status: 403 })
     }

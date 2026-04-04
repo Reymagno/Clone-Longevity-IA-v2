@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'medico') return NextResponse.json({ error: 'Solo médicos' }, { status: 403 })
 
   const unreadOnly = request.nextUrl.searchParams.get('unread') === 'true'
@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
   if (patientId) query = query.eq('patient_id', patientId)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[medico/alerts] Query error:', error.message)
+    return NextResponse.json({ error: 'Error al obtener alertas' }, { status: 500 })
+  }
 
   // Enriquecer con nombres de pacientes
   const patientIds = Array.from(new Set((data ?? []).map(a => a.patient_id)))
@@ -58,6 +61,10 @@ export async function PATCH(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  // SECURITY: verificar rol medico (defense in depth)
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
+  if (role !== 'medico') return NextResponse.json({ error: 'Solo médicos' }, { status: 403 })
+
   const body = await request.json()
   const { alertIds, action } = body as { alertIds: string[]; action: 'read' | 'dismiss' | 'dismiss_all' }
 
@@ -80,7 +87,10 @@ export async function PATCH(request: NextRequest) {
     .in('id', alertIds)
     .eq('medico_user_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[medico/alerts] Update error:', error.message)
+    return NextResponse.json({ error: 'Error al actualizar alertas' }, { status: 500 })
+  }
 
   const auditAction = action === 'dismiss' ? 'dismiss_alert' : 'read_alert'
   logAudit({ userId: user.id, email: user.email ?? undefined, role: 'medico', action: auditAction, resourceType: 'medico_alert', details: { alertIds, count: alertIds.length } }, request)

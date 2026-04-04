@@ -4,6 +4,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { randomBytes } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 
 // ── Find patient ────────────────────────────────────────────────────
@@ -62,15 +63,15 @@ export async function verifyPatientAccess(
 // ── Generate patient code ───────────────────────────────────────────
 
 export function generatePatientCode(): string {
-  const ts = Date.now().toString(36).toUpperCase()
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase()
-  return `PAT-${ts}-${rand}`
+  // SECURITY: usar crypto.randomBytes en vez de Math.random (predecible)
+  const rand = randomBytes(6).toString('hex').toUpperCase()
+  return `PAT-${rand}`
 }
 
 // ── Generate medico code ────────────────────────────────────────────
 
 export function generateMedicoCode(): string {
-  const rand = Math.random().toString(36).substring(2, 8).toUpperCase()
+  const rand = randomBytes(6).toString('hex').toUpperCase()
   return `MED-${rand}`
 }
 

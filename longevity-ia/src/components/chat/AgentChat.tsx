@@ -76,7 +76,7 @@ const MAX_STORED = 80
 function loadHistory(role: string): Message[] {
   const welcome = role === 'clinica' ? WELCOME_CLINICA : WELCOME_MEDICO
   try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-${role}`)
+    const stored = sessionStorage.getItem(`${STORAGE_KEY}-${role}`)
     if (!stored) return [welcome]
     const parsed = JSON.parse(stored) as Message[]
     if (!Array.isArray(parsed) || parsed.length === 0) return [welcome]
@@ -89,7 +89,7 @@ function loadHistory(role: string): Message[] {
 
 function saveHistory(role: string, messages: Message[]) {
   try {
-    localStorage.setItem(`${STORAGE_KEY}-${role}`, JSON.stringify(messages.slice(-MAX_STORED)))
+    sessionStorage.setItem(`${STORAGE_KEY}-${role}`, JSON.stringify(messages.slice(-MAX_STORED)))
   } catch { /* silent */ }
 }
 

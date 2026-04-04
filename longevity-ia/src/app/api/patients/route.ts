@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   // Pacientes: un solo perfil por usuario. Médicos: pueden crear múltiples pacientes.
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role ?? user.user_metadata?.role
   if (role !== 'medico') {
     const { data: existing } = await supabase
       .from('patients')

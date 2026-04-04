@@ -231,6 +231,16 @@ export async function executeAgentTool(
 
         const channel = toolInput.channel as string
         const message = toolInput.message as string
+
+        // SECURITY: validar canal contra allowlist para prevenir exfiltración vía prompt injection
+        const allowedChannels = (process.env.SLACK_ALLOWED_CHANNELS ?? 'longevity-alerts,longevity-reports')
+          .split(',').map(c => c.trim())
+        if (!allowedChannels.includes(channel)) {
+          return {
+            success: false,
+            error: `Canal '${channel}' no permitido. Canales disponibles: ${allowedChannels.join(', ')}`,
+          }
+        }
         const alertLevel = toolInput.alert_level as string | undefined
 
         // Mapear nivel de alerta a color de Slack

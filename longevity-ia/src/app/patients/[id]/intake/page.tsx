@@ -39,7 +39,7 @@ export default function IntakePage({ params }: { params: { id: string } }) {
     ]).then(([{ data: p }, { data: r }, { data: { user } }]) => {
       setPatient(p)
       setLatestResult(r ?? null)
-      setIsMedico(user?.user_metadata?.role === 'medico')
+      setIsMedico(user?.app_metadata?.role ?? user?.user_metadata?.role === 'medico')
       setLoading(false)
       if (!p?.clinical_history) setShowChat(true)
     })

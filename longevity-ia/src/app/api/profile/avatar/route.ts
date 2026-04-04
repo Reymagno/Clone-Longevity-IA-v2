@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const role = (user.user_metadata?.role as string) ?? 'paciente'
+  const role = (user.app_metadata?.role ?? user.user_metadata?.role as string) ?? 'paciente'
   const ext = file.name.split('.').pop() || 'jpg'
   const filePath = `${user.id}/avatar.${ext}`
 
