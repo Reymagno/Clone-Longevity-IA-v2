@@ -126,8 +126,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Género inválido' }, { status: 400 })
   }
 
-  // Verificar que el médico pertenece a esta clínica
-  const { data: medico, error: medicoError } = await supabase
+  // Verificar que el médico pertenece a esta clínica (usar admin para bypass RLS de medicos)
+  const admin = getSupabaseAdmin()
+  const { data: medico, error: medicoError } = await admin
     .from('medicos')
     .select('id')
     .eq('user_id', medico_user_id)
@@ -140,8 +141,6 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     )
   }
-
-  const admin = getSupabaseAdmin()
   const code = generatePatientCode()
 
   const { data: patient, error: insertError } = await admin

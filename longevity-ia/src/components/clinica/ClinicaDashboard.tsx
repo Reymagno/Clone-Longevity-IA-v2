@@ -52,7 +52,7 @@ export function ClinicaDashboard() {
       const res = await fetch('/api/clinica/stats')
       if (res.ok) {
         const data = await res.json()
-        setStats(data)
+        setStats(data.stats ?? data)
       }
     } catch { /* silent */ }
   }, [])

@@ -59,8 +59,12 @@ export async function reanalysisWorkflow(input: ReanalysisInput): Promise<Reanal
 
     if (!patient) return { success: false, strategy: 'skip', error: 'Paciente no encontrado' }
 
-    // Step 3: Detect strategy
-    const currentHash = hashClinicalHistory(patient.clinical_history)
+    // Step 3: Build context (needed for both hash and analysis)
+    const { buildVoiceNotesContext } = await import('@/lib/voice-notes-context')
+    const voiceContext = await buildVoiceNotesContext(supabase, patient.id)
+
+    // Step 4: Detect strategy — include voice notes in hash to detect changes
+    const currentHash = hashClinicalHistory({ ch: patient.clinical_history, vn: voiceContext })
     const existingAnalysis = result.ai_analysis as AIAnalysis | null
     const meta = (existingAnalysis as Record<string, unknown> | null)?._meta as Record<string, unknown> | undefined
     const previousHash = meta?.clinicalHistoryHash as string | undefined
@@ -77,10 +81,6 @@ export async function reanalysisWorkflow(input: ReanalysisInput): Promise<Reanal
     if (strategy === 'skip') {
       return { success: true, strategy, analysis: existingAnalysis! }
     }
-
-    // Step 4: Build context
-    const { buildVoiceNotesContext } = await import('@/lib/voice-notes-context')
-    const voiceContext = await buildVoiceNotesContext(supabase, patient.id)
 
     // Step 5: Execute analysis
     const analyzer = await import('@/lib/anthropic/analyzer')

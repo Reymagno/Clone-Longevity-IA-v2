@@ -79,14 +79,18 @@ export function generateMedicoCode(): string {
 export async function detectDuplicatePatient(
   name: string,
   age: number,
-  clinicaId?: string,
+  options?: { clinicaId?: string; medicoUserId?: string },
 ): Promise<{ isDuplicate: boolean; existingId?: string }> {
   const admin = getSupabaseAdmin()
   const normalized = name.toLowerCase().trim().replace(/[%_\\]/g, '\\$&')
 
   let query = admin.from('patients').select('id, name, age').ilike('name', `%${normalized}%`).eq('age', age).limit(1)
-  if (clinicaId) {
-    query = query.eq('clinica_id', clinicaId)
+
+  // Scope: solo buscar duplicados dentro de la clínica o del médico, no globalmente
+  if (options?.clinicaId) {
+    query = query.eq('clinica_id', options.clinicaId)
+  } else if (options?.medicoUserId) {
+    query = query.eq('user_id', options.medicoUserId)
   }
 
   const { data } = await query

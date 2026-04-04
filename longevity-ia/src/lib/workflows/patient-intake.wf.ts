@@ -43,7 +43,7 @@ export async function patientIntakeWorkflow(input: PatientIntakeInput): Promise<
     const { isDuplicate, existingId } = await detectDuplicatePatient(
       input.name,
       input.age,
-      input.clinica_id,
+      { clinicaId: input.clinica_id, medicoUserId: input.medico_user_id ?? input.userId },
     )
 
     if (isDuplicate) {

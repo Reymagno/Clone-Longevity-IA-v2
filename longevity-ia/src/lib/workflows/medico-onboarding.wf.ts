@@ -93,17 +93,8 @@ export async function medicoOnboardingWorkflow(input: MedicoOnboardingInput): Pr
         .then(() => {}).catch(err => console.error('[medico-onboarding.wf] link error:', err)),
     )
 
-    // 4b: Alert clinic director
-    postCreatePromises.push(
-      createAlert({
-        medico_user_id: input.clinicaUserId,
-        patient_id: medico.id, // Using medico.id as reference
-        alert_type: 'new_medico',
-        level: 'info',
-        title: `Nuevo médico registrado: ${input.fullName}`,
-        detail: `Especialidad: ${input.specialty}. Cédula: ${input.licenseNumber}. Email: ${input.email}`,
-      }).catch(err => console.error('[medico-onboarding.wf] alert error:', err)),
-    )
+    // Nota: medico_alerts requiere patient_id NOT NULL, así que no se puede crear
+    // una alerta de "nuevo médico" en esa tabla. El director ve al médico en su panel.
 
     // 4c: Audit
     postCreatePromises.push(
