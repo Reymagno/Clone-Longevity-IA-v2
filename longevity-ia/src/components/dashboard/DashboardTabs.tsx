@@ -41,11 +41,14 @@ interface DashboardTabsProps {
   viewerRole?: string
 }
 
+// Tabs desactivadas temporalmente: Lípidos (2) y Metabólico (3)
+const HIDDEN_TABS = new Set([2, 3])
+
 const TABS = [
   { id: 0, label: 'Resumen', icon: BarChart2 },
   { id: 1, label: 'FODA Médica', icon: Shield },
-  { id: 2, label: 'Lípidos', icon: Activity },
-  { id: 3, label: 'Metabólico', icon: FlaskConical },
+  // { id: 2, label: 'Lípidos', icon: Activity },        — desactivada
+  // { id: 3, label: 'Metabólico', icon: FlaskConical },  — desactivada
   { id: 4, label: 'Proyección', icon: TrendingUp },
   { id: 5, label: 'Órganos', icon: HeartPulse },
   { id: 6, label: 'Protocolo', icon: ClipboardList },
@@ -416,15 +419,19 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
         {activeTab === 1 && (
           <SwotTab analysis={analysis} />
         )}
+        {/* Lípidos (id:2) — desactivada temporalmente
         {activeTab === 2 && parsedData.lipids && (
           <LipidsTab lipids={parsedData.lipids} />
         )}
         {activeTab === 2 && !parsedData.lipids && (
           <div className="text-center py-20 text-muted-foreground">No hay datos lipídicos en este estudio</div>
         )}
+        */}
+        {/* Metabólico (id:3) — desactivada temporalmente
         {activeTab === 3 && (
           <MetabolicTab parsedData={parsedData} />
         )}
+        */}
         {activeTab === 4 && (
           <ProjectionTab analysis={analysis} />
         )}
