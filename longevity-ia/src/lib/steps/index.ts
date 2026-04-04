@@ -35,3 +35,6 @@ export { sendSlackMessage, uploadToSlack, isSlackConfigured } from './slack'
 
 // ── PDF Generator ───────────────────────────────────────────────────
 export { generateReportPDF, buildCriticalPatientsReport, buildActivityReport, type PDFReportData, type PDFSection } from './pdf-generator'
+
+// ── Subscription ────────────────────────────────────────────────────
+export { checkSubscription, enforceSeatLimit, enforceActiveSubscription, type SubscriptionCheck, type SubscriptionStatus } from './subscription'

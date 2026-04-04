@@ -1,11 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Shield, ShieldCheck, Copy } from 'lucide-react'
+
+/**
+ * Convierte un data URI SVG a PNG data URI usando Canvas.
+ * Supabase retorna el QR como SVG, que muchas apps de autenticación
+ * no pueden escanear correctamente por problemas de contraste/resolución.
+ */
+function svgToPng(svgDataUri: string, size: number = 400): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { reject(new Error('Canvas not supported')); return }
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, size, size)
+      ctx.drawImage(img, 0, 0, size, size)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => reject(new Error('Failed to load SVG'))
+    img.src = svgDataUri
+  })
+}
 
 export function MFASetup() {
   const [enrolling, setEnrolling] = useState(false)
@@ -30,7 +54,14 @@ export function MFASetup() {
     try {
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
       if (error) throw error
-      setQrCode(data.totp.qr_code)
+
+      // Convertir SVG a PNG para compatibilidad con apps de autenticación
+      let qr = data.totp.qr_code
+      if (qr.includes('svg')) {
+        try { qr = await svgToPng(qr, 400) } catch { /* fallback al SVG original */ }
+      }
+
+      setQrCode(qr)
       setSecret(data.totp.secret)
       setFactorId(data.id)
     } catch (err) {
@@ -113,9 +144,14 @@ export function MFASetup() {
           <p className="text-xs text-muted-foreground">
             Escanea el codigo QR con tu app de autenticacion (Google Authenticator, Authy, etc.)
           </p>
-          <div className="flex justify-center">
+          <div className="flex justify-center p-2 bg-white rounded-xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrCode} alt="Codigo QR para configurar MFA" className="w-48 h-48 rounded-lg" />
+            <img
+              src={qrCode}
+              alt="Codigo QR para configurar MFA"
+              className="w-52 h-52"
+              style={{ imageRendering: 'pixelated' }}
+            />
           </div>
           {secret && (
             <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">

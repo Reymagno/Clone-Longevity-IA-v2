@@ -41,6 +41,7 @@ export async function middleware(request: NextRequest) {
 
     const { pathname } = request.nextUrl
     const isLoginPage = pathname === '/login'
+    const isPricingPage = pathname === '/pricing'
     const isProtected =
       pathname.startsWith('/patients') || pathname.startsWith('/onboarding')
 
@@ -62,6 +63,16 @@ export async function middleware(request: NextRequest) {
     // Si ya tiene sesión válida y va al login → redirige a pacientes
     if (isLoginPage && user && !authError) {
       return NextResponse.redirect(new URL('/patients', request.url))
+    }
+
+    // ── Subscription gating ──────────────────────────────────────
+    if (user && isProtected && !isPricingPage) {
+      const subCookie = request.cookies.get('_sub')?.value
+      if (subCookie === 'canceled' || subCookie === 'unpaid') {
+        const pricingUrl = new URL('/pricing', request.url)
+        pricingUrl.searchParams.set('reason', 'subscription_required')
+        return NextResponse.redirect(pricingUrl)
+      }
     }
 
     // ── Session tracking (debounced, via internal API call) ────────
@@ -105,5 +116,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/patients/:path*', '/onboarding', '/login'],
+  matcher: ['/patients/:path*', '/onboarding', '/login', '/pricing'],
 }
