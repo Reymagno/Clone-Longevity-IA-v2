@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(
   request: NextRequest,
@@ -23,6 +24,8 @@ export async function GET(
     if (error) {
       return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
     }
+
+    logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'view_patient', resourceType: 'patient', resourceId: params.id, patientId: params.id }, request)
 
     return NextResponse.json(data)
   } catch (err) {

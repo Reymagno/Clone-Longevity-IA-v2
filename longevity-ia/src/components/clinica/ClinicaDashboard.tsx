@@ -10,8 +10,9 @@ import { MedicosTab } from './tabs/MedicosTab'
 import { PacientesTab } from './tabs/PacientesTab'
 import { EstadisticasTab } from './tabs/EstadisticasTab'
 import { InvitacionesTab } from './tabs/InvitacionesTab'
+import { AgentChat } from '@/components/chat/AgentChat'
 
-type TabKey = 'resumen' | 'medicos' | 'pacientes' | 'estadisticas' | 'invitaciones'
+type TabKey = 'resumen' | 'medicos' | 'pacientes' | 'estadisticas' | 'invitaciones' | 'agente'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen', label: 'Resumen' },
@@ -19,6 +20,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'pacientes', label: 'Pacientes' },
   { key: 'estadisticas', label: 'Estadisticas' },
   { key: 'invitaciones', label: 'Invitaciones' },
+  { key: 'agente', label: 'Asistente IA' },
 ]
 
 export function ClinicaDashboard() {
@@ -206,6 +208,9 @@ export function ClinicaDashboard() {
       )}
       {activeTab === 'invitaciones' && (
         <InvitacionesTab onRefresh={handleRefreshMedicos} />
+      )}
+      {activeTab === 'agente' && (
+        <AgentChat role="clinica" />
       )}
     </div>
   )

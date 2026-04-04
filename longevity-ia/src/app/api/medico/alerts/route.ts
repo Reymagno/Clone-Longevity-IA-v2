@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientFromRequest } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 
 // GET /api/medico/alerts — obtener alertas del médico
 export async function GET(request: NextRequest) {
@@ -66,6 +67,7 @@ export async function PATCH(request: NextRequest) {
       .update({ dismissed: true })
       .eq('medico_user_id', user.id)
       .eq('dismissed', false)
+    logAudit({ userId: user.id, email: user.email ?? undefined, role: 'medico', action: 'dismiss_all_alerts', resourceType: 'medico_alert' }, request)
     return NextResponse.json({ ok: true })
   }
 
@@ -79,5 +81,9 @@ export async function PATCH(request: NextRequest) {
     .eq('medico_user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const auditAction = action === 'dismiss' ? 'dismiss_alert' : 'read_alert'
+  logAudit({ userId: user.id, email: user.email ?? undefined, role: 'medico', action: auditAction, resourceType: 'medico_alert', details: { alertIds, count: alertIds.length } }, request)
+
   return NextResponse.json({ ok: true })
 }

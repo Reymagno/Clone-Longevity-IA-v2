@@ -2,6 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Debounce: solo trackear sesión cada 5 minutos por usuario
+const SESSION_DEBOUNCE_COOKIE = '_st'
+const SESSION_DEBOUNCE_SECONDS = 5 * 60
+
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -58,6 +62,34 @@ export async function middleware(request: NextRequest) {
     // Si ya tiene sesión válida y va al login → redirige a pacientes
     if (isLoginPage && user && !authError) {
       return NextResponse.redirect(new URL('/patients', request.url))
+    }
+
+    // ── Session tracking (debounced, via internal API call) ────────
+    // Edge Runtime no soporta import() dinámico de módulos Node.js,
+    // así que delegamos el tracking a un endpoint interno ligero.
+    if (user && isProtected && !request.cookies.get(SESSION_DEBOUNCE_COOKIE)) {
+      const role = user.user_metadata?.role ?? 'paciente'
+      const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null
+      const ua = request.headers.get('user-agent') ?? null
+
+      // Fire-and-forget: llamar endpoint interno que corre en Node.js runtime
+      const trackUrl = new URL('/api/session/track', request.url)
+      fetch(trackUrl.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, role, ip, ua }),
+      }).catch(() => {
+        // Silencioso — session tracking nunca debe romper el request
+      })
+
+      // Setear cookie de debounce para no re-trackear en los próximos 5 min
+      response.cookies.set(SESSION_DEBOUNCE_COOKIE, '1', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: SESSION_DEBOUNCE_SECONDS,
+        path: '/',
+      })
     }
   } catch (error) {
     console.error('[middleware] Error:', error)

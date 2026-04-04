@@ -21,6 +21,7 @@ import { ClinicaDashboard } from '@/components/clinica/ClinicaDashboard'
 import { ClinicaLinkPanel } from '@/components/clinica/ClinicaLinkPanel'
 import { UserAvatar } from '@/components/profile/UserAvatar'
 import { ProfileModal } from '@/components/profile/ProfileModal'
+import { AgentChatFloat } from '@/components/chat/AgentChatFloat'
 
 export default function PatientsPage() {
   const router = useRouter()
@@ -481,6 +482,10 @@ export default function PatientsPage() {
         onClose={() => setShowProfile(false)}
         onUpdated={({ name, avatarUrl }) => { setUserName(name); setUserAvatar(avatarUrl) }}
       />
+
+      {userRole === 'medico' && (
+        <AgentChatFloat role="medico" />
+      )}
     </div>
   )
 }

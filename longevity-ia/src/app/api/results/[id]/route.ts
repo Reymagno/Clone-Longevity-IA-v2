@@ -26,6 +26,8 @@ export async function GET(
     return NextResponse.json({ error: 'Resultado no encontrado' }, { status: 404 })
   }
 
+  logAudit({ userId: user.id, email: user.email ?? undefined, role: user.user_metadata?.role, action: 'view_result', resourceType: 'lab_result', resourceId: params.id, patientId: data.patient_id }, request)
+
   return NextResponse.json(data)
 }
 
