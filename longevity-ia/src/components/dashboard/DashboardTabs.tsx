@@ -321,6 +321,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
             {TABS.filter(tab => {
               // Hide Historia Clínica for linked medico patients
               if (viewerRole === 'medico' && !isOwnPatient && tab.id === 9) return false
+              // Comparar oculta para médicos
+              if (tab.id === 10 && viewerRole === 'medico') return false
               // Tendencias only for medicos
               if (tab.id === 12 && viewerRole !== 'medico') return false
               return true
@@ -462,7 +464,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
             viewerRole={viewerRole}
           />
         )}
-        {activeTab === 10 && (
+        {/* Comparar — oculta para médicos */}
+        {activeTab === 10 && viewerRole !== 'medico' && (
           <CompareTab
             patient={patient}
             currentResult={result}
