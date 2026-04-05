@@ -188,7 +188,7 @@ function MessageBubble({ msg, toolEvents }: { msg: Message; toolEvents?: ToolEve
         {/* Message content */}
         {(msg.content || isEmpty) && (
           <div
-            className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+            className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
               isUser
                 ? 'bg-accent text-background font-medium rounded-br-sm'
                 : 'bg-muted/60 text-foreground rounded-bl-sm border border-border/50'
@@ -396,7 +396,7 @@ export function AgentChat({ role }: Props) {
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div className="card-medical flex flex-col" style={{ height: 'min(680px, calc(100vh - 16rem))' }}>
+    <div className="card-medical flex flex-col h-full">
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b border-border/60 shrink-0 rounded-t-2xl"
@@ -404,13 +404,13 @@ export function AgentChat({ role }: Props) {
       >
         <LogoIcon size={28} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-foreground leading-none">Asistente Inteligente</p>
+          <p className="text-base font-bold text-foreground leading-none">Asistente Inteligente</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span
               className="w-1.5 h-1.5 rounded-full bg-accent"
               style={{ animation: 'pulseRing 2s ease-in-out infinite' }}
             />
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {isStreaming ? 'Procesando consulta...' : 'Listo para consultar datos'}
             </p>
           </div>
@@ -445,7 +445,7 @@ export function AgentChat({ role }: Props) {
               key={s}
               onClick={() => sendMessage(s)}
               disabled={isStreaming}
-              className="text-[10px] font-medium px-3 py-1.5 rounded-full border border-accent/20 text-accent bg-accent/8 hover:bg-accent/15 hover:border-accent/40 transition-all disabled:opacity-40 text-left"
+              className="text-xs font-medium px-3.5 py-2 rounded-full border border-accent/20 text-accent bg-accent/8 hover:bg-accent/15 hover:border-accent/40 transition-all disabled:opacity-40 text-left"
             >
               {s}
             </button>
@@ -467,7 +467,7 @@ export function AgentChat({ role }: Props) {
             }
             disabled={isStreaming}
             rows={1}
-            className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 resize-none outline-none leading-5 disabled:opacity-50 py-0.5"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none outline-none leading-6 disabled:opacity-50 py-0.5"
             style={{ maxHeight: 120 }}
           />
           <button

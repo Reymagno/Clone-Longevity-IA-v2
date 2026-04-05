@@ -25,13 +25,13 @@ export function AgentChatFloat({ role }: Props) {
           fixed z-50 flex flex-col rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden
           transition-all duration-300 ease-out origin-bottom-right
           bottom-[5.5rem] right-4 sm:right-6
-          w-[calc(100vw-2rem)] sm:w-[440px]
+          w-[calc(100vw-2rem)] sm:w-[520px]
           ${isOpen
             ? 'opacity-100 scale-100 pointer-events-auto translate-y-0'
             : 'opacity-0 scale-95 pointer-events-none translate-y-3'
           }
         `}
-        style={{ maxHeight: 'min(640px, calc(100vh - 7rem))' }}
+        style={{ maxHeight: 'calc(100vh - 7rem)', height: 'calc(100vh - 7rem)' }}
       >
         {isOpen && <AgentChat role={role} />}
       </div>

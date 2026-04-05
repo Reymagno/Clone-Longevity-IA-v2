@@ -386,7 +386,9 @@ export function ClinicaDashboard() {
         <InvitacionesTab onRefresh={handleRefreshMedicos} />
       )}
       {activeTab === 'agente' && (
-        <AgentChat role="clinica" />
+        <div style={{ height: 'calc(100vh - 14rem)' }}>
+          <AgentChat role="clinica" />
+        </div>
       )}
     </div>
   )
