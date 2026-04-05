@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { User, LogOut } from 'lucide-react'
+import { User, LogOut, ClipboardList } from 'lucide-react'
 import { LogoIcon } from '@/components/ui/logo-icon'
 import { supabase } from '@/lib/supabase/client'
 
@@ -83,32 +83,36 @@ export default function OnboardingPage() {
       <div className="w-full max-w-md">
 
         {/* Logo + logout */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <LogoIcon size={40} />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Longevity IA</h1>
-              <p className="text-xs text-muted-foreground">Crea tu perfil para comenzar</p>
-              <p className="text-[9px] text-muted-foreground/40">Derechos reservados - Longevity Clinic SA de CV</p>
-            </div>
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="flex items-center justify-between w-full mb-4">
+            <div className="w-8" />
+            <LogoIcon size={48} />
+            <button
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            title="Cerrar sesión"
-          >
-            <LogOut size={16} />
-          </button>
+          <h1 className="text-xl font-bold text-foreground">Bienvenido a Longevity IA</h1>
+          <p className="text-sm text-muted-foreground mt-1">Completa tu perfil para comenzar tu análisis de salud personalizado</p>
+          <p className="text-[9px] text-muted-foreground/40 mt-2">Derechos reservados - Longevity Clinic SA de CV</p>
         </div>
 
         {/* Card */}
         <div className="card-medical p-6">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-2">
             <User size={18} className="text-accent" />
             <h2 className="text-lg font-semibold text-foreground">Tu perfil médico</h2>
           </div>
+          <div className="border-b border-border/30 mb-6" />
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ClipboardList size={15} className="text-accent" />
+              <h3 className="text-sm font-semibold text-foreground/80">Datos del Paciente</h3>
+            </div>
             <Input
               label="Nombre completo *"
               type="text"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { X, Camera, Loader2, User, Stethoscope, FileText, Mail, Shield, Copy, Check } from 'lucide-react'
+import { X, Camera, Loader2, User, Stethoscope, FileText, Mail, Shield, Copy, Check, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -210,13 +210,22 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border/60 bg-card shadow-2xl animate-scale-in">
         {/* Header */}
         <div
-          className={`sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border/60 backdrop-blur-sm rounded-t-2xl ${profile?.role !== 'medico' ? 'bg-card/95' : ''}`}
-          style={profile?.role === 'medico' ? { background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' } : undefined}
+          className={`sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border/60 backdrop-blur-sm rounded-t-2xl ${profile?.role !== 'medico' && profile?.role !== 'paciente' ? 'bg-card/95' : ''}`}
+          style={
+            profile?.role === 'medico'
+              ? { background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' }
+              : profile?.role === 'paciente'
+                ? { background: 'linear-gradient(135deg, #0A1F1A 0%, #0A1729 100%)' }
+                : undefined
+          }
         >
           <div>
-            <h2 className={`text-lg font-bold ${profile?.role === 'medico' ? 'text-white' : 'text-foreground'}`}>Mi Perfil</h2>
+            <h2 className={`text-lg font-bold ${profile?.role === 'medico' || profile?.role === 'paciente' ? 'text-white' : 'text-foreground'}`}>Mi Perfil</h2>
             {profile?.role === 'medico' && (
               <p className="text-xs text-blue-300/70 mt-0.5">Portal Medico Profesional</p>
+            )}
+            {profile?.role === 'paciente' && (
+              <p className="text-xs text-emerald-300/70 mt-0.5">Tu bienestar, nuestra prioridad</p>
             )}
           </div>
           <button
@@ -224,7 +233,9 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
             className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
               profile?.role === 'medico'
                 ? 'text-blue-300/60 hover:text-white hover:bg-white/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                : profile?.role === 'paciente'
+                  ? 'text-emerald-300/60 hover:text-white hover:bg-white/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
             aria-label="Cerrar"
           >
@@ -250,6 +261,13 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
                       className="ring-2 ring-card"
                     />
                   </div>
+                ) : profile.role === 'paciente' ? (
+                  <UserAvatar
+                    avatarUrl={profile.avatar_url}
+                    name={displayName}
+                    size={96}
+                    className="ring-2 ring-accent/30"
+                  />
                 ) : (
                   <UserAvatar
                     avatarUrl={profile.avatar_url}
@@ -307,6 +325,11 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
                 <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-accent/15 text-accent border border-accent/20">
                   <Stethoscope size={12} />
                   {profile.specialty || 'Medico'}
+                </span>
+              ) : profile.role === 'paciente' ? (
+                <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-accent/15 text-accent border border-accent/20">
+                  <Heart size={12} />
+                  Paciente Longevity
                 </span>
               ) : (
                 <span className="mt-2 px-3 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-accent/15 text-accent border border-accent/20">
@@ -465,17 +488,15 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
             </div>
 
             {/* Security section */}
-            {profile.role === 'medico' && (
-              <div className="px-6 pt-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-accent/10">
-                    <Shield size={14} className="text-accent" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-foreground">Seguridad</h3>
-                  <div className="flex-1 h-px bg-border/50" />
+            <div className="px-6 pt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-accent/10">
+                  <Shield size={14} className="text-accent" />
                 </div>
+                <h3 className="text-sm font-semibold text-foreground">Seguridad</h3>
+                <div className="flex-1 h-px bg-border/50" />
               </div>
-            )}
+            </div>
 
             {/* MFA Setup */}
             <div className="px-6 pb-2">

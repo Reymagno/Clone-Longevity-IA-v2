@@ -8,7 +8,7 @@ import { NewPatientModal } from '@/components/patients/NewPatientModal'
 import { AnalysisCards } from '@/components/patients/AnalysisCards'
 import { Button } from '@/components/ui/button'
 import type { Patient, PatientWithLatestResult } from '@/types'
-import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, AlertTriangle, Building2, BarChart2, ArrowUpDown } from 'lucide-react'
+import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, AlertTriangle, Building2, BarChart2, ArrowUpDown, Heart, Activity, FlaskConical } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
@@ -42,6 +42,8 @@ export default function PatientsPage() {
   const [userName, setUserName] = useState('')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'name' | 'lastAnalysis' | 'score' | 'recent'>('name')
+  const [latestAnalysis, setLatestAnalysis] = useState<{ overallScore?: number; longevity_age?: number; keyAlerts?: Array<{ level: string }> } | null>(null)
+  const [analysisCount, setAnalysisCount] = useState(0)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -207,6 +209,21 @@ export default function PatientsPage() {
       .catch(() => {})
   }, [])
 
+  // Fetch latest analysis for single patient
+  useEffect(() => {
+    if (!singlePatient) return
+    supabase
+      .from('lab_results')
+      .select('ai_analysis')
+      .eq('patient_id', singlePatient.id)
+      .order('result_date', { ascending: false })
+      .then(({ data }) => {
+        setAnalysisCount(data?.length ?? 0)
+        const latest = data?.[0]?.ai_analysis as any
+        if (latest) setLatestAnalysis(latest)
+      })
+  }, [singlePatient])
+
   const filtered = patients.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.code.toLowerCase().includes(search.toLowerCase())
@@ -260,7 +277,10 @@ export default function PatientsPage() {
   if (singlePatient) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
+        <div
+          className="backdrop-blur-xl sticky top-0 z-30 border-b border-border/30"
+          style={{ background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' }}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5">
               <LogoIcon size={32} />
@@ -292,11 +312,83 @@ export default function PatientsPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground">{singlePatient.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {singlePatient.code} · {singlePatient.age} anos · Mis analisis de salud
-            </p>
+          {/* Welcome card with KPIs */}
+          <div className="mb-8 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
+            {/* Welcome row */}
+            <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/30"
+              style={{ background: 'linear-gradient(135deg, rgba(14,26,48,0.5) 0%, rgba(10,23,41,0.3) 100%)' }}
+            >
+              <div>
+                <h2 className="text-lg font-bold text-foreground">
+                  {greeting}, {singlePatient.name}
+                </h2>
+                <p className="text-xs text-muted-foreground">Tu resumen de salud personalizado</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground capitalize">{formattedDate}</span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(singlePatient.code); toast.success('Codigo copiado') }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 border border-accent/20 text-xs font-mono font-bold text-accent hover:bg-accent/20 transition-colors"
+                  title="Copiar codigo de paciente"
+                >
+                  {singlePatient.code}
+                  <Copy size={12} className="text-accent/60" />
+                </button>
+              </div>
+            </div>
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/30">
+              {/* Score de Salud */}
+              <div className="px-4 py-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
+                  <Heart size={16} className="text-accent" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">
+                    {latestAnalysis?.overallScore != null ? latestAnalysis.overallScore : '--'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Score de Salud</p>
+                </div>
+              </div>
+              {/* Edad Biologica */}
+              <div className="px-4 py-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
+                  <Activity size={16} className="text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">
+                    {latestAnalysis?.longevity_age != null ? latestAnalysis.longevity_age : '--'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Edad Biologica</p>
+                </div>
+              </div>
+              {/* Alertas Clave */}
+              <div className="px-4 py-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={16} className="text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">
+                    {latestAnalysis?.keyAlerts
+                      ? latestAnalysis.keyAlerts.filter(a => a.level === 'danger' || a.level === 'warning').length
+                      : '--'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Alertas Clave</p>
+                </div>
+              </div>
+              {/* Estudios Realizados */}
+              <div className="px-4 py-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-violet-500/15 flex items-center justify-center shrink-0">
+                  <FlaskConical size={16} className="text-violet-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">
+                    {analysisCount > 0 ? analysisCount : 1}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Estudios Realizados</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <AnalysisCards patient={singlePatient} />

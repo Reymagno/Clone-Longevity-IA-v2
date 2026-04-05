@@ -9,7 +9,8 @@ import { PatientIntakeChat } from '@/components/patients/PatientIntakeChat'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Calendar, Cpu,
-  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles, ClipboardList, StopCircle
+  CheckCircle2, Upload, FileSearch, Brain, Save, Sparkles, ClipboardList, StopCircle,
+  ChevronRight, Search, BarChart2
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
@@ -201,7 +202,7 @@ export default function UploadPage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
+      <div className="backdrop-blur-xl sticky top-0 z-30 border-b border-border/30" style={{ background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <Link href="/patients" className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-white/5">
             <ArrowLeft size={18} />
@@ -363,11 +364,27 @@ export default function UploadPage({ params }: { params: { id: string } }) {
         ) : section === 'upload' ? (
           /* Vista de subida de archivo */
           <div className="space-y-6 animate-fade-in">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground mb-2">Subir Estudio de Laboratorio</h1>
-              <p className="text-muted-foreground">
-                Sube un PDF o imagen. La IA extraerá todos los biomarcadores y generará tu dashboard médico.
-              </p>
+            <div className="card-medical p-6 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                  <Sparkles size={24} className="text-accent" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground mb-1">Nuevo Análisis de Salud</h1>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Sube tu estudio de laboratorio. La IA extraerá cada biomarcador y generará tu dashboard médico personalizado.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-5 pt-4 border-t border-border/30 overflow-x-auto">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-[11px] text-accent font-medium whitespace-nowrap"><Upload size={11} /> Subir</span>
+                <ChevronRight size={12} className="text-muted-foreground/40 shrink-0" />
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/30 border border-border/40 text-[11px] text-muted-foreground font-medium whitespace-nowrap"><Search size={11} /> Extraer</span>
+                <ChevronRight size={12} className="text-muted-foreground/40 shrink-0" />
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/30 border border-border/40 text-[11px] text-muted-foreground font-medium whitespace-nowrap"><Brain size={11} /> Analizar</span>
+                <ChevronRight size={12} className="text-muted-foreground/40 shrink-0" />
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/30 border border-border/40 text-[11px] text-muted-foreground font-medium whitespace-nowrap"><BarChart2 size={11} /> Dashboard</span>
+              </div>
             </div>
 
             <FileUploader
