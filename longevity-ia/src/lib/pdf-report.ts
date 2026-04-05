@@ -1258,18 +1258,24 @@ export async function generateMedicalReport(
     skip(4)
     section('PÉPTIDOS TERAPÉUTICOS', `— ${peptideProtocol.recommendations.length} péptidos recomendados`)
 
-    // Warnings
+    // Warnings — calcular altura real basada en líneas wrapeadas
     if (peptideProtocol.warnings.length > 0) {
-      const warnH = 8 + peptideProtocol.warnings.length * 5
+      pdf.setFontSize(7)
+      let totalWarnLines = 0
+      const warnWrapped = peptideProtocol.warnings.map(w => {
+        const lines = pdf.splitTextToSize(`• ${w}`, CW - 14) as string[]
+        totalWarnLines += lines.length
+        return lines
+      })
+      const warnH = 10 + totalWarnLines * 4
       guard(warnH + 2)
       box(MG, y, CW, warnH, [255, 245, 245] as RGB)
       box(MG, y, 3, warnH, C.danger)
       ink(C.danger); sz(7.5); b()
       t('ADVERTENCIAS', MG + 7, y + 5)
-      let wy = y + 9
-      peptideProtocol.warnings.forEach(w => {
+      let wy = y + 10
+      warnWrapped.forEach(wLines => {
         ink(C.danger); sz(7); n()
-        const wLines = pdf.splitTextToSize(`• ${w}`, CW - 14) as string[]
         pdf.text(wLines, MG + 7, wy)
         wy += wLines.length * 4
       })
@@ -1277,46 +1283,75 @@ export async function generateMedicalReport(
     }
 
     // Peptide recommendations table
+    // Ancho útil para texto: desde MG+7 hasta MG+CW-7 = CW - 14
+    const pepTextW = CW - 14
+
     peptideProtocol.recommendations.forEach((rec, pi) => {
-      const mechLines = pdf.splitTextToSize(rec.mechanism, CW - 18) as string[]
-      const mechH = Math.min(mechLines.length, 3) * 4
-      const RH = 24 + mechH + (rec.targetBiomarkers.length > 0 ? 5 : 0)
+      // Pre-calcular todas las líneas de texto para medir altura real
+      pdf.setFontSize(7)
+      const mechLines = pdf.splitTextToSize(rec.mechanism, pepTextW) as string[]
+      const mechDisplayLines = mechLines.slice(0, 3)
+      const mechH = mechDisplayLines.length * 4
+
+      pdf.setFontSize(7.5)
+      const doseText = `${rec.dose} · ${rec.route} · ${rec.frequency}`
+      const doseLines = pdf.splitTextToSize(doseText, pepTextW) as string[]
+      const doseH = doseLines.length * 4
+
+      const hasBiomarkers = rec.targetBiomarkers.length > 0
+      const bmText = hasBiomarkers ? `Biomarcadores: ${rec.targetBiomarkers.join(', ')}` : ''
+      pdf.setFontSize(6.5)
+      const bmLines = hasBiomarkers ? pdf.splitTextToSize(bmText, pepTextW) as string[] : []
+      const bmH = bmLines.length * 3.5
+
+      // Altura total: header(12) + dose + duration(5) + mechanism + biomarkers + padding(4)
+      const RH = 12 + doseH + 5 + mechH + (hasBiomarkers ? bmH + 2 : 0) + 4
       guard(RH + 2)
 
+      // Fondo del box con altura real calculada
       box(MG, y, CW, RH, pi % 2 === 0 ? C.bg : C.sheet)
 
-      // Urgency left bar
+      // Barra de urgencia izquierda
       const pUrgColor = rec.urgency === 'high' ? C.danger : rec.urgency === 'medium' ? C.warning : C.normal
       box(MG, y, 3, RH, pUrgColor)
 
-      // Name + category
-      ink(C.text); sz(8.5); b()
-      tSafe(`${pi + 1}. ${rec.peptide}`, MG + 7, y + 5, CW * 0.5)
-      ink(C.muted); sz(7); n()
-      tSafe(`${rec.fullName} · ${rec.category}`, MG + 7, y + 10, CW * 0.6)
+      // Cursor vertical relativo dentro del box
+      let cy = y + 5
 
-      // Urgency badge
+      // Nombre + categoría (línea 1)
+      ink(C.text); sz(8.5); b()
+      tSafe(`${pi + 1}. ${rec.peptide}`, MG + 7, cy, pepTextW - 30)
+      // Badge de urgencia a la derecha
       const pUrgLabel = rec.urgency === 'high' ? 'ALTA' : rec.urgency === 'medium' ? 'MEDIA' : 'PREVENTIVO'
       ink(pUrgColor); sz(6); b()
-      t(pUrgLabel, MG + CW - 5, y + 5, 'right')
+      t(pUrgLabel, MG + CW - 5, cy, 'right')
+      cy += 5
 
-      // Dose + route + frequency
-      ink(C.accent); sz(7.5); b()
-      tSafe(`${rec.dose} · ${rec.route} · ${rec.frequency}`, MG + 7, y + 16, CW - 14)
-
-      // Duration
+      // Nombre completo + categoría (línea 2)
       ink(C.muted); sz(7); n()
-      tSafe(`Duración: ${rec.duration}`, MG + 7, y + 20, CW * 0.4)
+      tSafe(`${rec.fullName} · ${rec.category}`, MG + 7, cy, pepTextW)
+      cy += 5
 
-      // Mechanism
+      // Dosis + vía + frecuencia (puede wrappear)
+      ink(C.accent); sz(7.5); b()
+      pdf.text(doseLines, MG + 7, cy)
+      cy += doseH + 1
+
+      // Duración
+      ink(C.muted); sz(7); n()
+      tSafe(`Duración: ${rec.duration}`, MG + 7, cy, pepTextW * 0.6)
+      cy += 5
+
+      // Mecanismo (hasta 3 líneas)
       ink(C.text); sz(7); n()
-      pdf.text(mechLines.slice(0, 3), MG + 7, y + 25)
+      pdf.text(mechDisplayLines, MG + 7, cy)
+      cy += mechH
 
-      // Target biomarkers
-      if (rec.targetBiomarkers.length > 0) {
-        const bmY = y + 25 + mechH + 1
+      // Biomarcadores objetivo
+      if (hasBiomarkers) {
+        cy += 2
         ink(C.light); sz(6.5); n()
-        tSafe(`Biomarcadores: ${rec.targetBiomarkers.join(', ')}`, MG + 7, bmY, CW - 14)
+        pdf.text(bmLines, MG + 7, cy)
       }
 
       hline(y + RH)
