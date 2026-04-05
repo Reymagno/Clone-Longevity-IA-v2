@@ -233,7 +233,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
             <div>
               <p className="font-semibold text-foreground">{patient.name}</p>
               <p className="text-xs text-muted-foreground font-mono">
-                {patient.code} · {patient.age} años
+                {viewerRole !== 'paciente' && <>{patient.code} · </>}{patient.age} años
               </p>
             </div>
           </div>
@@ -325,6 +325,8 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               if (tab.id === 10 && viewerRole === 'medico') return false
               // Tendencias only for medicos
               if (tab.id === 12 && viewerRole !== 'medico') return false
+              // Protocolo oculto para pacientes
+              if (tab.id === 6 && viewerRole === 'paciente') return false
               return true
             }).map((tab) => {
               const Icon = tab.icon
