@@ -5,6 +5,7 @@
  */
 
 import type { Patient, ParsedData, AIAnalysis, BiomarkerValue, ClinicBranding } from '@/types'
+import { computePeptideProtocol } from '@/lib/peptide-protocol'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTES
@@ -904,17 +905,57 @@ export async function generateMedicalReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PROTOCOLO MÉDICO
+  // PROTOCOLO MÉDICO INTEGRAL
   // ═══════════════════════════════════════════════════════════════
   skip(4)
-  section('PROTOCOLO MÉDICO PERSONALIZADO', `— ${(analysis.protocol ?? []).length} intervenciones recomendadas`)
+  section('REPORTE MÉDICO INTEGRAL', '— Análisis de Biomarcadores y Protocolo Personalizado')
 
-  const urgencyOrder = { immediate: 0, high: 1, medium: 2, low: 3 }
-  const sortedProtocol = [...(analysis.protocol ?? [])].sort((a, b) =>
-    (urgencyOrder[a.urgency ?? 'low'] ?? 3) - (urgencyOrder[b.urgency ?? 'low'] ?? 3)
-  )
+  // Ordenar protocolo por categoría: Diagnóstico → Tratamiento → Intervención → Suplemento
+  const CATEGORY_ORDER: Record<string, number> = {
+    'diagnóstico': 0, 'diagnostico': 0,
+    'tratamiento': 1,
+    'intervención': 2, 'intervencion': 2,
+    'suplemento': 3,
+  }
+  const urgencyOrder: Record<string, number> = { immediate: 0, high: 1, medium: 2, low: 3 }
+
+  const sortedProtocol = [...(analysis.protocol ?? [])].sort((a, b) => {
+    const catA = CATEGORY_ORDER[(a.category ?? '').toLowerCase().trim()] ?? 9
+    const catB = CATEGORY_ORDER[(b.category ?? '').toLowerCase().trim()] ?? 9
+    if (catA !== catB) return catA - catB
+    return (urgencyOrder[a.urgency ?? 'low'] ?? 3) - (urgencyOrder[b.urgency ?? 'low'] ?? 3)
+  })
+
+  // Renumerar secuencialmente
+  sortedProtocol.forEach((item, i) => { item.number = i + 1 })
+
+  // Agrupar por categoría para headers visuales
+  const CATEGORY_LABELS: Record<number, [string, string, RGB]> = {
+    0: ['DIAGNÓSTICO', 'Estudios y pruebas recomendadas', C.normal],
+    1: ['TRATAMIENTO', 'Medicamentos y terapias farmacológicas', C.warning],
+    2: ['INTERVENCIÓN MÉDICA', 'Procedimientos, estilo de vida y terapias regenerativas', C.accent],
+    3: ['SUPLEMENTO', 'Nutracéuticos y suplementos', C.optimal],
+  }
+  let lastCategoryIdx = -1
 
   sortedProtocol.forEach((item, i) => {
+    // Header de categoría cuando cambia el grupo
+    const catIdx = CATEGORY_ORDER[(item.category ?? '').toLowerCase().trim()] ?? 9
+    if (catIdx !== lastCategoryIdx && CATEGORY_LABELS[catIdx]) {
+      lastCategoryIdx = catIdx
+      const [catTitle, catSub, catColor] = CATEGORY_LABELS[catIdx]
+      const catItems = sortedProtocol.filter(p => CATEGORY_ORDER[(p.category ?? '').toLowerCase().trim()] === catIdx)
+      guard(14)
+      skip(3)
+      box(MG, y, CW, 10, sbg(catIdx === 0 ? 'normal' : catIdx === 1 ? 'warning' : catIdx === 2 ? 'optimal' : 'optimal'))
+      box(MG, y, 3, 10, catColor)
+      ink(catColor); sz(9); b()
+      tSafe(catTitle, MG + 8, y + 5, CW * 0.5)
+      ink(C.muted); sz(7); n()
+      tSafe(`${catSub} — ${catItems.length} item${catItems.length !== 1 ? 's' : ''}`, MG + 8, y + 9, CW * 0.65)
+      skip(12)
+    }
+
     const urgColor =
       item.urgency === 'immediate' ? C.danger :
       item.urgency === 'high'      ? C.warning :
@@ -1018,10 +1059,10 @@ export async function generateMedicalReport(
   })
 
   // ═══════════════════════════════════════════════════════════════
-  // PROTOCOLO CÉLULAS MADRE Y EXOSOMAS
+  // PROTOCOLO CÉLULAS MADRE, EXOSOMAS Y PÉPTIDOS
   // ═══════════════════════════════════════════════════════════════
   skip(4)
-  section('PROTOCOLO DE CÉLULAS MADRE Y EXOSOMAS', '— Medicina regenerativa personalizada')
+  section('TRATAMIENTO REGENERATIVO: CÉLULAS MADRE, EXOSOMAS Y PÉPTIDOS', '— Medicina regenerativa personalizada')
 
   const stem = computeStemCell(patient, parsedData, analysis)
   const tfPct = ((stem.totalFactor - 1) * 100).toFixed(0)
@@ -1201,6 +1242,88 @@ export async function generateMedicalReport(
     skip(7)
   })
   skip(5)
+
+  // ═══════════════════════════════════════════════════════════════
+  // PÉPTIDOS TERAPÉUTICOS
+  // ═══════════════════════════════════════════════════════════════
+  const bmiForPeptides = patient.weight && patient.height
+    ? patient.weight / Math.pow(patient.height / 100, 2)
+    : null
+  const peptideProtocol = computePeptideProtocol(
+    parsedData, analysis, patient.age, bmiForPeptides,
+    patient.clinical_history as Record<string, unknown> | null,
+  )
+
+  if (peptideProtocol && peptideProtocol.recommendations.length > 0) {
+    skip(4)
+    section('PÉPTIDOS TERAPÉUTICOS', `— ${peptideProtocol.recommendations.length} péptidos recomendados`)
+
+    // Warnings
+    if (peptideProtocol.warnings.length > 0) {
+      const warnH = 8 + peptideProtocol.warnings.length * 5
+      guard(warnH + 2)
+      box(MG, y, CW, warnH, [255, 245, 245] as RGB)
+      box(MG, y, 3, warnH, C.danger)
+      ink(C.danger); sz(7.5); b()
+      t('ADVERTENCIAS', MG + 7, y + 5)
+      let wy = y + 9
+      peptideProtocol.warnings.forEach(w => {
+        ink(C.danger); sz(7); n()
+        const wLines = pdf.splitTextToSize(`• ${w}`, CW - 14) as string[]
+        pdf.text(wLines, MG + 7, wy)
+        wy += wLines.length * 4
+      })
+      skip(warnH + 2)
+    }
+
+    // Peptide recommendations table
+    peptideProtocol.recommendations.forEach((rec, pi) => {
+      const mechLines = pdf.splitTextToSize(rec.mechanism, CW - 18) as string[]
+      const mechH = Math.min(mechLines.length, 3) * 4
+      const RH = 24 + mechH + (rec.targetBiomarkers.length > 0 ? 5 : 0)
+      guard(RH + 2)
+
+      box(MG, y, CW, RH, pi % 2 === 0 ? C.bg : C.sheet)
+
+      // Urgency left bar
+      const pUrgColor = rec.urgency === 'high' ? C.danger : rec.urgency === 'medium' ? C.warning : C.normal
+      box(MG, y, 3, RH, pUrgColor)
+
+      // Name + category
+      ink(C.text); sz(8.5); b()
+      tSafe(`${pi + 1}. ${rec.peptide}`, MG + 7, y + 5, CW * 0.5)
+      ink(C.muted); sz(7); n()
+      tSafe(`${rec.fullName} · ${rec.category}`, MG + 7, y + 10, CW * 0.6)
+
+      // Urgency badge
+      const pUrgLabel = rec.urgency === 'high' ? 'ALTA' : rec.urgency === 'medium' ? 'MEDIA' : 'PREVENTIVO'
+      ink(pUrgColor); sz(6); b()
+      t(pUrgLabel, MG + CW - 5, y + 5, 'right')
+
+      // Dose + route + frequency
+      ink(C.accent); sz(7.5); b()
+      tSafe(`${rec.dose} · ${rec.route} · ${rec.frequency}`, MG + 7, y + 16, CW - 14)
+
+      // Duration
+      ink(C.muted); sz(7); n()
+      tSafe(`Duración: ${rec.duration}`, MG + 7, y + 20, CW * 0.4)
+
+      // Mechanism
+      ink(C.text); sz(7); n()
+      pdf.text(mechLines.slice(0, 3), MG + 7, y + 25)
+
+      // Target biomarkers
+      if (rec.targetBiomarkers.length > 0) {
+        const bmY = y + 25 + mechH + 1
+        ink(C.light); sz(6.5); n()
+        tSafe(`Biomarcadores: ${rec.targetBiomarkers.join(', ')}`, MG + 7, bmY, CW - 14)
+      }
+
+      hline(y + RH)
+      skip(RH)
+    })
+    skip(4)
+  }
 
   // Fuentes científicas
   section('FUENTES DE EVIDENCIA CIENTÍFICA', '— Base del algoritmo de dosificación')
