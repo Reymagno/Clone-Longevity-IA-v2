@@ -637,7 +637,7 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
             {(analysis.keyAlerts ?? []).filter(a => a.level === 'danger' || a.level === 'warning').length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Hallazgos Clínicos Relevantes</span>
+                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Diagnósticos Clínicos Relevantes</span>
                   <div className="flex-1 h-px bg-border/60" />
                 </div>
                 <div className="space-y-2">
