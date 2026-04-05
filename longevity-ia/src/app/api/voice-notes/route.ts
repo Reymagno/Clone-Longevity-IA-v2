@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
       const analysisResponse = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
+        temperature: 0,
         system: `Eres un asistente médico clínico de longevidad. Analiza la siguiente nota de voz transcrita de un paciente o médico y extrae:
 
 1. **Síntomas reportados** — lista concisa

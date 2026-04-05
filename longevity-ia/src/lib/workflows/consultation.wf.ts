@@ -149,6 +149,7 @@ async function generateSOAP(transcript: string, patientName: string): Promise<SO
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
+      temperature: 0,
       system: `Eres un asistente médico experto. Analiza la transcripción de una consulta médica y extrae información estructurada en formato JSON.`,
       messages: [{
         role: 'user',

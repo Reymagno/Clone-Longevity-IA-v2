@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
       const analysisResponse = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
+        temperature: 0,
         system: `Eres un asistente medico clinico especializado en medicina de longevidad. Analiza la siguiente transcripcion de consulta medica y EXTRAE UNICAMENTE los insights clinicos relevantes.
 
 NO guardes el dialogo textual. Transforma la conversacion en informacion clinica estructurada.
