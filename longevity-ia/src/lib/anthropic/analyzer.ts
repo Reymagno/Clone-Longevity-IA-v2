@@ -126,6 +126,19 @@ Cada intervención del protocolo recibe una urgencia basada en el biomarcador ob
 - "medium": biomarcador en rango WARNING (ej: LDL 130-189, glucosa 100-125, VitD 20-39, GGT 40-80)
 - "low": biomarcador en rango NORMAL pero subóptimo para longevidad (ej: LDL 70-129, VitD 40-59, optimización preventiva)
 
+══════════════════════════════════════════════════════════════
+LÓGICA PROPIETARIA LONGEVITY IA — ORDEN DEL PROTOCOLO
+══════════════════════════════════════════════════════════════
+
+El protocolo DEBE seguir SIEMPRE este orden estricto por categoría:
+
+1. "Diagnóstico" — Estudios y pruebas que el paciente debe realizarse para completar o profundizar su evaluación (ej: perfil lipídico avanzado, ultrasonido carotídeo, DEXA, prueba de esfuerzo, marcadores tumorales, etc.)
+2. "Tratamiento" — Medicamentos farmacológicos prescritos para tratar condiciones identificadas (ej: estatinas, metformina, levotiroxina, antihipertensivos, etc.)
+3. "Intervención" — Intervenciones médicas avanzadas, procedimientos, terapias regenerativas y cambios de estilo de vida (ej: terapia IV, ozono, células madre, ejercicio estructurado, protocolo de sueño, ayuno intermitente, etc.)
+4. "Suplemento" — Suplementos nutricionales y nutracéuticos (ej: Vitamina D, Omega-3, NAC, CoQ10, magnesio, berberina, NMN, resveratrol, etc.)
+
+REGLA: Numerar las intervenciones secuencialmente (1, 2, 3...) respetando el orden de categorías. Primero TODOS los diagnósticos, luego TODOS los tratamientos, luego TODAS las intervenciones, luego TODOS los suplementos. Dentro de cada categoría, ordenar por urgencia (immediate → high → medium → low).
+
 PRINCIPIOS INAMOVIBLES:
 - Usa SIEMPRE rangos óptimos de longevidad, nunca solo rangos de referencia convencionales
 - Cada recomendación DEBE citar autor, institución, revista, año y magnitud del efecto
@@ -241,7 +254,8 @@ FORMATO:
 - keyAlerts: máximo 4. FODA: 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas (vinculados a biomarcadores con valor)
 - risks: exactamente 4 enfermedades. Colores: CV=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8
 - projectionData: 10 puntos (años 1-10). projectionFactors: 3 factores
-- REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: El protocolo NO debe repetir recomendaciones de estudios ni intervenciones diagnósticas que ya estén mencionadas en las oportunidades del FODA. Si el FODA sugiere "perfil lipídico avanzado" o "ultrasonido carotídeo" como oportunidad, el protocolo NO debe incluir esos mismos estudios. El FODA describe QUÉ se puede investigar/mejorar; el protocolo describe QUÉ moléculas/intervenciones terapéuticas implementar. No hay solapamiento entre ambos.
+- REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: Las oportunidades del FODA NO deben incluir estudios diagnósticos ni intervenciones terapéuticas — esos van en el protocolo. Las oportunidades del FODA se enfocan en áreas de mejora potencial basadas en biomarcadores (ej: "Optimizar vitamina D de 35 a rango óptimo 60-80 ng/mL"). Los diagnósticos concretos van en la categoría "Diagnóstico" del protocolo.
+- ORDEN DEL PROTOCOLO: Seguir SIEMPRE el orden: 1) Diagnóstico, 2) Tratamiento, 3) Intervención, 4) Suplemento. Ver sección ORDEN DEL PROTOCOLO arriba.
 - Todo en español mexicano, técnico y preciso. Solo analiza lo que está en el documento.`
 
 export interface AnalyzeFileParams {
@@ -712,6 +726,45 @@ function deduplicateProtocol(protocol: object[]): void {
   }
 }
 
+// ─── Reordenar protocolo por categoría ──────────────────────────────────────
+
+const CATEGORY_ORDER: Record<string, number> = {
+  'diagnóstico': 0, 'diagnostico': 0,
+  'tratamiento': 1,
+  'intervención': 2, 'intervencion': 2,
+  'suplemento': 3,
+}
+
+/**
+ * Reordena el protocolo por categoría: Diagnóstico → Tratamiento → Intervención → Suplemento.
+ * Dentro de cada categoría mantiene el orden por urgencia.
+ * Modifica in-place y renumera.
+ */
+function sortProtocolByCategory(protocol: object[]): void {
+  const urgencyOrder: Record<string, number> = {
+    'immediate': 0, 'high': 1, 'medium': 2, 'low': 3,
+  }
+
+  protocol.sort((a, b) => {
+    const catA = String((a as Record<string, unknown>).category ?? '').toLowerCase().trim()
+    const catB = String((b as Record<string, unknown>).category ?? '').toLowerCase().trim()
+    const orderA = CATEGORY_ORDER[catA] ?? 9
+    const orderB = CATEGORY_ORDER[catB] ?? 9
+
+    if (orderA !== orderB) return orderA - orderB
+
+    // Dentro de la misma categoría, ordenar por urgencia
+    const urgA = String((a as Record<string, unknown>).urgency ?? 'low').toLowerCase()
+    const urgB = String((b as Record<string, unknown>).urgency ?? 'low').toLowerCase()
+    return (urgencyOrder[urgA] ?? 3) - (urgencyOrder[urgB] ?? 3)
+  })
+
+  // Renumerar
+  for (let i = 0; i < protocol.length; i++) {
+    (protocol[i] as Record<string, unknown>).number = i + 1
+  }
+}
+
 // ─── FODA Híbrido: Motor selecciona, Claude redacta ──────────────────────────
 
 const FODA_ENRICH_PROMPT = `Eres el narrador clínico de Longevity IA. El motor matemático ya seleccionó los biomarcadores del FODA y su orden de prioridad. Tu trabajo es REDACTAR el detalle narrativo de cada punto, personalizado con la historia clínica del paciente.
@@ -723,7 +776,7 @@ REGLAS:
 - Cada "evidence" debe citar autor, revista, año y magnitud del efecto cuantificado
 - expectedImpact (fortalezas y oportunidades): dato cuantificado de beneficio
 - probability (debilidades y amenazas): "Alta", "Media" o "Baja" — ya viene precalculada, ajústala solo si la historia clínica lo justifica claramente
-- Las OPORTUNIDADES del FODA deben enfocarse en áreas de mejora diagnóstica y exploración (estudios, pruebas, evaluaciones), NO en intervenciones terapéuticas. Las moléculas y suplementos van en el protocolo, no aquí.
+- Las OPORTUNIDADES del FODA deben enfocarse en áreas de mejora basadas en biomarcadores (ej: "Optimizar ratio TG/HDL de 2.1 a <1.5" o "Elevar vitamina D de 28 a rango óptimo 60-80 ng/mL"). NO incluir estudios diagnósticos, moléculas ni suplementos aquí — todo eso va en el protocolo.
 - Español mexicano, lenguaje técnico y preciso
 - Responde ÚNICAMENTE con JSON válido, sin markdown`
 
@@ -927,8 +980,9 @@ function validateAndParseAiResponse(rawText: string, patientAge?: number, patien
     }
   }
 
-  // ── Deduplicar protocolo: eliminar moléculas repetidas ────────
+  // ── Deduplicar y reordenar protocolo ────────
   deduplicateProtocol(protocol)
+  sortProtocolByCategory(protocol)
 
   const aiAnalysis = {
     systemScores,
@@ -1320,7 +1374,8 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
 }
 
 REGLAS DE FORMATO: systemScores, overallScore, longevity_age, projectionData y projectionFactors = PLACEHOLDER (0/vacío), el motor matemático los calcula. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa/péptido si aplica; mechanism/expectedResult/action = 1 oración con biomarcador específico y valor).
-REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: El protocolo NO debe repetir recomendaciones de estudios a realizar ni intervenciones diagnósticas que ya aparezcan en el FODA (oportunidades). El FODA describe QUÉ oportunidades de mejora existen; el protocolo describe QUÉ moléculas/suplementos/intervenciones terapéuticas concretas implementar. Si el FODA menciona un estudio diagnóstico como oportunidad, el protocolo NO lo repite.
+REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: Las oportunidades del FODA NO incluyen estudios diagnósticos ni intervenciones — esos van en el protocolo. El FODA describe áreas de mejora basadas en biomarcadores.
+ORDEN DEL PROTOCOLO: Seguir SIEMPRE: 1) Diagnóstico (estudios/pruebas a realizar), 2) Tratamiento (fármacos), 3) Intervención (procedimientos médicos, estilo de vida, terapias regenerativas), 4) Suplemento (nutracéuticos). Numerar secuencialmente respetando este orden. Dentro de cada categoría, ordenar por urgencia.
 Todo en español mexicano, lenguaje conciso.`
 
 export async function reanalyzeWithClinicalHistory(
@@ -1436,7 +1491,7 @@ PERSONALIZACIÓN CON HISTORIA CLÍNICA:
 - Células madre: SOLO hUC-MSC cordón umbilical. NUNCA médula ósea ni tejido adiposo
 - Dosis formato: "Xmg Nx/día". clinicalTrial: nombre ensayo o "Sin ensayo nombrado — evidencia: Autor, Revista, Año"
 - Urgencia: immediate=riesgo vital, high=danger sin riesgo vital, medium=warning, low=optimización
-- REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: NO repetir en el protocolo recomendaciones de estudios diagnósticos ni intervenciones que ya estén en las oportunidades del FODA. El protocolo es exclusivamente terapéutico (moléculas, suplementos, estilo de vida), NO diagnóstico.
+- ORDEN DEL PROTOCOLO: Seguir SIEMPRE: 1) "Diagnóstico" (estudios/pruebas), 2) "Tratamiento" (fármacos), 3) "Intervención" (procedimientos, estilo de vida, regenerativas), 4) "Suplemento" (nutracéuticos). Numerar secuencialmente. Dentro de cada categoría, ordenar por urgencia.
 
 JSON (sin markdown):
 {
@@ -1501,6 +1556,7 @@ export async function reanalyzePartial(
   const cached = cachedAnalysis as Record<string, unknown>
   const protocol = ensureArray(partial.protocol || cached.protocol) as object[]
   deduplicateProtocol(protocol)
+  sortProtocolByCategory(protocol)
 
   // Recalcular scores, edad, FODA y proyección con funciones matemáticas
   const pd = parsedData as ParsedBiomarkers
