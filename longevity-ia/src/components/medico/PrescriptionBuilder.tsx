@@ -9,12 +9,14 @@ import {
   type PrescriptionItem,
   type CustomItem,
   type MedicoInfo,
+  type PrescriptionSignature,
 } from '@/lib/prescription-pdf'
 import {
   X, FileDown, CheckCircle2, XCircle, Edit3, Plus,
   AlertTriangle, ShieldCheck, Pill, Stethoscope,
-  Building2, Trash2, ChevronDown, ChevronRight,
+  Building2, Trash2, ChevronDown, ChevronRight, Shield,
 } from 'lucide-react'
+import { SignatureModal } from '@/components/prescription/SignatureModal'
 
 interface PrescriptionBuilderProps {
   patient: Patient
@@ -85,6 +87,11 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
   // Expanded items
   const [expandedItem, setExpandedItem] = useState<number | null>(null)
 
+  // Signature state
+  const [showSignModal, setShowSignModal] = useState(false)
+  const [signatureData, setSignatureData] = useState<PrescriptionSignature | null>(null)
+  const [signingPdf, setSigningPdf] = useState(false)
+
   // Load medico data
   useEffect(() => {
     let cancelled = false
@@ -145,6 +152,143 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
 
   function removeCustomItem(index: number) {
     setCustomItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Build prescription items for PDF/CDA
+  function buildPrescriptionItems(): PrescriptionItem[] {
+    return items
+      .filter(i => i.status === 'approved' || i.status === 'modified')
+      .map(i => ({
+        molecule: i.original.molecule,
+        dose: i.status === 'modified' ? i.modifiedDose : i.original.dose,
+        category: i.original.category,
+        classification: i.classification,
+        requiresSupervision: i.requiresSupervision,
+        status: i.status as 'approved' | 'modified',
+        originalDose: i.status === 'modified' ? i.original.dose : undefined,
+        instructions: i.instructions || undefined,
+        mechanism: i.original.mechanism,
+        evidence: i.original.evidence,
+      }))
+  }
+
+  // Build cadena original for signing
+  function buildCadena(): { cadena: string; verificationCode: string; prescriptionId: string } {
+    const prescriptionItems = buildPrescriptionItems()
+    const allForCadena = [
+      ...prescriptionItems.map(it => ({ molecule: it.molecule, dose: it.dose, classification: it.classification })),
+      ...customItems.map(it => ({ molecule: it.molecule, dose: it.dose, classification: it.classification })),
+    ]
+    const prescriptionId = crypto.randomUUID()
+    // Inline verification code generation (same as prescription-cda.ts)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = 'RX-'
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
+
+    const parts = [
+      '', '1.0', prescriptionId, code, new Date().toISOString(),
+      medico?.fullName ?? '', medico?.licenseNumber ?? '', medico?.specialty ?? '', medico?.email ?? '',
+      patient.name, String(patient.age), patient.gender,
+      ...allForCadena.map(it => `${it.molecule}|${it.dose}|${it.classification}`),
+      '',
+    ]
+    return { cadena: parts.join('||'), verificationCode: code, prescriptionId }
+  }
+
+  // Handle signature result from modal
+  async function handleSignatureResult(result: {
+    signatureBase64: string
+    digestHex: string
+    certificate: { serialNumber: string; subject: string; issuer: string; validFrom: string; validTo: string; rfc: string | null; pemBase64: string }
+  }) {
+    const { cadena, verificationCode, prescriptionId } = buildCadena()
+    const verifyUrl = `${window.location.origin}/verify/${verificationCode}`
+
+    const sig: PrescriptionSignature = {
+      signedAt: new Date().toISOString(),
+      certificateSubject: result.certificate.subject,
+      certificateSerial: result.certificate.serialNumber,
+      certificateIssuer: result.certificate.issuer,
+      certificateValidFrom: result.certificate.validFrom,
+      certificateValidTo: result.certificate.validTo,
+      rfc: result.certificate.rfc ?? undefined,
+      digestSha256: result.digestHex,
+      verificationCode,
+      verifyUrl,
+    }
+    setSignatureData(sig)
+
+    // Store signature on server
+    try {
+      const { generatePrescriptionCDA } = await import('@/lib/cda/prescription-cda')
+      const cdaXml = generatePrescriptionCDA(
+        { documentId: prescriptionId, verificationCode, createdAt: new Date().toISOString(), languageCode: 'es-MX' },
+        medico!,
+        patient,
+        buildPrescriptionItems(),
+        customItems,
+        notes,
+        {
+          signedAt: sig.signedAt,
+          certificateSerial: sig.certificateSerial,
+          certificateSubject: sig.certificateSubject,
+          certificateIssuer: sig.certificateIssuer,
+          certificateValidFrom: sig.certificateValidFrom,
+          certificateValidTo: sig.certificateValidTo,
+          signatureValue: result.signatureBase64,
+          digestValue: result.digestHex,
+          rfc: result.certificate.rfc ?? undefined,
+        },
+      )
+
+      await fetch('/api/prescriptions/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prescriptionId,
+          patientId: patient.id,
+          cdaXml,
+          cadenaOriginal: cadena,
+          digestSha256: result.digestHex,
+          signatureBase64: result.signatureBase64,
+          certificateSerial: result.certificate.serialNumber,
+          certificateSubject: result.certificate.subject,
+          certificateIssuer: result.certificate.issuer,
+          certificateValidFrom: result.certificate.validFrom,
+          certificateValidTo: result.certificate.validTo,
+          certificatePem: result.certificate.pemBase64,
+          verificationCode,
+          rfc: result.certificate.rfc,
+        }),
+      })
+    } catch (err) {
+      console.error('[PrescriptionBuilder] Error storing signature:', err)
+      // Non-blocking: signature is still valid locally even if server storage fails
+    }
+  }
+
+  // Generate PDF with optional signature
+  async function handleGenerateWithSignature() {
+    if (!medico) { toast.error('No se pudo cargar la informacion del medico'); return }
+    if (counts.total === 0) { toast.error('Aprueba o agrega al menos una intervencion'); return }
+
+    setSigningPdf(true)
+    try {
+      const today = new Date()
+      const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`
+
+      await generatePrescriptionPDF({
+        patient, medico,
+        items: buildPrescriptionItems(),
+        customItems, notes, date: dateStr,
+        signature: signatureData ?? undefined,
+      })
+      toast.success('Prescripcion PDF firmada generada')
+    } catch {
+      toast.error('Error al generar la prescripcion')
+    } finally {
+      setSigningPdf(false)
+    }
   }
 
   async function handleGenerate() {
@@ -492,16 +636,54 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
             <button onClick={onClose} className="px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
               Cancelar
             </button>
+
+            {/* Botón Firmar — abre modal de firma electrónica */}
+            {!signatureData && (
+              <button
+                onClick={() => setShowSignModal(true)}
+                disabled={counts.total === 0}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-medium border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <Shield size={13} />
+                Firmar
+              </button>
+            )}
+
+            {/* Indicador de firma aplicada */}
+            {signatureData && (
+              <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <CheckCircle2 size={12} />
+                Firmada
+              </div>
+            )}
+
+            {/* Generar PDF (con o sin firma) */}
             <button
-              onClick={handleGenerate}
-              disabled={generating || counts.total === 0}
+              onClick={signatureData ? handleGenerateWithSignature : handleGenerate}
+              disabled={(generating || signingPdf) || counts.total === 0}
               className="flex items-center gap-2 px-5 py-2 text-xs font-medium bg-accent text-background rounded-lg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-accent/20 shadow-lg"
             >
               <FileDown size={13} />
-              {generating ? 'Generando PDF...' : 'Generar Prescripcion PDF'}
+              {(generating || signingPdf)
+                ? 'Generando PDF...'
+                : signatureData
+                  ? 'Descargar PDF Firmado'
+                  : 'Generar Prescripcion PDF'
+              }
             </button>
           </div>
         </div>
+
+        {/* Modal de firma electrónica */}
+        <SignatureModal
+          isOpen={showSignModal}
+          onClose={() => setShowSignModal(false)}
+          onSigned={(result) => {
+            setShowSignModal(false)
+            handleSignatureResult(result)
+          }}
+          cadenaOriginal={buildCadena().cadena}
+        />
       </div>
     </div>
   )
