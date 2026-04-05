@@ -89,9 +89,9 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
 
   function checkPage(need: number) {
     if (y + need > PH - 30) {
+      drawPageFooter()
       doc.addPage()
       y = MG
-      drawPageFooter()
     }
   }
 
@@ -267,10 +267,11 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
       const instrText = ('instructions' in item && item.instructions) ? item.instructions : ''
       const instrLines = instrText ? doc.splitTextToSize(instrText, CW - 14) : []
 
-      // Calculate row height dynamically
-      const doseHeight = Math.max(doseLines.length, 1) * 3.5
-      const extraHeight = modifiedLine * 3.5 + (instrLines.length > 0 ? instrLines.length * 3 + 2 : 0)
-      const rowHeight = Math.max(12, 6 + doseHeight + extraHeight + (hasSupervision ? 5 : 0))
+      // Calculate row height dynamically — account for wrapped instructions
+      const doseHeight = Math.max(doseLines.length, 1) * 4
+      const instrHeight = instrLines.length > 0 ? instrLines.length * 4 : 0
+      const extraHeight = modifiedLine * 3.5 + (instrHeight > 0 ? instrHeight + 2 : 0)
+      const rowHeight = Math.max(14, 8 + doseHeight + extraHeight + (hasSupervision ? 5 : 0))
 
       checkPage(rowHeight + 2)
 
@@ -286,10 +287,14 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
       setColor(C.navy)
       doc.text(String(idx + 1).padStart(2, '0'), MG + 2, y + 2)
 
-      // Molecule name
+      // Molecule name — truncate based on actual text width
       doc.setFont('helvetica', 'bold')
       setColor(C.text)
-      doc.text(item.molecule.substring(0, 45), MG + 10, y + 2)
+      let moleculeName = item.molecule
+      while (doc.getTextWidth(moleculeName) > 42 && moleculeName.length > 3) {
+        moleculeName = moleculeName.slice(0, -2) + '...'
+      }
+      doc.text(moleculeName, MG + 10, y + 2)
 
       // Category
       if ('category' in item && item.category) {
@@ -423,8 +428,12 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
   setColor(C.light)
   doc.text('Firma digital — Prescripcion generada a traves de Longevity IA', PW / 2, y, { align: 'center' })
 
-  // Page footer
-  drawPageFooter()
+  // Page footer on all pages
+  const totalPages = doc.getNumberOfPages()
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p)
+    drawPageFooter()
+  }
 
   // ═══ SAVE ═════════════════════════════════════════════════════
 

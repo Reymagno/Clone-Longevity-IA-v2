@@ -213,14 +213,23 @@ export async function generateMedicalReport(
   function t(str: string, tx: number, ty: number, align: 'left' | 'center' | 'right' = 'left') {
     pdf.text(str, tx, ty, { align })
   }
-  /** Dibuja texto truncado para que no exceda maxW mm */
+  /** Dibuja texto truncado para que no exceda maxW mm (corta en límite de palabra) */
   function tSafe(str: string, tx: number, ty: number, maxW: number, align: 'left' | 'center' | 'right' = 'left') {
     if (!str) return
-    let s = str
-    while (pdf.getTextWidth(s) > maxW && s.length > 3) {
-      s = s.slice(0, -2) + '…'
+    let text = str
+    if (pdf.getTextWidth(text) > maxW) {
+      // Truncate at word boundary
+      const words = text.split(' ')
+      text = ''
+      for (const word of words) {
+        const test = text ? `${text} ${word}` : word
+        if (pdf.getTextWidth(test + '...') > maxW) break
+        text = test
+      }
+      text = text || str.slice(0, 10) // fallback
+      text += '...'
     }
-    pdf.text(s, tx, ty, { align })
+    pdf.text(text, tx, ty, { align })
   }
   function guard(needed: number) { if (y + needed > PH - 20) nextPage() }
   function skip(delta = 4) { y += delta }
@@ -297,10 +306,9 @@ export async function generateMedicalReport(
     const RH = 7
     guard(RH + 1)
     box(MG, y, CW, RH, even ? C.bg : [246, 248, 251] as RGB)
-    // Truncar nombre si es muy largo
+    // Truncar nombre si es muy largo — usar tSafe con límite de columna
     const maxNameW = BC.val - BC.name - 2
-    const truncLabel = pdf.getTextWidth(label) > maxNameW ? label.substring(0, 22) + '…' : label
-    ink(C.text); sz(7.5); n(); t(truncLabel, BC.name, y + 5)
+    ink(C.text); sz(7.5); n(); tSafe(label, BC.name, y + 5, maxNameW)
     if (bm && bm.value != null) {
       ink(C.text); sz(8); b(); tSafe(bv(bm), BC.val, y + 5, BC.unit - BC.val - 1)
       ink(C.muted); sz(7); n()
@@ -631,7 +639,7 @@ export async function generateMedicalReport(
         const eviLines = evi ? pdf.splitTextToSize(evi, CW - 14) as string[] : []
         const DLH = 4.5  // line height para detalle
         const ELH = 3.8  // line height para evidencia
-        const RH = Math.max(14, 8 + detLines.length * DLH + (eviLines.length > 0 ? eviLines.length * ELH + 3 : 0) + 4)
+        const RH = Math.max(14, 8 + detLines.length * DLH + (eviLines.length > 0 ? eviLines.length * ELH + 3 : 0) + 4) + 3 // +3mm buffer to prevent overlap
         guard(RH + 1)
         box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
         box(MG, y, 2, RH, color)
@@ -805,7 +813,7 @@ export async function generateMedicalReport(
     const rColor = prob >= 70 ? C.danger : prob >= 40 ? C.warning : prob >= 20 ? C.normal : C.optimal
 
     const driverText = drivers.slice(0, 3).join(' · ')
-    const dLines = pdf.splitTextToSize(driverText, 80) as string[]
+    const dLines = pdf.splitTextToSize(driverText, CW - 80) as string[]
     const RH = Math.max(14, dLines.length * 4.5 + 10)
     guard(RH + 1)
     box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)

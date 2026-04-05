@@ -48,8 +48,16 @@ export async function generateConsultationPDF(
   function setDraw(c: RGB) { doc.setDrawColor(c[0], c[1], c[2]) }
   function setFill(c: RGB) { doc.setFillColor(c[0], c[1], c[2]) }
 
+  function drawPageFooter() {
+    doc.setFontSize(7)
+    doc.setTextColor(100, 110, 130)
+    doc.text('Longevity IA — Consulta Medica', MG, PH - 8)
+    doc.text(new Date().toLocaleDateString('es-MX'), PW - MG, PH - 8, { align: 'right' })
+  }
+
   function checkPage(need: number) {
     if (y + need > PH - 25) {
+      drawPageFooter()
       doc.addPage()
       y = MG
     }
@@ -334,7 +342,12 @@ export async function generateConsultationPDF(
         const label = speakerMap[rawLabel] || rawLabel
         const content = para.slice(speakerMatch[0].length)
 
-        checkPage(10)
+        // Estimate full block height: label + content lines
+        doc.setFontSize(7.5)
+        const contentLines = doc.splitTextToSize(content, CW - 4)
+        const blockHeight = 3.5 + contentLines.length * 3.5 + 4
+        checkPage(blockHeight)
+
         doc.setFontSize(7.5)
         doc.setFont('helvetica', 'bold')
         const isDoctor = label.toLowerCase().includes('doctor') || label.toLowerCase().includes('dr')
@@ -365,6 +378,7 @@ export async function generateConsultationPDF(
   const totalPages = doc.getNumberOfPages()
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p)
+    drawPageFooter()
     setColor(C.light)
     doc.setFontSize(7)
     doc.text('Consulta generada por Longevity IA — Longevity Clinic SA de CV', PW / 2, PH - 10, { align: 'center' })

@@ -136,12 +136,17 @@ export async function generatePeptideProtocolPDF(
 
   // ── Peptide recommendations ─────────────────────────────
   for (const rec of protocol.recommendations) {
-    checkPage(55)
+    // Calculate actual content height before drawing
+    doc.setFontSize(7.5)
+    const mechLines = doc.splitTextToSize(rec.mechanism, CW - 8) as string[]
+    const mechHeight = Math.min(mechLines.length, 3) * 4  // max 3 lines
+    const cardHeight = 34 + mechHeight  // base layout (34mm) + mechanism
+    checkPage(cardHeight + 8)
 
-    // Card background
+    // Card background with actual height
     setFill(C.sheet)
     setDraw(C.border)
-    doc.roundedRect(MG, y - 2, CW, 50, 2, 2, 'FD')
+    doc.roundedRect(MG, y - 2, CW, cardHeight, 2, 2, 'FD')
 
     // Peptide name + urgency
     setColor(C.navy)
@@ -189,10 +194,9 @@ export async function generatePeptideProtocolPDF(
     doc.text('MECANISMO', col1, detailY + 22)
     setColor(C.text)
     doc.setFontSize(7.5)
-    const mechLines = doc.splitTextToSize(rec.mechanism, CW - 8)
-    doc.text(mechLines.slice(0, 2), col1, detailY + 26)
+    doc.text(mechLines.slice(0, 3), col1, detailY + 26)
 
-    y += 54
+    y += cardHeight + 4
 
     // Target systems + biomarkers
     if (rec.targetSystems.length > 0 || rec.targetBiomarkers.length > 0) {
@@ -216,9 +220,9 @@ export async function generatePeptideProtocolPDF(
       doc.setFontSize(7)
       for (const ev of rec.evidence.slice(0, 2)) {
         const evText = `${ev.authors} — ${ev.journal} (${ev.year}): ${ev.finding}`
-        const evLines = doc.splitTextToSize(evText, CW - 8)
-        doc.text(evLines.slice(0, 1), MG + 4, y)
-        y += 4
+        const evLines = doc.splitTextToSize(evText, CW - 8) as string[]
+        doc.text(evLines.slice(0, 2), MG + 4, y)
+        y += evLines.slice(0, 2).length * 4
       }
     }
 

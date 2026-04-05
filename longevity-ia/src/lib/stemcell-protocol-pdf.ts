@@ -176,7 +176,14 @@ export async function generateStemCellProtocolPDF(
   const gender = patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'
   const colW = CW / 5
 
-  labelValue('Paciente', patient.name, MG + 4, colW)
+  // Truncate long patient names to prevent overflow
+  let displayName = patient.name
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  while (doc.getTextWidth(displayName) > 80 && displayName.length > 3) {
+    displayName = displayName.slice(0, -2) + '...'
+  }
+  labelValue('Paciente', displayName, MG + 4, colW)
   labelValue('Edad', `${patient.age} anos`, MG + 4 + colW, colW)
   labelValue('Genero', gender, MG + 4 + colW * 2, colW)
   labelValue('Peso', patient.weight ? `${patient.weight} kg` : 'N/D', MG + 4 + colW * 3, colW)
@@ -292,11 +299,23 @@ export async function generateStemCellProtocolPDF(
 
   // Table rows
   for (let i = 0; i < stemCell.factors.length; i++) {
-    checkPage(12)
     const f = stemCell.factors[i]
+
+    // Calculate row height based on justification text wrapping
+    doc.setFontSize(6.5)
+    const justMaxWidth = CW - 10
+    const justLines = f.justification
+      ? doc.splitTextToSize(f.justification, justMaxWidth) as string[]
+      : []
+    const baseRowHeight = 7
+    const justHeight = justLines.length > 0 ? justLines.length * 3 + 1 : 0
+    const totalRowH = baseRowHeight + justHeight
+
+    checkPage(totalRowH + 2)
+
     if (i % 2 === 0) {
       setFill(C.sheet)
-      doc.rect(MG, y - 1, CW, 7, 'F')
+      doc.rect(MG, y - 1, CW, totalRowH, 'F')
     }
 
     doc.setFontSize(7.5)
@@ -313,7 +332,6 @@ export async function generateStemCellProtocolPDF(
     const mColor: RGB = f.multiplier > 1.2 ? C.danger : f.multiplier > 1.0 ? C.warning : f.multiplier < 1.0 ? C.normal : C.optimal
     setColor(mColor)
     doc.setFont('helvetica', 'bold')
-    const sign = f.multiplier >= 1 ? '' : ''
     doc.text(`x${f.multiplier.toFixed(2)}`, MG + 110, y + 4)
 
     // Status
@@ -323,7 +341,16 @@ export async function generateStemCellProtocolPDF(
     doc.setFont('helvetica', 'normal')
     doc.text(sLabel, MG + 145, y + 4)
 
-    y += 7
+    y += baseRowHeight
+
+    // Justification text (wrapped)
+    if (justLines.length > 0) {
+      doc.setFontSize(6.5)
+      doc.setFont('helvetica', 'italic')
+      setColor(C.light)
+      doc.text(justLines, MG + 5, y + 1)
+      y += justHeight
+    }
   }
 
   // Total factor
@@ -391,7 +418,20 @@ export async function generateStemCellProtocolPDF(
     // Peptide rows
     for (let i = 0; i < peptideProtocol.recommendations.length; i++) {
       const p = peptideProtocol.recommendations[i]
-      checkPage(18)
+
+      // Calculate actual row height based on content
+      doc.setFontSize(6.5)
+      const mechWidthCalc = CW - 10
+      const mechLinesCalc = doc.splitTextToSize(
+        p.mechanism.length > 100 ? p.mechanism.substring(0, 98) + '...' : p.mechanism,
+        mechWidthCalc
+      ) as string[]
+      const noteLinesCalc = p.patientNote
+        ? doc.splitTextToSize(`Nota: ${p.patientNote}`, mechWidthCalc) as string[]
+        : []
+      const hasContraindications = p.contraindications.length > 0
+      const rowHeight = Math.max(18, 8 + mechLinesCalc.length * 3.5 + noteLinesCalc.length * 3.5 + (hasContraindications ? 5 : 0))
+      checkPage(rowHeight)
 
       if (i % 2 === 0) {
         setFill(C.sheet)
