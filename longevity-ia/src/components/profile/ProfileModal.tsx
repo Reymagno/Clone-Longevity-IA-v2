@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { X, Camera, Loader2, User, Stethoscope, FileText, Mail, Shield, Copy, Check, Heart } from 'lucide-react'
+import { X, Camera, Loader2, User, Stethoscope, FileText, Mail, Shield, Copy, Check, Heart, Briefcase, Building2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -65,6 +65,8 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [codeCopied, setCodeCopied] = useState(false)
+  const [showProfessional, setShowProfessional] = useState(false)
+  const [showInstitutional, setShowInstitutional] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch profile on open
@@ -83,12 +85,36 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
           initial.full_name = data.full_name ?? ''
           initial.specialty = data.specialty ?? ''
           initial.license_number = data.license_number ?? ''
+          // Marketplace professional fields
+          initial.bio = (data as any).bio ?? ''
+          initial.years_experience = String((data as any).years_experience ?? '')
+          initial.university = (data as any).university ?? ''
+          initial.graduation_year = String((data as any).graduation_year ?? '')
+          initial.employment_status = (data as any).employment_status ?? 'employed'
+          initial.subspecialties_text = ((data as any).subspecialties ?? []).join(', ')
+          initial.languages_text = ((data as any).languages ?? []).join(', ')
+          initial.procedures_text = ((data as any).procedures_expertise ?? []).join(', ')
+          initial.salary_expectation_min = String((data as any).salary_expectation_min ?? '')
+          initial.salary_expectation_max = String((data as any).salary_expectation_max ?? '')
+          initial.locations_text = ((data as any).preferred_locations ?? []).join(', ')
+          initial.profile_public = String((data as any).profile_public ?? false)
         } else if (data.role === 'clinica') {
           initial.clinic_name = data.clinic_name ?? ''
           initial.director_name = data.director_name ?? ''
           initial.rfc = data.rfc ?? ''
           initial.phone = data.phone ?? ''
           initial.address = data.address ?? ''
+          // Marketplace institutional fields
+          initial.clinic_type = (data as any).clinic_type ?? 'consultorio'
+          initial.clinic_size = (data as any).clinic_size ?? 'small'
+          initial.services_text = ((data as any).services_offered ?? []).join(', ')
+          initial.equipment_text = ((data as any).equipment ?? []).join(', ')
+          initial.state = (data as any).state ?? ''
+          initial.city = (data as any).city ?? ''
+          initial.zip_code = (data as any).zip_code ?? ''
+          initial.founded_year = String((data as any).founded_year ?? '')
+          initial.monthly_patients = (data as any).monthly_patients ?? '1-50'
+          initial.hiring_active = String((data as any).hiring_active ?? false)
         }
         setForm(initial)
       })
@@ -159,11 +185,46 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
     e.preventDefault()
     setSaving(true)
 
+    // Transform comma-separated text fields to arrays and booleans before sending
+    const payload: Record<string, any> = { ...form }
+
+    if (profile?.role === 'medico') {
+      if (payload.subspecialties_text !== undefined) {
+        payload.subspecialties = payload.subspecialties_text.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+      if (payload.languages_text !== undefined) {
+        payload.languages = payload.languages_text.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+      if (payload.procedures_text !== undefined) {
+        payload.procedures_expertise = payload.procedures_text.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+      if (payload.locations_text !== undefined) {
+        payload.preferred_locations = payload.locations_text.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+      delete payload.subspecialties_text
+      delete payload.languages_text
+      delete payload.procedures_text
+      delete payload.locations_text
+      payload.profile_public = payload.profile_public === 'true'
+    }
+
+    if (profile?.role === 'clinica') {
+      if (payload.services_text !== undefined) {
+        payload.services_offered = payload.services_text.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+      if (payload.equipment_text !== undefined) {
+        payload.equipment = payload.equipment_text.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+      delete payload.services_text
+      delete payload.equipment_text
+      payload.hiring_active = payload.hiring_active === 'true'
+    }
+
     try {
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
 
@@ -446,6 +507,111 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
                       />
                     </div>
                   </div>
+
+                  {/* ═══ Perfil Profesional (Marketplace) ═══ */}
+                  <div className="border-t border-border/30 pt-4 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowProfessional(p => !p)}
+                      className="flex items-center gap-2 w-full text-left mb-3"
+                    >
+                      <Briefcase size={14} className="text-accent" />
+                      <span className="text-sm font-semibold text-foreground">Perfil Profesional</span>
+                      <ChevronDown size={14} className={`text-muted-foreground ml-auto transition-transform ${showProfessional ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showProfessional && (
+                      <div className="space-y-3 animate-fade-in">
+                        {/* Bio */}
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Biografia profesional</label>
+                          <textarea
+                            value={form.bio ?? ''}
+                            onChange={e => set('bio', e.target.value)}
+                            placeholder="Describe tu experiencia y enfoque profesional..."
+                            rows={3}
+                            className="w-full mt-1 bg-muted/20 border border-border/40 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 resize-none focus:outline-none focus:border-accent/50"
+                          />
+                        </div>
+
+                        {/* Experience + University row */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input label="Anos de experiencia" type="number" value={form.years_experience ?? ''} onChange={e => set('years_experience', e.target.value)} placeholder="12" />
+                          <Input label="Universidad" value={form.university ?? ''} onChange={e => set('university', e.target.value)} placeholder="UNAM" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input label="Ano de graduacion" type="number" value={form.graduation_year ?? ''} onChange={e => set('graduation_year', e.target.value)} placeholder="2014" />
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Estatus laboral</label>
+                            <select
+                              value={form.employment_status ?? 'employed'}
+                              onChange={e => set('employment_status', e.target.value)}
+                              className="w-full mt-1 bg-muted/20 border border-border/40 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent/50"
+                            >
+                              <option value="employed">Empleado</option>
+                              <option value="looking">Buscando empleo</option>
+                              <option value="open_to_offers">Abierto a ofertas</option>
+                              <option value="unavailable">No disponible</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Subspecialties as comma-separated input */}
+                        <Input
+                          label="Subespecialidades (separadas por coma)"
+                          value={(form.subspecialties_text ?? '')}
+                          onChange={e => set('subspecialties_text', e.target.value)}
+                          placeholder="Medicina Antienvejecimiento, Terapia Celular"
+                        />
+
+                        {/* Languages */}
+                        <Input
+                          label="Idiomas (separados por coma)"
+                          value={(form.languages_text ?? '')}
+                          onChange={e => set('languages_text', e.target.value)}
+                          placeholder="Espanol, Ingles"
+                        />
+
+                        {/* Procedures */}
+                        <Input
+                          label="Procedimientos que domina (separados por coma)"
+                          value={(form.procedures_text ?? '')}
+                          onChange={e => set('procedures_text', e.target.value)}
+                          placeholder="PRP, Ozonoterapia, MSC IV, DEXA"
+                        />
+
+                        {/* Salary range */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input label="Salario minimo esperado (MXN/mes)" type="number" value={form.salary_expectation_min ?? ''} onChange={e => set('salary_expectation_min', e.target.value)} placeholder="45000" />
+                          <Input label="Salario maximo esperado (MXN/mes)" type="number" value={form.salary_expectation_max ?? ''} onChange={e => set('salary_expectation_max', e.target.value)} placeholder="80000" />
+                        </div>
+
+                        {/* Preferred locations */}
+                        <Input
+                          label="Ubicaciones preferidas (separadas por coma)"
+                          value={(form.locations_text ?? '')}
+                          onChange={e => set('locations_text', e.target.value)}
+                          placeholder="CDMX, Monterrey, Remoto"
+                        />
+
+                        {/* Profile public toggle */}
+                        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/20 border border-border/30">
+                          <div>
+                            <p className="text-xs font-medium text-foreground">Perfil publico</p>
+                            <p className="text-[10px] text-muted-foreground">Visible para clinicas que buscan medicos</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => set('profile_public', form.profile_public === 'true' ? 'false' : 'true')}
+                            className={`w-10 h-5 rounded-full transition-colors ${form.profile_public === 'true' ? 'bg-accent' : 'bg-muted/60'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${form.profile_public === 'true' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -483,6 +649,83 @@ export function ProfileModal({ isOpen, onClose, onUpdated }: ProfileModalProps) 
                     value={form.address ?? ''}
                     onChange={e => set('address', e.target.value)}
                   />
+
+                  {/* ═══ Perfil Institucional (Marketplace) ═══ */}
+                  <div className="border-t border-border/30 pt-4 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowInstitutional(p => !p)}
+                      className="flex items-center gap-2 w-full text-left mb-3"
+                    >
+                      <Building2 size={14} className="text-accent" />
+                      <span className="text-sm font-semibold text-foreground">Perfil Institucional</span>
+                      <ChevronDown size={14} className={`text-muted-foreground ml-auto transition-transform ${showInstitutional ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showInstitutional && (
+                      <div className="space-y-3 animate-fade-in">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Tipo de clinica</label>
+                            <select value={form.clinic_type ?? 'consultorio'} onChange={e => set('clinic_type', e.target.value)}
+                              className="w-full mt-1 bg-muted/20 border border-border/40 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent/50">
+                              <option value="consultorio">Consultorio</option>
+                              <option value="centro_medico">Centro Medico</option>
+                              <option value="hospital">Hospital</option>
+                              <option value="laboratorio">Laboratorio</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Tamano</label>
+                            <select value={form.clinic_size ?? 'small'} onChange={e => set('clinic_size', e.target.value)}
+                              className="w-full mt-1 bg-muted/20 border border-border/40 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent/50">
+                              <option value="small">Pequeno (1-5 medicos)</option>
+                              <option value="medium">Mediano (6-20 medicos)</option>
+                              <option value="large">Grande (21+ medicos)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <Input label="Servicios ofrecidos (separados por coma)" value={form.services_text ?? ''} onChange={e => set('services_text', e.target.value)} placeholder="Medicina Regenerativa, Longevidad, Nutricion" />
+                        <Input label="Equipamiento (separado por coma)" value={form.equipment_text ?? ''} onChange={e => set('equipment_text', e.target.value)} placeholder="Ultrasonido, DEXA, Camara hiperbarica" />
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <Input label="Estado" value={form.state ?? ''} onChange={e => set('state', e.target.value)} placeholder="Nuevo Leon" />
+                          <Input label="Ciudad" value={form.city ?? ''} onChange={e => set('city', e.target.value)} placeholder="Monterrey" />
+                          <Input label="C.P." value={form.zip_code ?? ''} onChange={e => set('zip_code', e.target.value)} placeholder="64000" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input label="Ano de fundacion" type="number" value={form.founded_year ?? ''} onChange={e => set('founded_year', e.target.value)} placeholder="2018" />
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Pacientes/mes</label>
+                            <select value={form.monthly_patients ?? '1-50'} onChange={e => set('monthly_patients', e.target.value)}
+                              className="w-full mt-1 bg-muted/20 border border-border/40 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent/50">
+                              <option value="1-50">1-50</option>
+                              <option value="51-200">51-200</option>
+                              <option value="201-500">201-500</option>
+                              <option value="500+">500+</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Hiring active toggle */}
+                        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/20 border border-border/30">
+                          <div>
+                            <p className="text-xs font-medium text-foreground">Buscando medicos</p>
+                            <p className="text-[10px] text-muted-foreground">Activar para recibir perfiles de medicos disponibles</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => set('hiring_active', form.hiring_active === 'true' ? 'false' : 'true')}
+                            className={`w-10 h-5 rounded-full transition-colors ${form.hiring_active === 'true' ? 'bg-accent' : 'bg-muted/60'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${form.hiring_active === 'true' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
