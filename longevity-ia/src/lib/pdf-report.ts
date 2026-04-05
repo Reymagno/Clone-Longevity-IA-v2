@@ -253,6 +253,10 @@ export async function generateMedicalReport(
   }
 
   function drawFooter() {
+    const currentPage = pdf.getCurrentPageInfo().pageNumber
+    // Portada (página 1): sin footer — tiene su propio diseño
+    if (currentPage === 1) return
+
     // Thin gold line across top of footer area
     dr(C.gold); pdf.setLineWidth(0.3); pdf.line(MG, PH - 12, PW - MG, PH - 12)
     // Footer content
@@ -266,7 +270,7 @@ export async function generateMedicalReport(
     } else {
       t('Reporte confidencial · Solo para uso médico', MG + 24, PH - 7)
     }
-    t(new Date().toLocaleDateString('es-MX'), PW - MG, PH - 7, 'right')
+    t(`Pág. ${currentPage}`, PW - MG, PH - 7, 'right')
   }
 
   function nextPage() {
@@ -862,12 +866,8 @@ export async function generateMedicalReport(
     skip(6)
     section('FACTORES DE PROYECCIÓN', '— Comparativa sin y con intervención')
 
-    // Layout: each factor as a card block
-    // Columna izquierda: MG+7 → MG+CW/2-4  (ancho = CW/2 - 11)
-    // Columna derecha:   MG+CW/2 → MG+CW-7 (ancho = CW/2 - 7)
-    const pfLeftW = CW / 2 - 11
-    const pfRightW = CW / 2 - 7
-    const pfFullW = CW - 14
+    // Layout vertical: cada campo en ancho completo para evitar overflow
+    const pfFullW = CW - 14  // desde MG+7 hasta MG+CW-7
 
     analysis.projectionFactors.slice(0, 8).forEach((pf, i) => {
       const factor = pf.factor ?? ''
@@ -877,51 +877,63 @@ export async function generateMedicalReport(
       const withP = pf.withProtocol ?? '—'
       const justification = pf.medicalJustification ?? ''
 
-      // Medir todas las líneas con font EXPLÍCITO antes de calcular altura
+      // Medir con font EXPLÍCITO — todo en ancho completo
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(7)
-      const currentLines = pdf.splitTextToSize(`Actual: ${current}`, pfLeftW) as string[]
-      const optimalLines = pdf.splitTextToSize(`Óptimo: ${optimal}`, pfRightW) as string[]
-      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, pfLeftW) as string[]
-      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, pfRightW) as string[]
+      const currentLines = pdf.splitTextToSize(`Actual: ${current}`, pfFullW) as string[]
+      const optimalLines = pdf.splitTextToSize(`Óptimo: ${optimal}`, pfFullW) as string[]
+      const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, pfFullW) as string[]
+      const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, pfFullW) as string[]
 
       pdf.setFontSize(6.5)
       const justLines = justification ? pdf.splitTextToSize(justification, pfFullW) as string[] : []
 
-      const valuesH = Math.max(currentLines.length, optimalLines.length) * 4
-      const projH = Math.max(withoutLines.length, withLines.length) * 4
+      const LH_PF = 4
+      const currentH = currentLines.length * LH_PF
+      const optimalH = optimalLines.length * LH_PF
+      const withoutH = withoutLines.length * LH_PF
+      const withH = withLines.length * LH_PF
       const justH = justLines.length > 0 ? justLines.length * 3.5 + 2 : 0
 
-      // Altura total: nombre(10) + valores + gap(3) + protocolo + justificación + padding(4)
-      const RH = 10 + valuesH + 3 + projH + justH + 4
+      // Altura total: nombre(9) + actual + óptimo + gap(2) + sin + con + justificación + padding(4)
+      const RH = 9 + currentH + optimalH + 2 + withoutH + withH + justH + 4
 
       guard(RH + 2)
       box(MG, y, CW, RH, i % 2 === 0 ? C.bg : C.sheet)
       box(MG, y, 3, RH, C.gold)
 
+      // Cursor vertical
+      let cy = y + 6
+
       // Factor name
       ink(C.text); sz(8.5); b()
-      tSafe(factor, MG + 7, y + 5.5, pfFullW)
+      tSafe(factor, MG + 7, cy, pfFullW)
+      cy += 6
 
-      // Current + optimal values — dos columnas con wrap
-      const valY = y + 11
+      // Actual
       ink(C.muted); sz(7); n()
-      pdf.text(currentLines, MG + 7, valY)
-      ink(C.optimal); sz(7); n()
-      pdf.text(optimalLines, MG + CW / 2, valY)
+      pdf.text(currentLines, MG + 7, cy)
+      cy += currentH
 
-      // Without / with protocol side by side
-      const projY = y + 10 + valuesH + 3
-      ink(C.danger); sz(7); n()
-      pdf.text(withoutLines, MG + 7, projY)
+      // Óptimo
       ink(C.optimal); sz(7); n()
-      pdf.text(withLines, MG + CW / 2, projY)
+      pdf.text(optimalLines, MG + 7, cy)
+      cy += optimalH + 2
+
+      // Sin protocolo
+      ink(C.danger); sz(7); n()
+      pdf.text(withoutLines, MG + 7, cy)
+      cy += withoutH
+
+      // Con protocolo
+      ink(C.optimal); sz(7); b()
+      pdf.text(withLines, MG + 7, cy)
+      cy += withH
 
       // Medical justification
       if (justLines.length > 0) {
-        const jY = projY + projH + 1
         ink(C.light); sz(6.5); n()
-        pdf.text(justLines, MG + 7, jY)
+        pdf.text(justLines, MG + 7, cy)
       }
 
       hline(y + RH)
@@ -1317,9 +1329,11 @@ export async function generateMedicalReport(
 
     peptideProtocol.recommendations.forEach((rec, pi) => {
       // Pre-calcular TODAS las líneas con font correcto para medir altura real
+      // Mecanismo: etiqueta "Mecanismo: " + texto, ancho completo
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(7)
-      const mechLines = pdf.splitTextToSize(rec.mechanism, pepTextW) as string[]
+      const mechText = `Mecanismo: ${rec.mechanism}`
+      const mechLines = pdf.splitTextToSize(mechText, pepTextW) as string[]
       const mechH = mechLines.length * 4
 
       pdf.setFont('helvetica', 'bold')
@@ -1335,9 +1349,11 @@ export async function generateMedicalReport(
       const bmLines = hasBiomarkers ? pdf.splitTextToSize(bmText, pepTextW) as string[] : []
       const bmH = bmLines.length * 3.5
 
-      // Altura total: header(12) + dose + duration(5) + mechanism + biomarkers + padding(4)
-      const RH = 12 + doseH + 5 + mechH + (hasBiomarkers ? bmH + 2 : 0) + 4
-      guard(RH + 2)
+      // Altura total: header(12) + dose + duration(5) + mechanism + biomarkers + padding(5)
+      const RH = 12 + doseH + 5 + mechH + (hasBiomarkers ? bmH + 2 : 0) + 5
+
+      // Si el bloque es más alto que el espacio útil, igual forzar guard
+      guard(Math.min(RH + 2, PH - MG * 2 - 30))
 
       // Fondo del box con altura real calculada
       box(MG, y, CW, RH, pi % 2 === 0 ? C.bg : C.sheet)
@@ -1373,7 +1389,7 @@ export async function generateMedicalReport(
       tSafe(`Duración: ${rec.duration}`, MG + 7, cy, pepTextW * 0.6)
       cy += 5
 
-      // Mecanismo (todas las líneas wrapeadas)
+      // Mecanismo — wrapeado completo con etiqueta
       ink(C.text); sz(7); n()
       pdf.text(mechLines, MG + 7, cy)
       cy += mechH
