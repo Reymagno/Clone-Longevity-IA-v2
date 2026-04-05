@@ -5,8 +5,9 @@ import type { Patient, ParsedData, AIAnalysis } from '@/types'
 import { computePeptideProtocol, type PeptideRecommendation } from '@/lib/peptide-protocol'
 import {
   Dna, ChevronDown, ChevronRight, AlertTriangle, BookOpen,
-  Syringe, Clock, Target, ShieldCheck, FlaskConical,
+  Syringe, Clock, Target, ShieldCheck, FlaskConical, FileDown,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface PeptidesTabProps {
   patient: Patient
@@ -23,6 +24,21 @@ const URGENCY_CONFIG = {
 export function PeptidesTab({ patient, parsedData, analysis }: PeptidesTabProps) {
   const [expandedPeptide, setExpandedPeptide] = useState<string | null>(null)
   const [showEvidence, setShowEvidence] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+
+  async function handleDownloadPDF() {
+    if (!parsedData) return
+    setDownloading(true)
+    try {
+      const { generatePeptideProtocolPDF } = await import('@/lib/peptide-protocol-pdf')
+      await generatePeptideProtocolPDF(patient, parsedData, analysis)
+      toast.success('Recomendación de Péptidos PDF generada')
+    } catch {
+      toast.error('Error al generar el PDF')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   const protocol = useMemo(() => {
     if (!parsedData) return null
@@ -49,13 +65,25 @@ export function PeptidesTab({ patient, parsedData, analysis }: PeptidesTabProps)
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Dna size={18} className="text-accent" />
-          <h2 className="text-lg font-bold text-foreground">Protocolo de Péptidos Terapéuticos</h2>
+      {/* Header + Download */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Dna size={18} className="text-accent" />
+            <h2 className="text-lg font-bold text-foreground">Protocolo de Péptidos Terapéuticos</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">{protocol.summary}</p>
         </div>
-        <p className="text-xs text-muted-foreground">{protocol.summary}</p>
+        {protocol.recommendations.length > 0 && (
+          <button
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors shrink-0 disabled:opacity-50"
+          >
+            <FileDown size={14} />
+            {downloading ? 'Generando...' : 'Descarga Recomendación PDF'}
+          </button>
+        )}
       </div>
 
       {/* Warnings */}

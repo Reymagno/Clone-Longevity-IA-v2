@@ -624,7 +624,7 @@ export function StemCellTab({ patient, parsedData, analysis }: StemCellTabProps)
           className="rounded-xl"
         >
           <FileDown size={14} />
-          Descargar Protocolo PDF
+          Descarga Recomendación PDF
         </Button>
       </div>
 
