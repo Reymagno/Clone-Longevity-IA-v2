@@ -1,8 +1,6 @@
--- ══════════════════════════════════════════════════════════════
--- Firma Electrónica Avanzada — Tablas para prescripciones firmadas
--- ══════════════════════════════════════════════════════════════
+-- Firma Electronica Avanzada - Tablas para prescripciones firmadas
 
--- Certificados digitales de médicos (X.509 / e.firma)
+-- Certificados digitales de medicos (X.509 / e.firma)
 CREATE TABLE IF NOT EXISTS medico_certificates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   medico_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -49,20 +47,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_signed_rx_code ON signed_prescriptions(ver
 ALTER TABLE medico_certificates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE signed_prescriptions ENABLE ROW LEVEL SECURITY;
 
--- Médicos pueden ver sus propios certificados
+-- Medicos pueden ver sus propios certificados
 CREATE POLICY "Medicos manage own certificates" ON medico_certificates
   FOR ALL USING (auth.uid() = medico_user_id);
 
--- Médicos pueden ver sus propias prescripciones firmadas
+-- Medicos pueden ver sus propias prescripciones firmadas
 CREATE POLICY "Medicos manage own signed prescriptions" ON signed_prescriptions
   FOR ALL USING (auth.uid() = medico_user_id);
 
--- Storage bucket para documentos clínicos (CDA XML)
+-- Storage bucket para documentos clinicos (CDA XML)
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('clinical-documents', 'clinical-documents', false)
 ON CONFLICT (id) DO NOTHING;
 
--- Solo el owner puede acceder a sus documentos clínicos
+-- Solo el owner puede acceder a sus documentos clinicos
 CREATE POLICY "Users access own clinical documents" ON storage.objects
   FOR ALL USING (
     bucket_id = 'clinical-documents'
