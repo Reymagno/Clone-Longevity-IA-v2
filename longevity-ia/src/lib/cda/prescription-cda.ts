@@ -216,7 +216,7 @@ export function generatePrescriptionCDA(
 ${allItems.map(it => `                <tr>
                   <td>${esc(it.molecule)}</td>
                   <td>${esc(it.dose)}</td>
-                  <td>${it.classification.toUpperCase()}</td>
+                  <td>${esc(it.classification.toUpperCase())}</td>
                   <td>${esc(it.instructions)}</td>
                   <td>${it.requiresSupervision ? 'Sí' : 'No'}</td>
                 </tr>`).join('\n')}
@@ -241,7 +241,7 @@ ${allItems.map((it, idx) => `
               <entryRelationship typeCode="SUBJ">
                 <act classCode="ACT" moodCode="INT">
                   <code displayName="classification" />
-                  <text>${it.classification}</text>
+                  <text>${esc(it.classification)}</text>
                 </act>
               </entryRelationship>
             </substanceAdministration>
@@ -278,16 +278,7 @@ ${allItems.map((it, idx) => `
     </assignedEntity>
   </legalAuthenticator>
 
-  <!-- Datos de la firma digital -->
-  <!--
-    Certificado: ${esc(signature.certificateSerial)}
-    Emisor: ${esc(signature.certificateIssuer)}
-    Vigencia: ${signature.certificateValidFrom} a ${signature.certificateValidTo}
-    ${signature.rfc ? `RFC: ${esc(signature.rfc)}` : ''}
-    Digest SHA-256: ${signature.digestValue}
-    Firma (primeros 32 chars): ${signature.signatureValue.slice(0, 32)}...
-    Verificación: ${metadata.verificationCode}
-  -->
+  <!-- Verificacion: ${esc(metadata.verificationCode)} -->
 `
   }
 

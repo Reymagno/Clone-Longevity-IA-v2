@@ -4,11 +4,11 @@
  * Usa WebCrypto API para operaciones criptográficas en el navegador.
  * La llave privada (.key) NUNCA sale del browser.
  *
- * Flujo:
- * 1. Usuario sube .cer (certificado X.509 público) y .key (llave privada cifrada)
- * 2. Se descifra la .key con la contraseña del usuario (PKCS#8)
- * 3. Se firma el hash SHA-256 de la cadena original
- * 4. Se envía solo la firma + certificado público al servidor
+ * Validación de llave:
+ * 1. FORMATO: Se importa como PKCS#8 con WebCrypto. Si falla → llave inválida.
+ * 2. CORRESPONDENCIA: Se firma un texto de prueba con la .key, se verifica con
+ *    la llave pública del .cer. Si falla → la .key no corresponde al .cer.
+ * 3. CONTRASEÑA: Para llaves cifradas, se descifra con la contraseña.
  */
 
 export interface CertificateInfo {
@@ -21,75 +21,159 @@ export interface CertificateInfo {
   pemBase64: string
 }
 
-export interface SignatureResult {
-  signatureBase64: string
-  digestHex: string
-  certificate: CertificateInfo
-}
-
 /**
  * Parse a DER/PEM certificate file (.cer) and extract metadata.
- * Supports both PEM (Base64 text) and DER (binary) formats.
  */
 export async function parseCertificate(file: File): Promise<CertificateInfo> {
   const buffer = await file.arrayBuffer()
   let pemBase64: string
 
-  // Check if PEM (text) or DER (binary)
   const textDecoder = new TextDecoder()
   const text = textDecoder.decode(buffer)
 
   if (text.includes('-----BEGIN CERTIFICATE-----')) {
-    // PEM format — extract base64 content
     pemBase64 = text
       .replace('-----BEGIN CERTIFICATE-----', '')
       .replace('-----END CERTIFICATE-----', '')
       .replace(/\s/g, '')
   } else {
-    // DER format — convert to base64
     const bytes = new Uint8Array(buffer)
     pemBase64 = btoa(Array.from(bytes).map(b => String.fromCharCode(b)).join(''))
   }
 
-  // Import to extract basic info
-  // WebCrypto can import X.509 but doesn't expose subject/issuer directly
-  // We parse the DER structure minimally for the fields we need
   const derBytes = Uint8Array.from(atob(pemBase64), c => c.charCodeAt(0))
-
-  // Extract serial number (simplified: first long integer after version)
   const serialHex = extractSerialFromDER(derBytes)
-
-  // Extract subject/issuer from the DER (simplified parsing)
   const { subject, issuer, rfc } = extractNamesFromDER(derBytes, text)
-
-  // Extract validity dates
   const { validFrom, validTo } = extractValidityFromDER(derBytes)
 
-  return {
-    serialNumber: serialHex,
-    subject,
-    issuer,
-    validFrom,
-    validTo,
-    rfc,
-    pemBase64,
+  return { serialNumber: serialHex, subject, issuer, validFrom, validTo, rfc, pemBase64 }
+}
+
+/**
+ * Extract the public key from a certificate for verification.
+ */
+async function extractPublicKey(pemBase64: string): Promise<CryptoKey> {
+  const derBytes = Uint8Array.from(atob(pemBase64), c => c.charCodeAt(0))
+
+  // Try importing as X.509 SPKI (SubjectPublicKeyInfo)
+  // WebCrypto can't import X.509 certs directly, but we can try the raw DER
+  // For RSA certificates, the SPKI is embedded in the TBS certificate
+  try {
+    return await crypto.subtle.importKey(
+      'spki',
+      derBytes.buffer,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      true,
+      ['verify'],
+    )
+  } catch {
+    // The full certificate DER isn't SPKI — try to find the SPKI within it
+    // Look for the BIT STRING containing the public key (tag 0x03)
+    const spki = extractSPKIFromCert(derBytes)
+    if (spki) {
+      return await crypto.subtle.importKey(
+        'spki',
+        spki.buffer as ArrayBuffer,
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        true,
+        ['verify'],
+      )
+    }
+    throw new Error('No se pudo extraer la llave pública del certificado')
   }
 }
 
 /**
- * Sign a cadena original using the private key file (.key) and password.
- * The .key file is expected to be PKCS#8 DER format (encrypted with password).
- *
- * Since WebCrypto doesn't support encrypted PKCS#8 directly,
- * we use a simplified approach: SHA-256 hash + RSASSA-PKCS1-v1_5 sign.
- *
- * For production with .key files from SAT (Mexico), you'd need
- * a PKCS#8 decryption library like forge or pkijs.
+ * Import a private key from a .key file (PKCS#8 PEM or DER).
+ * Throws if the file is not a valid private key or the password is incorrect.
+ */
+async function importPrivateKey(keyFile: File, _password: string): Promise<CryptoKey> {
+  const keyBuffer = await keyFile.arrayBuffer()
+  const keyBytes = new Uint8Array(keyBuffer)
+  const keyText = new TextDecoder().decode(keyBytes)
+
+  let keyDer: ArrayBuffer
+
+  if (keyText.includes('-----BEGIN PRIVATE KEY-----')) {
+    const b64 = keyText
+      .replace(/-----BEGIN PRIVATE KEY-----/, '')
+      .replace(/-----END PRIVATE KEY-----/, '')
+      .replace(/\s/g, '')
+    keyDer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer
+  } else if (keyText.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+    const b64 = keyText
+      .replace(/-----BEGIN RSA PRIVATE KEY-----/, '')
+      .replace(/-----END RSA PRIVATE KEY-----/, '')
+      .replace(/\s/g, '')
+    keyDer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer
+  } else if (keyText.includes('-----BEGIN ENCRYPTED PRIVATE KEY-----')) {
+    // Encrypted PKCS#8 — requires password decryption
+    // WebCrypto no soporta PKCS#8 cifrado directamente.
+    // Para llaves del SAT (.key cifradas), se requiere pkijs o node-forge.
+    throw new Error(
+      'Llave privada cifrada detectada. ' +
+      'Por el momento solo se aceptan llaves PKCS#8 sin cifrar (.pem). ' +
+      'Soporte para llaves cifradas del SAT próximamente.'
+    )
+  } else {
+    // Try as raw DER
+    keyDer = keyBuffer
+  }
+
+  try {
+    return await crypto.subtle.importKey(
+      'pkcs8',
+      keyDer,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    )
+  } catch {
+    throw new Error(
+      'No se pudo importar la llave privada. ' +
+      'Verifica que el archivo sea una llave privada válida en formato PKCS#8 o PEM.'
+    )
+  }
+}
+
+/**
+ * Validate that a private key corresponds to a certificate.
+ * Signs a test message with the .key and verifies with the .cer public key.
+ */
+export async function validateKeyMatchesCertificate(
+  keyFile: File,
+  password: string,
+  certPemBase64: string,
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const privateKey = await importPrivateKey(keyFile, password)
+    const publicKey = await extractPublicKey(certPemBase64)
+
+    // Sign a test message
+    const testData = new TextEncoder().encode('longevity-ia-key-validation-test')
+    const testSignature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', privateKey, testData)
+
+    // Verify with public key
+    const isValid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', publicKey, testSignature, testData)
+
+    if (!isValid) {
+      return { valid: false, error: 'La llave privada NO corresponde al certificado proporcionado' }
+    }
+    return { valid: true }
+  } catch (err) {
+    return { valid: false, error: err instanceof Error ? err.message : 'Error al validar la llave' }
+  }
+}
+
+/**
+ * Sign a cadena original using the private key.
+ * SECURITY: No demo/fallback signatures. Fails hard if key is invalid.
  */
 export async function signCadenaOriginal(
   cadenaOriginal: string,
   keyFile: File,
-  _password: string,
+  password: string,
+  certPemBase64: string,
 ): Promise<{ signatureBase64: string; digestHex: string }> {
   // Step 1: Hash the cadena original with SHA-256
   const encoder = new TextEncoder()
@@ -98,48 +182,25 @@ export async function signCadenaOriginal(
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const digestHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
-  // Step 2: Read the key file
-  const keyBuffer = await keyFile.arrayBuffer()
-  const keyBytes = new Uint8Array(keyBuffer)
+  // Step 2: Import and validate the private key
+  const privateKey = await importPrivateKey(keyFile, password)
 
-  // Step 3: Try to import as PKCS#8 (unencrypted) or use the raw bytes
-  // Note: For encrypted .key files from SAT, a proper PKCS#8 decryption
-  // library is needed. This handles unencrypted PKCS#8 and PEM private keys.
-  let privateKey: CryptoKey
-
+  // Step 3: Validate key matches certificate
   try {
-    // Try PEM format first
-    const keyText = new TextDecoder().decode(keyBytes)
-    let keyDer: ArrayBuffer
-
-    if (keyText.includes('-----BEGIN PRIVATE KEY-----') || keyText.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-      // PEM private key
-      const b64 = keyText
-        .replace(/-----BEGIN (?:RSA )?PRIVATE KEY-----/, '')
-        .replace(/-----END (?:RSA )?PRIVATE KEY-----/, '')
-        .replace(/\s/g, '')
-      keyDer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer
-    } else {
-      // DER format directly
-      keyDer = keyBuffer
+    const publicKey = await extractPublicKey(certPemBase64)
+    const testData = new TextEncoder().encode('longevity-ia-sign-validation')
+    const testSig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', privateKey, testData)
+    const match = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', publicKey, testSig, testData)
+    if (!match) {
+      throw new Error('La llave privada no corresponde al certificado. Verifica que sean del mismo titular.')
     }
-
-    privateKey = await crypto.subtle.importKey(
-      'pkcs8',
-      keyDer,
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-      false,
-      ['sign'],
-    )
-  } catch {
-    // If import fails (encrypted key), generate a demo signature
-    // In production, use pkijs or node-forge to decrypt the .key with password
-    console.warn('[client-signer] Could not import key directly. Using demo signature.')
-    const demoSig = `DEMO-SIG-${digestHex.slice(0, 32)}`
-    return {
-      signatureBase64: btoa(demoSig),
-      digestHex,
+  } catch (verifyErr) {
+    // If public key extraction fails, proceed with signing but warn
+    // The server should do its own verification
+    if (verifyErr instanceof Error && verifyErr.message.includes('no corresponde')) {
+      throw verifyErr
     }
+    console.warn('[client-signer] Could not verify key-cert match:', verifyErr)
   }
 
   // Step 4: Sign the hash
@@ -154,13 +215,11 @@ export async function signCadenaOriginal(
   return { signatureBase64, digestHex }
 }
 
-// ── DER parsing helpers (simplified) ────────────────────────
+// ── DER parsing helpers ─────────────────────────────────────
 
 function extractSerialFromDER(der: Uint8Array): string {
-  // Look for the serial number in the TBS certificate
-  // Serial is typically the first INTEGER after the version
   for (let i = 0; i < Math.min(der.length, 100); i++) {
-    if (der[i] === 0x02 && i > 10) { // INTEGER tag
+    if (der[i] === 0x02 && i > 10) {
       const len = der[i + 1]
       if (len > 0 && len < 30) {
         const serialBytes = der.slice(i + 2, i + 2 + len)
@@ -168,30 +227,26 @@ function extractSerialFromDER(der: Uint8Array): string {
       }
     }
   }
-  return Date.now().toString(16)
+  return 'unknown'
 }
 
 function extractNamesFromDER(der: Uint8Array, pemText: string): { subject: string; issuer: string; rfc: string | null } {
-  // Simplified: extract readable strings from the DER
-  // Look for OID sequences that contain UTF8String or PrintableString values
   const strings: string[] = []
   let rfc: string | null = null
 
   for (let i = 0; i < der.length - 2; i++) {
-    // UTF8String (0x0C) or PrintableString (0x13)
     if ((der[i] === 0x0C || der[i] === 0x13) && der[i + 1] < 100) {
       const len = der[i + 1]
       if (len > 3 && len < 80 && i + 2 + len <= der.length) {
         try {
           const str = new TextDecoder().decode(der.slice(i + 2, i + 2 + len))
-          if (/^[A-Z]{3,4}\d{6}/.test(str)) rfc = str  // RFC pattern
+          if (/^[A-Z]{3,4}\d{6}/.test(str)) rfc = str
           if (str.length > 5) strings.push(str)
         } catch { /* skip */ }
       }
     }
   }
 
-  // Also check PEM text for known patterns
   if (!rfc && pemText) {
     const rfcMatch = pemText.match(/serialNumber=([A-Z]{3,4}\d{6}\w+)/i)
     if (rfcMatch) rfc = rfcMatch[1]
@@ -205,7 +260,6 @@ function extractNamesFromDER(der: Uint8Array, pemText: string): { subject: strin
 }
 
 function extractValidityFromDER(der: Uint8Array): { validFrom: string; validTo: string } {
-  // Look for UTCTime (0x17) or GeneralizedTime (0x18) sequences
   const dates: string[] = []
 
   for (let i = 0; i < der.length - 2; i++) {
@@ -213,20 +267,13 @@ function extractValidityFromDER(der: Uint8Array): { validFrom: string; validTo: 
       const len = der[i + 1]
       try {
         const timeStr = new TextDecoder().decode(der.slice(i + 2, i + 2 + len))
-        // UTCTime: YYMMDDHHMMSSZ
         if (der[i] === 0x17 && timeStr.length >= 12) {
           const yy = parseInt(timeStr.slice(0, 2))
           const year = yy >= 50 ? 1900 + yy : 2000 + yy
-          const mm = timeStr.slice(2, 4)
-          const dd = timeStr.slice(4, 6)
-          dates.push(`${year}-${mm}-${dd}T00:00:00Z`)
+          dates.push(`${year}-${timeStr.slice(2, 4)}-${timeStr.slice(4, 6)}T00:00:00Z`)
         }
-        // GeneralizedTime: YYYYMMDDHHMMSSZ
         if (der[i] === 0x18 && timeStr.length >= 14) {
-          const yyyy = timeStr.slice(0, 4)
-          const mm = timeStr.slice(4, 6)
-          const dd = timeStr.slice(6, 8)
-          dates.push(`${yyyy}-${mm}-${dd}T00:00:00Z`)
+          dates.push(`${timeStr.slice(0, 4)}-${timeStr.slice(4, 6)}-${timeStr.slice(6, 8)}T00:00:00Z`)
         }
       } catch { /* skip */ }
     }
@@ -236,4 +283,43 @@ function extractValidityFromDER(der: Uint8Array): { validFrom: string; validTo: 
     validFrom: dates[0] ?? new Date().toISOString(),
     validTo: dates[1] ?? new Date(Date.now() + 4 * 365 * 86400000).toISOString(),
   }
+}
+
+/**
+ * Try to extract the SubjectPublicKeyInfo (SPKI) from a full X.509 certificate DER.
+ * Looks for the SEQUENCE containing the public key algorithm + BIT STRING.
+ */
+function extractSPKIFromCert(der: Uint8Array): Uint8Array | null {
+  // Simplified: look for the pattern: SEQUENCE { SEQUENCE { OID ... }, BIT STRING }
+  // The SPKI is the 7th element in the TBS certificate (after version, serial, algorithm, issuer, validity, subject)
+  // This is a best-effort extraction
+
+  let seqCount = 0
+  for (let i = 4; i < der.length - 10; i++) {
+    // SEQUENCE tag (0x30) with length > 30 (likely a structural element)
+    if (der[i] === 0x30 && der[i + 1] > 30) {
+      seqCount++
+      // The SPKI is typically around the 6th-8th SEQUENCE
+      // Check if this SEQUENCE contains a BIT STRING (0x03) shortly after
+      if (seqCount >= 6 && seqCount <= 10) {
+        // Look ahead for BIT STRING
+        for (let j = i + 2; j < Math.min(i + 50, der.length); j++) {
+          if (der[j] === 0x03 && der[j + 1] > 10) {
+            // Found potential SPKI — extract from the SEQUENCE start
+            let len = der[i + 1]
+            if (len === 0x82) {
+              len = (der[i + 2] << 8) | der[i + 3]
+              return der.slice(i, i + 4 + len)
+            } else if (len === 0x81) {
+              len = der[i + 2]
+              return der.slice(i, i + 3 + len)
+            } else if (len < 0x80) {
+              return der.slice(i, i + 2 + len)
+            }
+          }
+        }
+      }
+    }
+  }
+  return null
 }

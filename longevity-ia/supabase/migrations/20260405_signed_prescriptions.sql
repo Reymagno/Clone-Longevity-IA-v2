@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS medico_certificates (
 
 CREATE INDEX IF NOT EXISTS idx_medico_certificates_user ON medico_certificates(medico_user_id);
 CREATE INDEX IF NOT EXISTS idx_medico_certificates_serial ON medico_certificates(serial_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_medico_certificates_user_serial ON medico_certificates(medico_user_id, serial_number);
 
 -- Prescripciones firmadas digitalmente
 CREATE TABLE IF NOT EXISTS signed_prescriptions (

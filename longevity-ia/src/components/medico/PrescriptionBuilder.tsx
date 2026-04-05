@@ -91,6 +91,8 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
   const [showSignModal, setShowSignModal] = useState(false)
   const [signatureData, setSignatureData] = useState<PrescriptionSignature | null>(null)
   const [signingPdf, setSigningPdf] = useState(false)
+  // SECURITY: cadena se genera UNA vez y se reutiliza para firma y almacenamiento
+  const [cachedCadena, setCachedCadena] = useState<{ cadena: string; verificationCode: string; prescriptionId: string } | null>(null)
 
   // Load medico data
   useEffect(() => {
@@ -195,13 +197,21 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
     return { cadena: parts.join('||'), verificationCode: code, prescriptionId }
   }
 
+  // Prepare cadena for signing — generate once, cache it
+  function getOrCreateCadena() {
+    if (cachedCadena) return cachedCadena
+    const newCadena = buildCadena()
+    setCachedCadena(newCadena)
+    return newCadena
+  }
+
   // Handle signature result from modal
   async function handleSignatureResult(result: {
     signatureBase64: string
     digestHex: string
     certificate: { serialNumber: string; subject: string; issuer: string; validFrom: string; validTo: string; rfc: string | null; pemBase64: string }
   }) {
-    const { cadena, verificationCode, prescriptionId } = buildCadena()
+    const { cadena, verificationCode, prescriptionId } = getOrCreateCadena()
     const verifyUrl = `${window.location.origin}/verify/${verificationCode}`
 
     const sig: PrescriptionSignature = {
@@ -241,11 +251,10 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
         },
       )
 
-      await fetch('/api/prescriptions/sign', {
+      const serverRes = await fetch('/api/prescriptions/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prescriptionId,
           patientId: patient.id,
           cdaXml,
           cadenaOriginal: cadena,
@@ -257,10 +266,20 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
           certificateValidFrom: result.certificate.validFrom,
           certificateValidTo: result.certificate.validTo,
           certificatePem: result.certificate.pemBase64,
-          verificationCode,
           rfc: result.certificate.rfc,
         }),
       })
+      // Update signature with server-generated verification code
+      if (serverRes.ok) {
+        const serverData = await serverRes.json()
+        if (serverData.verificationCode && serverData.verifyUrl) {
+          setSignatureData(prev => prev ? {
+            ...prev,
+            verificationCode: serverData.verificationCode,
+            verifyUrl: serverData.verifyUrl,
+          } : prev)
+        }
+      }
     } catch (err) {
       console.error('[PrescriptionBuilder] Error storing signature:', err)
       // Non-blocking: signature is still valid locally even if server storage fails
@@ -682,7 +701,7 @@ export function PrescriptionBuilder({ patient, protocol, onClose }: Prescription
             setShowSignModal(false)
             handleSignatureResult(result)
           }}
-          cadenaOriginal={buildCadena().cadena}
+          cadenaOriginal={getOrCreateCadena().cadena}
         />
       </div>
     </div>

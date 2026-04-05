@@ -84,15 +84,18 @@ export function SignatureModal({ isOpen, onClose, onSigned, cadenaOriginal }: Si
       // Parse certificate
       const certData = await parseCertificate(cerFile)
 
-      // Check validity
+      // Check validity (both from and to)
       const now = new Date()
+      if (new Date(certData.validFrom) > now) {
+        throw new Error('El certificado aún no es válido')
+      }
       if (new Date(certData.validTo) < now) {
         throw new Error('El certificado ha expirado')
       }
 
-      // Sign
+      // Sign (validates key-certificate correspondence internally)
       const { signatureBase64, digestHex } = await signCadenaOriginal(
-        cadenaOriginal, keyFile, password,
+        cadenaOriginal, keyFile, password, certData.pemBase64,
       )
 
       setStep('done')

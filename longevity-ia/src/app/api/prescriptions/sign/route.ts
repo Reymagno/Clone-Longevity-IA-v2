@@ -2,15 +2,37 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'crypto'
 import { createClientFromRequest } from '@/lib/supabase/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/audit'
 import { rateLimit } from '@/lib/rate-limit'
 
+// SECURITY: Generar verification code server-side con CSPRNG
+function generateServerVerificationCode(): string {
+  const { randomBytes } = require('crypto') as typeof import('crypto')
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = randomBytes(8)
+  let code = 'RX-'
+  for (let i = 0; i < 8; i++) {
+    code += chars[bytes[i] % chars.length]
+  }
+  return code
+}
+
+// Validation limits
+const MAX_CDA_SIZE = 500 * 1024  // 500KB
+const MAX_FIELD_LEN = 500
+const MAX_SIG_LEN = 2048
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const HEX_RE = /^[0-9a-f]+$/i
+const B64_RE = /^[A-Za-z0-9+/=]+$/
+
 /**
  * POST /api/prescriptions/sign
  * Stores a signed prescription CDA + metadata.
- * The actual signature is generated client-side (private key never leaves browser).
+ * SECURITY: Generates verification code server-side, validates all inputs,
+ * verifies digest integrity, checks certificate validity.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +49,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
-      prescriptionId,
       patientId,
       cdaXml,
       cadenaOriginal,
@@ -39,61 +60,89 @@ export async function POST(request: NextRequest) {
       certificateValidFrom,
       certificateValidTo,
       certificatePem,
-      verificationCode,
       rfc,
     } = body as Record<string, string>
 
-    if (!prescriptionId || !cdaXml || !cadenaOriginal || !digestSha256 || !signatureBase64 || !verificationCode) {
+    // ── Input validation ──────────────────────────────────────
+    if (!cdaXml || !cadenaOriginal || !digestSha256 || !signatureBase64) {
       return NextResponse.json({ error: 'Datos de firma incompletos' }, { status: 400 })
     }
 
+    if (cdaXml.length > MAX_CDA_SIZE) {
+      return NextResponse.json({ error: 'CDA XML excede el tamaño máximo' }, { status: 400 })
+    }
+    if (signatureBase64.length > MAX_SIG_LEN || !B64_RE.test(signatureBase64)) {
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 400 })
+    }
+    if (digestSha256.length !== 64 || !HEX_RE.test(digestSha256)) {
+      return NextResponse.json({ error: 'Hash SHA-256 inválido' }, { status: 400 })
+    }
+    if (patientId && !UUID_RE.test(patientId)) {
+      return NextResponse.json({ error: 'ID de paciente inválido' }, { status: 400 })
+    }
+
+    // Truncate text fields to max length
+    const safeCertSerial = (certificateSerial ?? '').slice(0, MAX_FIELD_LEN)
+    const safeCertSubject = (certificateSubject ?? '').slice(0, MAX_FIELD_LEN)
+    const safeCertIssuer = (certificateIssuer ?? '').slice(0, MAX_FIELD_LEN)
+    const safeRfc = rfc ? rfc.slice(0, 20) : null
+
+    // ── Server-side digest verification ───────────────────────
+    const serverDigest = createHash('sha256').update(cadenaOriginal).digest('hex')
+    if (serverDigest !== digestSha256) {
+      return NextResponse.json({ error: 'El hash no coincide con la cadena original' }, { status: 400 })
+    }
+
+    // ── Certificate validity check ────────────────────────────
+    if (certificateValidFrom && certificateValidTo) {
+      const now = new Date()
+      const from = new Date(certificateValidFrom)
+      const to = new Date(certificateValidTo)
+      if (now < from || now > to) {
+        return NextResponse.json({ error: 'El certificado no está vigente' }, { status: 400 })
+      }
+    }
+
+    // ── Generate verification code SERVER-SIDE (CSPRNG) ───────
+    const verificationCode = generateServerVerificationCode()
+    const prescriptionId = require('crypto').randomUUID() as string
+
     const admin = getSupabaseAdmin()
 
-    // Store CDA XML in storage
+    // ── Store CDA XML (path uses server-generated UUID) ───────
     const cdaPath = `prescriptions/${user.id}/${prescriptionId}.xml`
     const { error: uploadError } = await admin.storage
       .from('clinical-documents')
-      .upload(cdaPath, cdaXml, { contentType: 'application/xml', upsert: true })
+      .upload(cdaPath, cdaXml, { contentType: 'application/xml', upsert: false })
 
     if (uploadError) {
       console.error('[sign] CDA upload error:', uploadError.message)
-      return NextResponse.json({ error: 'Error al almacenar CDA' }, { status: 500 })
+      return NextResponse.json({ error: 'Error al almacenar documento' }, { status: 500 })
     }
 
-    // Store/update certificate record
-    const { data: existingCert } = await admin
-      .from('medico_certificates')
-      .select('id')
-      .eq('medico_user_id', user.id)
-      .eq('serial_number', certificateSerial)
-      .maybeSingle()
-
-    let certificateId = existingCert?.id
-
-    if (!certificateId) {
-      const { data: newCert, error: certError } = await admin
+    // ── Certificate upsert ────────────────────────────────────
+    let certificateId: string | null = null
+    if (safeCertSerial) {
+      const { data: cert } = await admin
         .from('medico_certificates')
-        .insert({
+        .upsert({
           medico_user_id: user.id,
-          certificate_pem: certificatePem ?? '',
-          serial_number: certificateSerial ?? '',
-          issuer: certificateIssuer ?? '',
+          serial_number: safeCertSerial,
+          certificate_pem: (certificatePem ?? '').slice(0, 10000),
+          issuer: safeCertIssuer,
           valid_from: certificateValidFrom ?? new Date().toISOString(),
           valid_to: certificateValidTo ?? new Date(Date.now() + 4 * 365 * 86400000).toISOString(),
-          subject_name: certificateSubject ?? '',
-          rfc: rfc ?? null,
+          subject_name: safeCertSubject,
+          rfc: safeRfc,
           is_active: true,
-        })
+        }, { onConflict: 'medico_user_id,serial_number', ignoreDuplicates: false })
         .select('id')
         .single()
 
-      if (certError) {
-        console.error('[sign] Certificate insert error:', certError.message)
-      }
-      certificateId = newCert?.id
+      certificateId = cert?.id ?? null
     }
 
-    // Store signed prescription record
+    // ── Store signed prescription ─────────────────────────────
     const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/verify/${verificationCode}`
 
     const { data: signedRx, error: signError } = await admin
@@ -101,8 +150,8 @@ export async function POST(request: NextRequest) {
       .insert({
         prescription_id: prescriptionId,
         medico_user_id: user.id,
-        patient_id: patientId ?? null,
-        certificate_id: certificateId ?? null,
+        patient_id: patientId || null,
+        certificate_id: certificateId,
         pdf_hash_sha256: digestSha256,
         signature_pkcs7: signatureBase64,
         signed_pdf_path: cdaPath,
@@ -114,7 +163,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (signError) {
-      console.error('[sign] Signed prescription insert error:', signError.message)
+      console.error('[sign] Insert error:', signError.message)
       return NextResponse.json({ error: 'Error al registrar firma' }, { status: 500 })
     }
 
@@ -126,8 +175,8 @@ export async function POST(request: NextRequest) {
       action: 'sign_prescription',
       resourceType: 'prescription',
       resourceId: signedRx.id,
-      patientId: patientId ?? undefined,
-      details: { verificationCode, certificateSerial },
+      patientId: patientId || undefined,
+      details: { verificationCode, certificateSerial: safeCertSerial },
     }, request)
 
     return NextResponse.json({
