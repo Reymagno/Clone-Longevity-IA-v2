@@ -554,18 +554,31 @@ export async function generateMedicalReport(
 
       const alertColor = level === 'danger' ? C.danger : C.warning
       const alertBgTint: RGB = level === 'danger' ? [255, 245, 245] : [255, 251, 235]
-      // Construir texto de alerta con salto de línea para valores largos
-      let fullText = title
-      if (desc) fullText += ': ' + desc
-      if (val) fullText += '\nActual: ' + val + (target ? '  →  Objetivo: ' + target : '')
-      const alertMaxW = CW - 16
-      const aLines = pdf.splitTextToSize(fullText, alertMaxW) as string[]
-      const AH = aLines.length * 4.5 + 6
+      // Construir texto de alerta — cada campo en línea separada para evitar overflow
+      const alertTextW = CW - 18  // desde MG+8 hasta MG+CW-10
+      sz(7); n()
+      const titleDescText = desc ? `${title}: ${desc}` : title
+      const titleDescLines = pdf.splitTextToSize(titleDescText, alertTextW) as string[]
+      const valLines = val ? pdf.splitTextToSize(`Actual: ${val}`, alertTextW) as string[] : []
+      const targetLines = target ? pdf.splitTextToSize(`Objetivo: ${target}`, alertTextW) as string[] : []
+      const totalAlertLines = titleDescLines.length + valLines.length + targetLines.length
+      const AH = totalAlertLines * 4.5 + 6
       guard(AH + 3)
       boxStroke(MG, y, CW, AH, alertBgTint, C.gold, 0.3)
       box(MG, y, 3, AH, alertColor)
       ink(alertColor); sz(7); n()
-      pdf.text(aLines, MG + 8, y + 5)
+      let alertY = y + 5
+      pdf.text(titleDescLines, MG + 8, alertY)
+      alertY += titleDescLines.length * 4.5
+      if (valLines.length > 0) {
+        ink(C.text); sz(7); n()
+        pdf.text(valLines, MG + 8, alertY)
+        alertY += valLines.length * 4.5
+      }
+      if (targetLines.length > 0) {
+        ink(C.accent); sz(7); b()
+        pdf.text(targetLines, MG + 8, alertY)
+      }
       skip(AH + 3)
     })
     skip(2)
@@ -616,13 +629,14 @@ export async function generateMedicalReport(
     const arrItems = Array.isArray(items) ? items : []
     const totalH = Math.max(16, 16 + arrItems.slice(0, 5).length * 14)
     guard(totalH)
-    box(MG, y, CW, 9, [...color.map(v => Math.min(255, v + 190))] as RGB)
-    box(MG, y, 3, 9, color)
+    box(MG, y, CW, 12, [...color.map(v => Math.min(255, v + 190))] as RGB)
+    box(MG, y, 3, 12, color)
     ink(color); sz(8.5); b()
-    tSafe(title, MG + 7, y + 6.5, CW * 0.45)
-    ink(C.muted); sz(7); n()
-    tSafe(sub, MG + CW - 2, y + 6.5, CW * 0.5, 'right')
-    skip(12)
+    tSafe(title, MG + 7, y + 5, CW * 0.4)
+    ink(C.muted); sz(6.5); n()
+    // Subtítulo en línea separada debajo del título para evitar solapamiento
+    tSafe(sub, MG + 7, y + 10, CW - 14)
+    skip(14)
 
     if (arrItems.length === 0) {
       ink(C.light); sz(7.5); n(); t('Sin datos disponibles', MG + 4, y + 5); skip(8)
@@ -863,14 +877,15 @@ export async function generateMedicalReport(
       const withP = pf.withProtocol ?? '—'
       const justification = pf.medicalJustification ?? ''
 
-      // Medir todas las líneas con el font correcto ANTES de calcular altura
-      sz(7); n()
+      // Medir todas las líneas con font EXPLÍCITO antes de calcular altura
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(7)
       const currentLines = pdf.splitTextToSize(`Actual: ${current}`, pfLeftW) as string[]
       const optimalLines = pdf.splitTextToSize(`Óptimo: ${optimal}`, pfRightW) as string[]
       const withoutLines = pdf.splitTextToSize(`Sin protocolo: ${withoutP}`, pfLeftW) as string[]
       const withLines = pdf.splitTextToSize(`Con protocolo: ${withP}`, pfRightW) as string[]
 
-      sz(6.5); n()
+      pdf.setFontSize(6.5)
       const justLines = justification ? pdf.splitTextToSize(justification, pfFullW) as string[] : []
 
       const valuesH = Math.max(currentLines.length, optimalLines.length) * 4
@@ -977,18 +992,22 @@ export async function generateMedicalReport(
       item.urgency === 'medium'    ? 'MEDIO' : 'BAJO'
 
     // Layout vertical: header → molécula/dosis → mecanismo → evidencia → resultado
-    // Texto inicia en MG+7, margen derecho 7mm → ancho útil = CW - 14 - 4 (extra seguridad)
-    const contentW = CW - 18
+    // Texto inicia en MG+7, borde derecho MG+CW, margen derecho 7mm
+    const contentW = CW - 14  // ancho real: desde MG+7 hasta MG+CW-7
 
-    const moleculeLines = pdf.splitTextToSize(item.molecule ?? '', contentW) as string[]
-    const doseLines = pdf.splitTextToSize(item.dose ?? '', contentW) as string[]
-    const mechLines = item.mechanism ? pdf.splitTextToSize(`Mecanismo: ${item.mechanism}`, contentW) as string[] : []
-    const evidLines = item.evidence ? pdf.splitTextToSize(`Evidencia: ${item.evidence}`, contentW) as string[] : []
-    const resultLines = item.expectedResult ? pdf.splitTextToSize(`Resultado esperado: ${item.expectedResult}`, contentW) as string[] : []
-    const actionLines = item.action ? pdf.splitTextToSize(item.action, contentW) as string[] : []
+    // Medir cada campo con el font que se usará al dibujar
+    pdf.setFont('helvetica', 'bold')
+    sz(8.5); const moleculeLines = pdf.splitTextToSize(item.molecule ?? '', contentW) as string[]
+    pdf.setFont('helvetica', 'normal')
+    sz(7.5); const doseLines = pdf.splitTextToSize(item.dose ?? '', contentW) as string[]
+    sz(7); const mechLines = item.mechanism ? pdf.splitTextToSize(`Mecanismo: ${item.mechanism}`, contentW) as string[] : []
+    sz(6.5); const evidLines = item.evidence ? pdf.splitTextToSize(`Evidencia: ${item.evidence}`, contentW) as string[] : []
+    sz(7); const resultLines = item.expectedResult ? pdf.splitTextToSize(`Resultado esperado: ${item.expectedResult}`, contentW) as string[] : []
+    pdf.setFont('helvetica', 'bold')
+    sz(6.5); const actionLines = item.action ? pdf.splitTextToSize(item.action, contentW) as string[] : []
 
     const LH = 4  // line height
-    const headerH = 12  // más espacio entre header y molécula
+    const headerH = 12
     const moleculeH = moleculeLines.length * 5
     const doseH = doseLines.length * LH
     const mechH = mechLines.length > 0 ? mechLines.length * LH + 2 : 0
