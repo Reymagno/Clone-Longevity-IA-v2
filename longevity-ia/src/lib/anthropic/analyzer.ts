@@ -241,6 +241,7 @@ FORMATO:
 - keyAlerts: máximo 4. FODA: 4 fortalezas, 3 debilidades, 4 oportunidades, 3 amenazas (vinculados a biomarcadores con valor)
 - risks: exactamente 4 enfermedades. Colores: CV=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8
 - projectionData: 10 puntos (años 1-10). projectionFactors: 3 factores
+- REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: El protocolo NO debe repetir recomendaciones de estudios ni intervenciones diagnósticas que ya estén mencionadas en las oportunidades del FODA. Si el FODA sugiere "perfil lipídico avanzado" o "ultrasonido carotídeo" como oportunidad, el protocolo NO debe incluir esos mismos estudios. El FODA describe QUÉ se puede investigar/mejorar; el protocolo describe QUÉ moléculas/intervenciones terapéuticas implementar. No hay solapamiento entre ambos.
 - Todo en español mexicano, técnico y preciso. Solo analiza lo que está en el documento.`
 
 export interface AnalyzeFileParams {
@@ -722,6 +723,7 @@ REGLAS:
 - Cada "evidence" debe citar autor, revista, año y magnitud del efecto cuantificado
 - expectedImpact (fortalezas y oportunidades): dato cuantificado de beneficio
 - probability (debilidades y amenazas): "Alta", "Media" o "Baja" — ya viene precalculada, ajústala solo si la historia clínica lo justifica claramente
+- Las OPORTUNIDADES del FODA deben enfocarse en áreas de mejora diagnóstica y exploración (estudios, pruebas, evaluaciones), NO en intervenciones terapéuticas. Las moléculas y suplementos van en el protocolo, no aquí.
 - Español mexicano, lenguaje técnico y preciso
 - Responde ÚNICAMENTE con JSON válido, sin markdown`
 
@@ -1317,7 +1319,9 @@ Genera ÚNICAMENTE este JSON (sin markdown, sin texto adicional):
   }
 }
 
-REGLAS DE FORMATO: systemScores, overallScore, longevity_age, projectionData y projectionFactors = PLACEHOLDER (0/vacío), el motor matemático los calcula. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa/péptido si aplica; mechanism/expectedResult/action = 1 oración con biomarcador específico y valor). Todo en español mexicano, lenguaje conciso.`
+REGLAS DE FORMATO: systemScores, overallScore, longevity_age, projectionData y projectionFactors = PLACEHOLDER (0/vacío), el motor matemático los calcula. FODA exactamente 4+3+4+3. OBLIGATORIO: "risks" exactamente 4 enfermedades con probability, horizon, drivers y color (cardiovascular=#ff4d6d, metabólico=#f5a623, hepático=#a78bfa, renal=#38bdf8). Protocol entre 8 y 12 intervenciones hiperpersonalizadas de al menos 4 categorías distintas (mínimo 1 estilo de vida, 1 regenerativa/péptido si aplica; mechanism/expectedResult/action = 1 oración con biomarcador específico y valor).
+REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: El protocolo NO debe repetir recomendaciones de estudios a realizar ni intervenciones diagnósticas que ya aparezcan en el FODA (oportunidades). El FODA describe QUÉ oportunidades de mejora existen; el protocolo describe QUÉ moléculas/suplementos/intervenciones terapéuticas concretas implementar. Si el FODA menciona un estudio diagnóstico como oportunidad, el protocolo NO lo repite.
+Todo en español mexicano, lenguaje conciso.`
 
 export async function reanalyzeWithClinicalHistory(
   parsedData: object,
@@ -1432,6 +1436,7 @@ PERSONALIZACIÓN CON HISTORIA CLÍNICA:
 - Células madre: SOLO hUC-MSC cordón umbilical. NUNCA médula ósea ni tejido adiposo
 - Dosis formato: "Xmg Nx/día". clinicalTrial: nombre ensayo o "Sin ensayo nombrado — evidencia: Autor, Revista, Año"
 - Urgencia: immediate=riesgo vital, high=danger sin riesgo vital, medium=warning, low=optimización
+- REGLA ANTI-DUPLICACIÓN FODA↔PROTOCOLO: NO repetir en el protocolo recomendaciones de estudios diagnósticos ni intervenciones que ya estén en las oportunidades del FODA. El protocolo es exclusivamente terapéutico (moléculas, suplementos, estilo de vida), NO diagnóstico.
 
 JSON (sin markdown):
 {
