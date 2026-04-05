@@ -131,10 +131,10 @@ export function SignatureModal({ isOpen, onClose, onSigned, cadenaOriginal }: Si
   const canSign = cerFile && keyFile && password.length >= 1
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex items-start justify-center pt-[5vh] p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-border/60 bg-card shadow-2xl overflow-hidden animate-scale-in">
+      <div className="relative w-full max-w-md rounded-2xl border border-border/60 bg-card shadow-2xl overflow-hidden animate-scale-in my-auto sm:my-0 sm:mt-0">
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4 border-b border-border/30"
