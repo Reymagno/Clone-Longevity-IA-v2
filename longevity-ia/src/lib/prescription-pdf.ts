@@ -42,6 +42,19 @@ export interface MedicoInfo {
   email: string
 }
 
+export interface PrescriptionSignature {
+  signedAt: string
+  certificateSubject: string
+  certificateSerial: string
+  certificateIssuer: string
+  certificateValidFrom: string
+  certificateValidTo: string
+  rfc?: string
+  digestSha256: string
+  verificationCode: string
+  verifyUrl: string
+}
+
 export interface PrescriptionData {
   patient: Patient
   medico: MedicoInfo
@@ -49,6 +62,7 @@ export interface PrescriptionData {
   customItems: CustomItem[]
   notes: string
   date: string
+  signature?: PrescriptionSignature
 }
 
 // ── Constants ──────────────────────────────────────────────────
@@ -427,6 +441,143 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<v
   doc.setFontSize(7)
   setColor(C.light)
   doc.text('Firma digital — Prescripcion generada a traves de Longevity IA', PW / 2, y, { align: 'center' })
+
+  // ═══ SIGNATURE SEAL (e.firma / Firma Electrónica Avanzada) ═══
+
+  if (data.signature) {
+    const sig = data.signature
+
+    // Helper to safely truncate text that may overflow a given width (mm)
+    const tSafe = (text: string, maxWidth: number): string => {
+      let t = text
+      doc.setFontSize(7.5)
+      while (doc.getTextWidth(t) > maxWidth && t.length > 4) {
+        t = t.slice(0, -2) + '...'
+      }
+      return t
+    }
+
+    // Build the cadena original string
+    const cadenaOriginal = `||1.0|${sig.verificationCode}|${sig.signedAt}||`
+
+    // Calculate seal height
+    const sealHeight = 68
+    checkPage(sealHeight + 6)
+    y += 8
+
+    const sealX = MG
+    const sealW = CW
+    const sealR = 2 // border radius
+
+    // ── Outer border (green) ──
+    doc.setLineWidth(0.6)
+    setDraw(C.green)
+    doc.roundedRect(sealX, y, sealW, sealHeight, sealR, sealR, 'S')
+
+    // ── Title bar ──
+    const titleBarH = 8
+    setFill(C.green)
+    // Top-left and top-right rounded, bottom square — approximate with full rounded rect clipped by a fill rect
+    doc.roundedRect(sealX, y, sealW, titleBarH + sealR, sealR, sealR, 'F')
+    // Overwrite bottom rounded corners with a flat fill
+    setFill(C.green)
+    doc.rect(sealX, y + titleBarH - 1, sealW, sealR + 1, 'F')
+
+    doc.setFontSize(8.5)
+    doc.setFont('helvetica', 'bold')
+    setColor(C.bg)
+    doc.text('PRESCRIPCION CON FIRMA ELECTRONICA AVANZADA', sealX + 8, y + 5.5)
+
+    // Checkmark circle
+    setFill(C.bg)
+    doc.circle(sealX + 4.5, y + 4.2, 2.2, 'F')
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    setColor(C.green)
+    doc.text('V', sealX + 3.4, y + 5.3)
+
+    // ── Divider below title ──
+    const contentY = y + titleBarH + 1
+    setDraw(C.border)
+    doc.setLineWidth(0.2)
+    doc.line(sealX, y + titleBarH, sealX + sealW, y + titleBarH)
+
+    // ── Detail rows — left column ──
+    let ry = contentY + 4.5
+    const labelX = sealX + 5
+    const valueX = sealX + 32
+    const maxValW = 60 // max width for value text in left column
+
+    const detailRow = (label: string, value: string, valueColor: RGB = C.text) => {
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'bold')
+      setColor(C.muted)
+      doc.text(label, labelX, ry)
+      doc.setFont('helvetica', 'normal')
+      setColor(valueColor)
+      doc.text(tSafe(value, maxValW), valueX, ry)
+      ry += 4.5
+    }
+
+    detailRow('Firmante:', `Dr. ${sig.certificateSubject}`)
+    if (sig.rfc) {
+      detailRow('RFC:', sig.rfc)
+    }
+    detailRow('Certificado:', sig.certificateSerial)
+    detailRow('Emisor:', sig.certificateIssuer)
+    detailRow('Vigencia:', `${sig.certificateValidFrom} a ${sig.certificateValidTo}`)
+    detailRow('Fecha de firma:', sig.signedAt)
+
+    // ── Spacing before hash section ──
+    ry += 1.5
+
+    // Hash (monospace-style display)
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'bold')
+    setColor(C.muted)
+    doc.text('Hash SHA-256:', labelX, ry)
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(7)
+    setColor(C.text)
+    const hashDisplay = sig.digestSha256.length > 40
+      ? sig.digestSha256.slice(0, 20) + '...' + sig.digestSha256.slice(-8)
+      : sig.digestSha256
+    doc.text(hashDisplay, valueX, ry)
+    ry += 4.5
+
+    // Verification code
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7.5)
+    setColor(C.muted)
+    doc.text('Codigo:', labelX, ry)
+    doc.setFont('helvetica', 'bold')
+    setColor(C.navy)
+    doc.text(sig.verificationCode, valueX, ry)
+    ry += 4.5
+
+    // Verification URL
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7.5)
+    setColor(C.muted)
+    doc.text('Verificar:', labelX, ry)
+    doc.setFont('helvetica', 'normal')
+    setColor(C.accent)
+    doc.text(tSafe(sig.verifyUrl, maxValW + 30), valueX, ry)
+
+    // ── Bottom divider and cadena original ──
+    const cadenaY = y + sealHeight - 9
+    setDraw(C.border)
+    doc.setLineWidth(0.2)
+    doc.line(sealX, cadenaY, sealX + sealW, cadenaY)
+
+    doc.setFontSize(6.5)
+    doc.setFont('courier', 'normal')
+    setColor(C.muted)
+    const cadenaDisplay = tSafe(`Cadena original: ${cadenaOriginal}`, sealW - 10)
+    doc.text(cadenaDisplay, sealX + 5, cadenaY + 5)
+
+    y += sealHeight + 2
+  }
 
   // Page footer on all pages
   const totalPages = doc.getNumberOfPages()
