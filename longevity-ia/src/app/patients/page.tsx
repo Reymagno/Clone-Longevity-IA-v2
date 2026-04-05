@@ -2,13 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { PatientCard } from '@/components/patients/PatientCard'
 import { NewPatientModal } from '@/components/patients/NewPatientModal'
 import { AnalysisCards } from '@/components/patients/AnalysisCards'
 import { Button } from '@/components/ui/button'
 import type { Patient, PatientWithLatestResult } from '@/types'
-import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, Hash, AlertTriangle, Building2 } from 'lucide-react'
+import { Plus, Users, Search, LogOut, Upload, Stethoscope, Bell, Copy, AlertTriangle, Building2, BarChart2, ArrowUpDown } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
@@ -41,6 +41,7 @@ export default function PatientsPage() {
   const [showProfile, setShowProfile] = useState(false)
   const [userName, setUserName] = useState('')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<'name' | 'lastAnalysis' | 'score' | 'recent'>('name')
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -211,6 +212,50 @@ export default function PatientsPage() {
     p.code.toLowerCase().includes(search.toLowerCase())
   )
 
+  // Greeting based on time of day
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Buenos dias'
+    if (hour < 18) return 'Buenas tardes'
+    return 'Buenas noches'
+  }, [])
+
+  // Current date formatted in Spanish
+  const formattedDate = useMemo(() => {
+    return new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  }, [])
+
+  // Analyses this month
+  const analysesThisMonth = useMemo(() => {
+    const now = new Date()
+    return patients.filter(p => p.latest_result && new Date(p.latest_result.created_at).getMonth() === now.getMonth() && new Date(p.latest_result.created_at).getFullYear() === now.getFullYear()).length
+  }, [patients])
+
+  // Sorted + filtered patients for medico
+  const sortedFiltered = useMemo(() => {
+    const arr = [...filtered]
+    switch (sortBy) {
+      case 'name':
+        return arr.sort((a, b) => a.name.localeCompare(b.name))
+      case 'lastAnalysis':
+        return arr.sort((a, b) => {
+          const dateA = a.latest_result?.created_at ? new Date(a.latest_result.created_at).getTime() : 0
+          const dateB = b.latest_result?.created_at ? new Date(b.latest_result.created_at).getTime() : 0
+          return dateB - dateA
+        })
+      case 'score':
+        return arr.sort((a, b) => {
+          const scoreA = (a.latest_result as any)?.health_score ?? 0
+          const scoreB = (b.latest_result as any)?.health_score ?? 0
+          return scoreB - scoreA
+        })
+      case 'recent':
+        return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      default:
+        return arr
+    }
+  }, [filtered, sortBy])
+
   // ─── Single patient: Analysis cards view ─────────────────────────
   if (singlePatient) {
     return (
@@ -277,7 +322,10 @@ export default function PatientsPage() {
   // ─── Multiple patients or medico view ────────────────────────────
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
+      <div
+        className={userRole === 'medico' ? 'backdrop-blur-xl sticky top-0 z-30' : 'border-b border-border/60 bg-card/80 backdrop-blur-xl sticky top-0 z-30'}
+        style={userRole === 'medico' ? { background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' } : undefined}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <LogoIcon size={32} />
@@ -295,15 +343,6 @@ export default function PatientsPage() {
                   {alertCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
                       {alertCount > 99 ? '99+' : alertCount}
-                    </span>
-                  )}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowInvitations(true)} className="relative">
-                  <Bell size={14} />
-                  <span className="hidden sm:inline">Invitaciones</span>
-                  {pendingInvCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-accent text-background text-[10px] font-bold flex items-center justify-center">
-                      {pendingInvCount}
                     </span>
                   )}
                 </Button>
@@ -334,43 +373,93 @@ export default function PatientsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Código del médico */}
-        {userRole === 'medico' && medicoCode && (
-          <div className="mb-6 p-4 rounded-xl border border-gold-300/20 bg-gold-300/5 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gold-300/15 border border-gold-300/25 flex items-center justify-center shrink-0">
-              <Hash size={18} className="text-gold-200" />
+        {/* Welcome section with KPIs for medico */}
+        {userRole === 'medico' && (
+          <div className="mb-8 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
+            {/* Welcome row */}
+            <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/30">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">
+                  {greeting}, Dr. {userName || 'Medico'}
+                </h2>
+                <p className="text-xs text-muted-foreground">Panel de gestion de pacientes</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground capitalize">{formattedDate}</span>
+                {medicoCode && (
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(medicoCode); toast.success('Codigo copiado') }}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gold-300/10 border border-gold-300/20 text-xs font-mono font-bold text-gold-200 hover:bg-gold-300/20 transition-colors"
+                    title="Copiar codigo de medico"
+                  >
+                    {medicoCode}
+                    <Copy size={12} className="text-gold-200/60" />
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Tu codigo de medico</p>
-              <p className="text-sm font-mono font-bold text-gold-100 tracking-wide">{medicoCode}</p>
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/30">
+              {/* Total pacientes */}
+              <div className="px-4 py-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
+                  <Users size={16} className="text-accent" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">{patients.length}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Pacientes</p>
+                </div>
+              </div>
+              {/* Alertas sin leer */}
+              <button
+                onClick={() => setShowAlerts(true)}
+                className="px-4 py-4 flex items-center gap-3 hover:bg-red-500/5 transition-colors text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={16} className="text-red-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">{alertCount}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Alertas sin leer</p>
+                </div>
+              </button>
+              {/* Analisis del mes */}
+              <div className="px-4 py-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
+                  <BarChart2 size={16} className="text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground leading-none">{analysesThisMonth}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Analisis del mes</p>
+                </div>
+              </div>
+              {/* Invitaciones / Clinica status */}
+              {pendingInvCount > 0 ? (
+                <button
+                  onClick={() => setShowInvitations(true)}
+                  className="px-4 py-4 flex items-center gap-3 hover:bg-amber-500/5 transition-colors text-left"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                    <Bell size={16} className="text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-foreground leading-none">{pendingInvCount}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Invitaciones pendientes</p>
+                  </div>
+                </button>
+              ) : (
+                <div className="px-4 py-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                    <Building2 size={16} className="text-amber-400/60" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground leading-none">Sin invitaciones</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Clinica vinculada</p>
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => { navigator.clipboard.writeText(medicoCode); toast.success('Codigo copiado') }}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-muted/40 border border-border/50 text-muted-foreground hover:text-gold-200 hover:border-gold-300/30 transition-colors"
-              title="Copiar codigo"
-            >
-              <Copy size={14} />
-            </button>
           </div>
-        )}
-
-        {/* Banner de invitaciones pendientes para medicos */}
-        {userRole === 'medico' && pendingInvCount > 0 && !showInvitations && (
-          <button
-            onClick={() => setShowInvitations(true)}
-            className="w-full mb-6 p-4 rounded-xl border border-accent/30 bg-accent/8 flex items-center gap-3 hover:bg-accent/12 transition-colors text-left"
-          >
-            <div className="w-10 h-10 rounded-full bg-accent/15 border border-accent/25 flex items-center justify-center shrink-0">
-              <Bell size={18} className="text-accent" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-foreground">
-                Tienes {pendingInvCount} invitacion{pendingInvCount !== 1 ? 'es' : ''} pendiente{pendingInvCount !== 1 ? 's' : ''}
-              </p>
-              <p className="text-xs text-muted-foreground">Pacientes quieren compartir sus analisis contigo</p>
-            </div>
-            <span className="text-xs text-accent font-medium">Ver &rarr;</span>
-          </button>
         )}
 
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
@@ -386,18 +475,35 @@ export default function PatientsPage() {
             </div>
           </div>
 
-          {patients.length > 0 && (
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o codigo..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 focus:bg-muted/60 transition-all w-64"
-              />
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {userRole === 'medico' && patients.length > 0 && (
+              <div className="relative">
+                <ArrowUpDown size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="bg-muted/40 border border-border rounded-xl pl-8 pr-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-accent/50 focus:bg-muted/60 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="name">Nombre A-Z</option>
+                  <option value="lastAnalysis">Ultimo analisis</option>
+                  <option value="score">Score de salud</option>
+                  <option value="recent">Mas reciente</option>
+                </select>
+              </div>
+            )}
+            {patients.length > 0 && (
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o codigo..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 focus:bg-muted/60 transition-all w-64"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {userRole === 'clinica' ? (
@@ -420,25 +526,58 @@ export default function PatientsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Users size={48} className="text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {search ? 'Sin resultados' : 'Sin pacientes aun'}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              {search
-                ? 'No se encontraron pacientes con ese criterio de busqueda'
-                : 'Crea tu primer paciente para comenzar el analisis'}
-            </p>
-            {!search && (userRole === 'paciente' || userRole === 'medico') && (
-              <Button onClick={() => setShowModal(true)}>
-                <Plus size={16} />
-                Crear primer paciente
-              </Button>
+            {userRole === 'medico' ? (
+              <>
+                <Stethoscope size={48} className="text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {search ? 'Sin resultados' : 'Comienza tu practica digital'}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  {search
+                    ? 'No se encontraron pacientes con ese criterio de busqueda'
+                    : 'Crea tu primer paciente o espera invitaciones de pacientes existentes'}
+                </p>
+                {!search && (
+                  <div className="flex items-center gap-3">
+                    <Button onClick={() => setShowModal(true)}>
+                      <Plus size={16} />
+                      Crear Paciente
+                    </Button>
+                    {medicoCode && (
+                      <Button
+                        variant="outline"
+                        onClick={() => { navigator.clipboard.writeText(medicoCode); toast.success('Codigo copiado al portapapeles') }}
+                      >
+                        <Copy size={16} />
+                        Compartir mi codigo
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <Users size={48} className="text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {search ? 'Sin resultados' : 'Sin pacientes aun'}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  {search
+                    ? 'No se encontraron pacientes con ese criterio de busqueda'
+                    : 'Crea tu primer paciente para comenzar el analisis'}
+                </p>
+                {!search && userRole === 'paciente' && (
+                  <Button onClick={() => setShowModal(true)}>
+                    <Plus size={16} />
+                    Crear primer paciente
+                  </Button>
+                )}
+              </>
             )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filtered.map((patient) => (
+            {(userRole === 'medico' ? sortedFiltered : filtered).map((patient) => (
               <PatientCard
                 key={patient.id}
                 patient={patient}

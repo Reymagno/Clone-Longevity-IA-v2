@@ -129,8 +129,15 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
-              <User size={18} className="text-accent" />
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
+                <User size={18} className="text-accent" />
+              </div>
+              {alerts.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-danger text-white text-[10px] font-bold leading-none px-1 shadow-sm">
+                  {alerts.length}
+                </span>
+              )}
             </div>
             <div>
               <p className="font-semibold text-foreground">{patient.name}</p>
@@ -157,33 +164,57 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
         </div>
 
         {/* Info */}
-        <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
-          <span>{patient.age} años</span>
-          <span>•</span>
-          <span>{patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'}</span>
+        <div className="flex items-center gap-1.5 flex-wrap mb-4">
+          <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 border border-border/40">
+            {patient.age} años
+          </span>
+          <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 border border-border/40">
+            {patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'}
+          </span>
           {result && (
-            <>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Calendar size={12} />
-                {formatDate(result.result_date)}
-              </span>
-            </>
+            <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded-md bg-muted/50 border border-border/40 flex items-center gap-1">
+              <Calendar size={10} />
+              {formatDate(result.result_date)}
+            </span>
           )}
         </div>
 
         {/* Score */}
         {score !== null ? (
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${score}%`, backgroundColor: getScoreColor(score) }}
-              />
+          <div className="mb-4 space-y-1.5">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${score}%`, backgroundColor: getScoreColor(score) }}
+                />
+              </div>
+              <span className="text-base font-mono font-bold" style={{ color: getScoreColor(score) }}>
+                {score}
+              </span>
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-md"
+                style={{
+                  color: getScoreColor(score),
+                  backgroundColor: `${getScoreColor(score)}15`,
+                }}
+              >
+                {score >= 80 ? 'Excelente' : score >= 60 ? 'Bueno' : score >= 40 ? 'Atención' : 'Crítico'}
+              </span>
             </div>
-            <span className="text-sm font-mono font-medium" style={{ color: getScoreColor(score) }}>
-              {score}
-            </span>
+            {viewerRole === 'medico' && analysis?.longevity_age != null && (
+              <div className="flex items-center">
+                <span
+                  className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${
+                    analysis.longevity_age < patient.age
+                      ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30'
+                      : 'text-red-500 bg-red-500/10 border-red-500/30'
+                  }`}
+                >
+                  Edad biológica: {analysis.longevity_age} años
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
@@ -233,7 +264,11 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
         {isOwnPatient && (
           <Link
             href={`/patients/${patient.id}/intake`}
-            className="mt-2 w-full flex items-center justify-center gap-2 border border-border text-muted-foreground text-sm py-2 rounded-lg hover:text-foreground hover:border-accent/50 hover:bg-muted/20 transition-all"
+            className={`mt-2 w-full flex items-center justify-center gap-2 border text-muted-foreground text-sm py-2 rounded-lg hover:text-foreground hover:border-accent/50 hover:bg-muted/20 transition-all ${
+              patient.clinical_history
+                ? 'border-border border-l-2 border-l-emerald-500/60'
+                : 'border-border border-l-2 border-l-amber-500/60'
+            }`}
           >
             {patient.clinical_history ? (
               <>
@@ -243,6 +278,10 @@ export function PatientCard({ patient, onDeleted, onUnlinked, viewerRole = 'paci
               </>
             ) : (
               <>
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                </span>
                 <ClipboardList size={13} />
                 <span>Completar Historia Clínica</span>
                 <span className="ml-auto text-xs text-warning font-medium">Pendiente</span>
