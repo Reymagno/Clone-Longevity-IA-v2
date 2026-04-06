@@ -41,8 +41,8 @@ interface DashboardTabsProps {
   viewerRole?: string
 }
 
-// Tabs desactivadas temporalmente: Lípidos (2) y Metabólico (3)
-const HIDDEN_TABS = new Set([2, 3])
+// Tabs desactivadas temporalmente: Lípidos (2), Metabólico (3), Productos y suplementos (8)
+const HIDDEN_TABS = new Set([2, 3, 8])
 
 const TABS = [
   { id: 0, label: 'Resumen', icon: BarChart2 },
