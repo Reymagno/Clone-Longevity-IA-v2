@@ -44,6 +44,9 @@ export function ClinicaDashboard() {
   const [pendingInvitations, setPendingInvitations] = useState(0)
   const [activeTab, setActiveTab] = useState<TabKey>('resumen')
   const [loading, setLoading] = useState(true)
+  // Quick action modal states — open modal directly without tab switch
+  const [quickCreateMedico, setQuickCreateMedico] = useState(false)
+  const [quickCreatePatient, setQuickCreatePatient] = useState(false)
 
   const loadClinica = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -218,39 +221,27 @@ export function ClinicaDashboard() {
         )}
       </div>
 
-      {/* ── Quick actions bar ── */}
-      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+      {/* ── Quick actions bar (sin duplicados) ── */}
+      <div className="grid grid-cols-3 gap-2">
         <button
-          onClick={() => setActiveTab('medicos')}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-amber-500/25 bg-amber-500/8 text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/40 transition-all"
+          onClick={() => { setActiveTab('medicos'); setQuickCreateMedico(true) }}
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold border border-amber-500/25 bg-amber-500/8 text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/40 transition-all"
         >
-          <UserPlus size={14} />
+          <UserPlus size={15} />
           Nuevo Medico
         </button>
         <button
-          onClick={() => setActiveTab('pacientes')}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-emerald-500/25 bg-emerald-500/8 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-all"
+          onClick={() => { setActiveTab('pacientes'); setQuickCreatePatient(true) }}
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold border border-emerald-500/25 bg-emerald-500/8 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-all"
         >
-          <UserCog size={14} />
+          <UserCog size={15} />
           Nuevo Paciente
         </button>
         <button
-          onClick={() => setActiveTab('invitaciones')}
-          className="relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-blue-500/25 bg-blue-500/8 text-blue-400 hover:bg-blue-500/15 hover:border-blue-500/40 transition-all"
-        >
-          <Mail size={14} />
-          Invitaciones
-          {pendingInvitations > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-danger text-[10px] font-bold text-background">
-              {pendingInvitations}
-            </span>
-          )}
-        </button>
-        <button
           onClick={() => setActiveTab('agente')}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-accent/25 bg-accent/8 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold border border-accent/25 bg-accent/8 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all"
         >
-          <BotMessageSquare size={14} />
+          <BotMessageSquare size={15} />
           Asistente IA
         </button>
       </div>
@@ -374,10 +365,12 @@ export function ClinicaDashboard() {
         <ResumenTab stats={stats} medicos={medicos} recentPatients={patients.slice(0, 5)} />
       )}
       {activeTab === 'medicos' && (
-        <MedicosTab medicos={medicos} onRefresh={handleRefreshMedicos} />
+        <MedicosTab medicos={medicos} onRefresh={handleRefreshMedicos}
+          autoOpenModal={quickCreateMedico} onModalClosed={() => setQuickCreateMedico(false)} />
       )}
       {activeTab === 'pacientes' && (
-        <PacientesTab patients={patients} medicos={medicos} onRefresh={handleRefreshPatients} />
+        <PacientesTab patients={patients} medicos={medicos} onRefresh={handleRefreshPatients}
+          autoOpenModal={quickCreatePatient} onModalClosed={() => setQuickCreatePatient(false)} />
       )}
       {activeTab === 'estadisticas' && (
         <EstadisticasTab stats={stats} medicos={medicos} />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, Users, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,13 +12,19 @@ interface PacientesTabProps {
   patients: Patient[]
   medicos: Medico[]
   onRefresh: () => void
+  autoOpenModal?: boolean
+  onModalClosed?: () => void
 }
 
-export function PacientesTab({ patients, medicos, onRefresh }: PacientesTabProps) {
+export function PacientesTab({ patients, medicos, onRefresh, autoOpenModal, onModalClosed }: PacientesTabProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterMedico, setFilterMedico] = useState('all')
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(autoOpenModal ?? false)
+
+  useEffect(() => {
+    if (autoOpenModal) setShowModal(true)
+  }, [autoOpenModal])
 
   const medicoOptions = [
     { value: 'all', label: 'Todos los medicos' },

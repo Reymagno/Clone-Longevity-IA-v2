@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Plus, Stethoscope, Mail, Hash, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Medico } from '@/types'
@@ -9,11 +9,20 @@ import { CreateMedicoModal } from '../CreateMedicoModal'
 interface MedicosTabProps {
   medicos: Medico[]
   onRefresh: () => void
+  autoOpenModal?: boolean
+  onModalClosed?: () => void
 }
 
-export function MedicosTab({ medicos, onRefresh }: MedicosTabProps) {
+export function MedicosTab({ medicos, onRefresh, autoOpenModal, onModalClosed }: MedicosTabProps) {
   const [search, setSearch] = useState('')
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(autoOpenModal ?? false)
+
+  // Auto-open modal from quick action
+  useEffect(() => {
+    if (autoOpenModal) {
+      setShowModal(true)
+    }
+  }, [autoOpenModal])
 
   const filtered = medicos.filter((m) =>
     m.full_name.toLowerCase().includes(search.toLowerCase()) ||
