@@ -116,7 +116,7 @@ export function ClinicalHistoryTab({ patient, result, viewerRole = 'paciente' }:
         <MedicoVoicePanel
           patientId={patient.id}
           patientName={patient.name}
-          onNoteSaved={() => { setJustSaved(true); setShowChat(false) }}
+          onNoteSaved={() => { setJustSaved(true); setShowChat(false); router.refresh() }}
         />
       </div>
     )

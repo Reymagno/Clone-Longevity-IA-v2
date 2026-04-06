@@ -157,18 +157,24 @@ Responde en español, de forma concisa y clínica. Si la nota no contiene inform
         .eq('id', patientId)
         .single()
 
-      if (currentPatient?.clinical_history) {
-        const history = currentPatient.clinical_history as Record<string, unknown>
-        const voiceNotes = (history.voice_notes as string[] | undefined) || []
-        voiceNotes.push(note.id)
+      const history = (currentPatient?.clinical_history as Record<string, unknown>) ?? {}
+      const voiceNotes = (history.voice_notes as string[] | undefined) || []
+      voiceNotes.push(note.id)
 
-        await supabase
-          .from('patients')
-          .update({
-            clinical_history: { ...history, voice_notes: voiceNotes },
-          })
-          .eq('id', patientId)
-      }
+      await supabase
+        .from('patients')
+        .update({
+          clinical_history: {
+            ...history,
+            voice_notes: voiceNotes,
+            // Si no existía clinical_history, marcar como creada por nota de voz del médico
+            ...(!currentPatient?.clinical_history && {
+              completed_at: new Date().toISOString(),
+              source: 'medico_voice_note',
+            }),
+          },
+        })
+        .eq('id', patientId)
     } catch (histErr) {
       console.error('Clinical history voice note ref update failed:', histErr instanceof Error ? histErr.message : histErr)
     }

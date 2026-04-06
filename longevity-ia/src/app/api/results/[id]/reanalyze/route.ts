@@ -96,7 +96,7 @@ export async function POST(
         // Inyectar hash de historia clínica para detectar cambios futuros
         const analysisWithMeta = {
           ...(newAiAnalysis as Record<string, unknown>),
-          _meta: { clinicalHistoryHash: hashClinicalHistory(patient.clinical_history) },
+          _meta: { clinicalHistoryHash: hashClinicalHistory({ ch: patient.clinical_history, vn: voiceNotesContext }) },
         }
 
         const { data: updated, error: updateError } = await supabase
