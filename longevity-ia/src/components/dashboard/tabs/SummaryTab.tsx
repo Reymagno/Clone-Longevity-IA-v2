@@ -276,21 +276,24 @@ function BmRow({ label, bm }: { label: string; bm: BiomarkerValue | null | undef
   )
 }
 
-// ── Fila de contexto clínico ─────────────────────────────────────
+// ── Fila de contexto clínico (mejorada para legibilidad) ─────────
 function CtxRow({ icon, color, label, value, alert }: {
   icon: React.ReactNode; color: string; label: string; value: string; alert?: boolean
 }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+    <div className="flex items-start gap-3 rounded-xl px-4 py-3"
       style={{
-        background: alert ? `${color}08` : 'transparent',
-        border: `1px solid ${alert ? color + '25' : 'hsl(var(--border) / 0.5)'}`,
-        borderLeft: alert ? `3px solid ${color}` : undefined,
+        background: alert ? `${color}08` : 'hsl(var(--muted) / 0.15)',
+        border: `1px solid ${alert ? color + '25' : 'hsl(var(--border) / 0.4)'}`,
+        borderLeft: `3px solid ${alert ? color : color + '40'}`,
       }}>
-      <span className="mt-0.5 shrink-0" style={{ color }}>{icon}</span>
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+        style={{ background: `${color}15` }}>
+        <span style={{ color }}>{icon}</span>
+      </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: alert ? color : 'hsl(var(--muted-foreground))' }}>{label}</p>
-        <p className="text-xs text-foreground/85 leading-relaxed">{value}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: alert ? color : 'hsl(var(--muted-foreground))' }}>{label}</p>
+        <p className="text-sm text-foreground/90 leading-relaxed">{value}</p>
       </div>
     </div>
   )
@@ -417,16 +420,19 @@ function extractPatientProfile(patient: Patient | undefined): PatientProfile | n
   }
 }
 
-// ── Mini card para perfil ─────────────────────────────────────────
+// ── Mini card para perfil (mejorada para legibilidad) ─────────────
 function ProfileItem({ icon, label, value, color = 'hsl(var(--muted-foreground))' }: {
   icon: React.ReactNode; label: string; value: string; color?: string
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/40">
-      <span className="shrink-0" style={{ color }}>{icon}</span>
+    <div className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-muted/30 border border-border/40">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+        style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+        <span style={{ color }}>{icon}</span>
+      </div>
       <div className="min-w-0">
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-xs text-foreground/90 truncate">{value}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">{label}</p>
+        <p className="text-sm font-medium text-foreground truncate">{value}</p>
       </div>
     </div>
   )
@@ -711,75 +717,86 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
         </div>
       </div>
 
-      {/* ══ PERFIL DE PACIENTE ═══════════════════════════════════════ */}
+      {/* ══ PERFIL DE PACIENTE (Tarjeta Médica) ═════════════════════ */}
       {profile && (
         <div className="card-medical overflow-hidden p-0">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-            <div className="flex items-center gap-2">
-              <User size={15} className="text-accent shrink-0" />
-              <h2 className="font-semibold text-foreground text-sm">Perfil de Paciente</h2>
+          {/* Header con gradiente */}
+          <div className="px-6 py-4 border-b border-border/40"
+            style={{ background: 'linear-gradient(135deg, #0E1A30 0%, #0A1729 100%)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center">
+                  <User size={18} className="text-accent" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-white text-base">{patientName ?? 'Perfil de Paciente'}</h2>
+                  <p className="text-xs text-blue-300/60">{profile.age} años · {profile.gender ?? ''}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {profile.bmi && (
+                  <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/25 text-accent font-bold">
+                    IMC {profile.bmi}
+                  </span>
+                )}
+              </div>
             </div>
-            {profile.bmi && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted/50 border border-border/50 text-muted-foreground">
-                IMC: {profile.bmi}
-              </span>
-            )}
           </div>
 
-          <div className="px-5 py-4 space-y-4">
+          <div className="px-6 py-5 space-y-5">
             {/* Datos demográficos */}
             <div>
-              <div className="flex items-center gap-2 mb-2.5">
-                <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Datos Generales</span>
-                <div className="flex-1 h-px bg-border/60" />
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Datos Generales</span>
+                <div className="flex-1 h-px bg-border/50" />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {profile.age && (
-                  <ProfileItem icon={<User size={11} />} label="Edad" value={`${profile.age} años`} color="#3b82f6" />
+                  <ProfileItem icon={<User size={14} />} label="Edad" value={`${profile.age} años`} color="#3b82f6" />
                 )}
                 {profile.gender && (
-                  <ProfileItem icon={<User size={11} />} label="Género" value={profile.gender} color="#8b5cf6" />
+                  <ProfileItem icon={<User size={14} />} label="Género" value={profile.gender} color="#8b5cf6" />
                 )}
                 {profile.weight && (
-                  <ProfileItem icon={<Weight size={11} />} label="Peso" value={profile.weight} color="#f59e0b" />
+                  <ProfileItem icon={<Weight size={14} />} label="Peso" value={profile.weight} color="#f59e0b" />
                 )}
                 {profile.height && (
-                  <ProfileItem icon={<Ruler size={11} />} label="Estatura" value={profile.height} color="#10b981" />
+                  <ProfileItem icon={<Ruler size={14} />} label="Estatura" value={profile.height} color="#10b981" />
                 )}
               </div>
             </div>
 
-            {/* Condiciones y alergias */}
+            {/* Historial Médico */}
             {(profile.conditions.length > 0 || profile.allergyMed || profile.allergyFood || profile.medications || profile.recentCondition) && (
               <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Historial Médico</span>
-                  <div className="flex-1 h-px bg-border/60" />
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Historial Médico</span>
+                  <div className="flex-1 h-px bg-border/50" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {profile.conditions.length > 0 && (
-                    <CtxRow icon={<Stethoscope size={11} />} color="#D4A03A" label="Enfermedades / Condiciones" value={profile.conditions.join(', ')} />
+                    <CtxRow icon={<Stethoscope size={13} />} color="#D4A03A" label="Enfermedades / Condiciones" value={profile.conditions.join(', ')} />
                   )}
                   {profile.medications && (
-                    <CtxRow icon={<Pill size={11} />} color="#f97316" label="Medicamentos actuales" value={profile.medications} alert />
+                    <CtxRow icon={<Pill size={13} />} color="#f97316" label="Medicamentos actuales" value={profile.medications} alert />
                   )}
                   {profile.allergyMed && (
-                    <CtxRow icon={<AlertCircle size={11} />} color="#D4536A" label="Alergia a medicamento" value={profile.allergyMed} alert />
+                    <CtxRow icon={<AlertCircle size={13} />} color="#D4536A" label="Alergia a medicamento" value={profile.allergyMed} alert />
                   )}
                   {profile.allergyFood && (
-                    <CtxRow icon={<Apple size={11} />} color="#D4536A" label="Alergia alimentaria" value={profile.allergyFood} alert />
+                    <CtxRow icon={<Apple size={13} />} color="#D4536A" label="Alergia alimentaria" value={profile.allergyFood} alert />
                   )}
                   {profile.surgeries && (
-                    <CtxRow icon={<ClipboardList size={11} />} color="#6b7280" label="Cirugías previas" value={profile.surgeries} />
+                    <CtxRow icon={<ClipboardList size={13} />} color="#6b7280" label="Cirugías previas" value={profile.surgeries} />
                   )}
                   {profile.recentCondition && (
-                    <CtxRow icon={<AlertTriangle size={11} />} color="#D4A03A" label="Condición reciente" value={profile.recentCondition} />
+                    <CtxRow icon={<AlertTriangle size={13} />} color="#D4A03A" label="Condición reciente" value={profile.recentCondition} />
                   )}
                   {profile.recentTreatment && (
-                    <CtxRow icon={<HeartHandshake size={11} />} color="#3b82f6" label="Tratamiento reciente" value={profile.recentTreatment} />
+                    <CtxRow icon={<HeartHandshake size={13} />} color="#3b82f6" label="Tratamiento reciente" value={profile.recentTreatment} />
                   )}
                   {profile.smoker && profile.smoker !== 'no' && (
-                    <CtxRow icon={<AlertCircle size={11} />} color="#D4536A" label="Tabaquismo" value={profile.smoker} alert />
+                    <CtxRow icon={<AlertCircle size={13} />} color="#D4536A" label="Tabaquismo" value={profile.smoker} alert />
                   )}
                 </div>
               </div>
@@ -788,22 +805,22 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
             {/* Estilo de vida */}
             {(profile.diet || profile.exercise || profile.sleepHours || profile.stressLevel) && (
               <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Estilo de Vida</span>
-                  <div className="flex-1 h-px bg-border/60" />
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Estilo de Vida</span>
+                  <div className="flex-1 h-px bg-border/50" />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {profile.exercise && (
-                    <ProfileItem icon={<Dumbbell size={11} />} label="Ejercicio" value={profile.exercise} color="#10b981" />
+                    <ProfileItem icon={<Dumbbell size={14} />} label="Ejercicio" value={profile.exercise} color="#10b981" />
                   )}
                   {profile.diet && (
-                    <ProfileItem icon={<Apple size={11} />} label="Dieta" value={profile.diet} color="#f59e0b" />
+                    <ProfileItem icon={<Apple size={14} />} label="Dieta" value={profile.diet} color="#f59e0b" />
                   )}
                   {profile.sleepHours && (
-                    <ProfileItem icon={<Moon size={11} />} label="Sueño" value={`${profile.sleepHours}${profile.sleepQuality ? ` · ${profile.sleepQuality}` : ''}`} color="#6366f1" />
+                    <ProfileItem icon={<Moon size={14} />} label="Sueño" value={`${profile.sleepHours}${profile.sleepQuality ? ` · ${profile.sleepQuality}` : ''}`} color="#6366f1" />
                   )}
                   {profile.stressLevel && (
-                    <ProfileItem icon={<Brain size={11} />} label="Estrés" value={profile.stressLevel} color="#a78bfa" />
+                    <ProfileItem icon={<Brain size={14} />} label="Estrés" value={profile.stressLevel} color="#a78bfa" />
                   )}
                 </div>
               </div>
@@ -812,16 +829,16 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
             {/* Antecedentes familiares */}
             {(profile.familyConditions.length > 0 || profile.familyLongevity) && (
               <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">Antecedentes Familiares</span>
-                  <div className="flex-1 h-px bg-border/60" />
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-accent">Antecedentes Familiares</span>
+                  <div className="flex-1 h-px bg-border/50" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {profile.familyConditions.length > 0 && (
-                    <CtxRow icon={<Users size={11} />} color="#a78bfa" label="Enfermedades en familiares directos" value={profile.familyConditions.join(', ')} />
+                    <CtxRow icon={<Users size={13} />} color="#a78bfa" label="Enfermedades en familiares directos" value={profile.familyConditions.join(', ')} />
                   )}
                   {profile.familyLongevity && (
-                    <CtxRow icon={<HeartHandshake size={11} />} color="#10b981" label="Longevidad familiar" value={profile.familyLongevity} />
+                    <CtxRow icon={<HeartHandshake size={13} />} color="#10b981" label="Longevidad familiar" value={profile.familyLongevity} />
                   )}
                 </div>
               </div>
@@ -829,9 +846,9 @@ export function SummaryTab({ analysis, patientAge, patientName, resultDate, pars
 
             {/* Aviso si no hay historia clínica */}
             {!patient?.clinical_history && (
-              <div className="flex items-center gap-2.5 rounded-lg px-4 py-3 bg-amber-500/5 border border-amber-500/20">
-                <Info size={13} className="text-amber-400 shrink-0" />
-                <p className="text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-3 rounded-xl px-4 py-3.5 bg-amber-500/5 border border-amber-500/20">
+                <Info size={15} className="text-amber-400 shrink-0" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Sin historia clínica registrada.{' '}
                   <span className="text-amber-400 font-medium">Completar el perfil del paciente mejora la personalización del análisis.</span>
                 </p>

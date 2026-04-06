@@ -325,8 +325,7 @@ export function DashboardTabs({ patient, result, allResults = [], viewerRole = '
               if (tab.id === 10 && viewerRole === 'medico') return false
               // Tendencias only for medicos
               if (tab.id === 12 && viewerRole !== 'medico') return false
-              // Protocolo oculto para pacientes
-              if (tab.id === 6 && viewerRole === 'paciente') return false
+              // Protocolo visible para todos los roles
               return true
             }).map((tab) => {
               const Icon = tab.icon
